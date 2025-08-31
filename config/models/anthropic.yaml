@@ -1,0 +1,68 @@
+# Anthropic Models Configuration
+# Specific settings for Anthropic Claude models
+
+models:
+  defaults:
+    temperature: 0.7
+    max_tokens: 150
+    top_p: 0.9
+    top_k: 250
+
+  overrides:
+    "anthropic/claude-3-opus":
+      temperature: 0.5
+      max_tokens: 200
+      top_p: 0.95
+      context_window: 200000
+      pricing:
+        input: 0.015
+        output: 0.075
+
+    "anthropic/claude-3-sonnet":
+      temperature: 0.6
+      max_tokens: 180
+      top_p: 0.95
+      context_window: 200000
+      pricing:
+        input: 0.003
+        output: 0.015
+
+    "anthropic/claude-3-haiku":
+      temperature: 0.7
+      max_tokens: 150
+      top_p: 0.9
+      context_window: 200000
+      pricing:
+        input: 0.00025
+        output: 0.00125
+
+    "anthropic/claude-2":
+      temperature: 0.6
+      max_tokens: 200
+      top_p: 0.95
+      context_window: 100000
+      pricing:
+        input: 0.008
+        output: 0.024
+
+benchmark:
+  modes:
+    quick:
+      sample_size: 45
+      timeout: 30
+    standard:
+      sample_size: 140
+      timeout: 50
+    comprehensive:
+      sample_size: 450
+      timeout: 100
+
+rate_limits:
+  requests_per_minute: 50
+  burst_limit: 8
+  backoff_factor: 2.5
+
+features:
+  supports_streaming: true
+  supports_functions: false
+  supports_vision: true

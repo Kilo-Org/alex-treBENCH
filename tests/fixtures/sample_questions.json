@@ -1,0 +1,57 @@
+[
+  {
+    "question_id": "1",
+    "question": "This planet is known as the Red Planet",
+    "answer": "What is Mars?",
+    "category": "ASTRONOMY",
+    "value": 200,
+    "difficulty_level": "Easy",
+    "air_date": "2023-01-15",
+    "show_number": "8001",
+    "round": "Jeopardy!"
+  },
+  {
+    "question_id": "2",
+    "question": "The largest ocean on Earth",
+    "answer": "What is the Pacific Ocean?",
+    "category": "GEOGRAPHY", 
+    "value": 400,
+    "difficulty_level": "Easy",
+    "air_date": "2023-01-15",
+    "show_number": "8001",
+    "round": "Jeopardy!"
+  },
+  {
+    "question_id": "3",
+    "question": "The author of 'To Kill a Mockingbird'",
+    "answer": "Who is Harper Lee?",
+    "category": "LITERATURE",
+    "value": 600,
+    "difficulty_level": "Medium",
+    "air_date": "2023-01-15", 
+    "show_number": "8001",
+    "round": "Jeopardy!"
+  },
+  {
+    "question_id": "4",
+    "question": "The chemical symbol for gold",
+    "answer": "What is Au?",
+    "category": "SCIENCE",
+    "value": 800,
+    "difficulty_level": "Medium",
+    "air_date": "2023-01-15",
+    "show_number": "8001",
+    "round": "Double Jeopardy!"
+  },
+  {
+    "question_id": "5",
+    "question": "The year the Berlin Wall fell",
+    "answer": "What is 1989?",
+    "category": "HISTORY",
+    "value": 1000,
+    "difficulty_level": "Hard",
+    "air_date": "2023-01-15",
+    "show_number": "8001", 
+    "round": "Double Jeopardy!"
+  }
+]

@@ -1,0 +1,78 @@
+# Open Source Models Configuration
+# Specific settings for open source models (Llama, Mistral, etc.)
+
+models:
+  defaults:
+    temperature: 0.8
+    max_tokens: 100
+    top_p: 0.9
+    top_k: 40
+    repetition_penalty: 1.1
+
+  overrides:
+    "meta-llama/llama-2-70b-chat":
+      temperature: 0.7
+      max_tokens: 120
+      top_p: 0.95
+      context_window: 4096
+      pricing:
+        input: 0.0007
+        output: 0.0009
+
+    "meta-llama/llama-2-13b-chat":
+      temperature: 0.7
+      max_tokens: 100
+      top_p: 0.9
+      context_window: 4096
+      pricing:
+        input: 0.0002
+        output: 0.0003
+
+    "mistralai/mistral-7b-instruct":
+      temperature: 0.8
+      max_tokens: 80
+      top_p: 0.9
+      context_window: 8192
+      pricing:
+        input: 0.0002
+        output: 0.0003
+
+    "mistralai/mixtral-8x7b-instruct":
+      temperature: 0.7
+      max_tokens: 100
+      top_p: 0.95
+      context_window: 32768
+      pricing:
+        input: 0.0005
+        output: 0.0007
+
+    "microsoft/wizardlm-2-8x22b":
+      temperature: 0.6
+      max_tokens: 150
+      top_p: 0.9
+      context_window: 65536
+      pricing:
+        input: 0.0006
+        output: 0.0008
+
+benchmark:
+  modes:
+    quick:
+      sample_size: 40
+      timeout: 35
+    standard:
+      sample_size: 120
+      timeout: 60
+    comprehensive:
+      sample_size: 300
+      timeout: 120
+
+rate_limits:
+  requests_per_minute: 40
+  burst_limit: 5
+  backoff_factor: 3.0
+
+features:
+  supports_streaming: true
+  supports_functions: false
+  supports_vision: false

@@ -1,0 +1,240 @@
+version: '3.8'
+
+services:
+  # Main application service
+  app:
+    build:
+      context: .
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}
+        VERSION: ${VERSION:-1.0.0}
+    container_name: jeopardy-benchmark
+    restart: unless-stopped
+
+    # Environment configuration
+    env_file:
+      - .env
+    environment:
+      - JEOPARDY_ENV=production
+      - DATABASE_URL=postgresql://jeopardy:jeopardy_pass@db:5432/jeopardy_benchmark
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app
+
+    # Volume mounts for persistence
+    volumes:
+      - ./data:/app/data:rw
+      - ./logs:/app/logs:rw
+      - ./reports:/app/reports:rw
+      - ./config:/app/config:ro
+
+    # Networking
+    networks:
+      - benchmark-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "from src.core.config import get_config; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # Database service
+  db:
+    image: postgres:15-alpine
+    container_name: jeopardy-db
+    restart: unless-stopped
+
+    # Environment configuration
+    environment:
+      POSTGRES_DB: jeopardy_benchmark
+      POSTGRES_USER: jeopardy
+      POSTGRES_PASSWORD: jeopardy_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+
+    # Volume mounts for data persistence
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+
+    # Networking
+    networks:
+      - benchmark-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jeopardy -d jeopardy_benchmark"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: jeopardy-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+    # Volume mounts for persistence
+    volumes:
+      - redis_data:/data
+
+    # Networking
+    networks:
+      - benchmark-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # Development service (for development environment)
+  dev:
+    build:
+      context: .
+      target: development
+    container_name: jeopardy-dev
+    profiles: ["dev"]
+    restart: "no"
+
+    # Environment configuration
+    env_file:
+      - .env
+    environment:
+      - JEOPARDY_ENV=development
+      - DATABASE_URL=postgresql://jeopardy:jeopardy_pass@db:5432/jeopardy_benchmark
+      - LOG_LEVEL=DEBUG
+      - PYTHONPATH=/app
+
+    # Volume mounts for development
+    volumes:
+      - .:/app:rw
+      - ./data:/app/data:rw
+      - ./logs:/app/logs:rw
+
+    # Networking
+    networks:
+      - benchmark-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Development ports
+    ports:
+      - "8000:8000"
+
+  # Testing service
+  test:
+    build:
+      context: .
+      target: testing
+    container_name: jeopardy-test
+    profiles: ["test"]
+    restart: "no"
+
+    # Environment configuration
+    environment:
+      - JEOPARDY_ENV=testing
+      - DATABASE_URL=sqlite:///tmp/test.db
+      - LOG_LEVEL=WARNING
+      - PYTHONPATH=/app
+
+    # Volume mounts for test coverage
+    volumes:
+      - ./test-results:/app/test-results:rw
+
+    # Networking
+    networks:
+      - benchmark-network
+
+  # Demo service
+  demo:
+    build:
+      context: .
+      target: demo
+    container_name: jeopardy-demo
+    profiles: ["demo"]
+    restart: "no"
+
+    # Environment configuration
+    environment:
+      - JEOPARDY_ENV=demo
+      - DATABASE_URL=sqlite:///tmp/demo.db
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app
+
+    # Volume mounts for demo outputs
+    volumes:
+      - ./demo-results:/app/demo-results:rw
+
+    # Networking
+    networks:
+      - benchmark-network
+
+# Networks
+networks:
+  benchmark-network:
+    driver: bridge
+    name: jeopardy-benchmark-network
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+    name: jeopardy-postgres-data
+  redis_data:
+    driver: local
+    name: jeopardy-redis-data
+
+# Configuration for different environments
+x-environment: &default-env
+  JEOPARDY_ENV: production
+  LOG_LEVEL: INFO
+  PYTHONPATH: /app
+
+x-dev-environment: &dev-env
+  <<: *default-env
+  JEOPARDY_ENV: development
+  LOG_LEVEL: DEBUG
+
+x-test-environment: &test-env
+  <<: *default-env
+  JEOPARDY_ENV: testing
+  LOG_LEVEL: WARNING

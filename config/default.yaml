@@ -1,0 +1,123 @@
+# Jeopardy Benchmarking System Configuration
+
+app:
+  name: "Jeopardy Benchmark"
+  version: "1.0.0"
+  environment: "production"
+  debug: false
+
+database:
+  url: "sqlite:///database/benchmarks.db"
+  echo: false
+  pool_size: 5
+  backup:
+    enabled: true
+    rotation: 5
+    path: "./backups"
+
+cache:
+  enabled: true
+  ttl: 3600
+  max_size: 1000
+
+openrouter:
+  base_url: "https://openrouter.ai/api/v1"
+  timeout: 30
+  max_retries: 3
+  rate_limit:
+    requests_per_minute: 60
+    backoff_factor: 2.0
+    max_backoff: 60.0
+  default_model: "openai/gpt-3.5-turbo"
+  streaming: false
+  headers:
+    referer: "https://jeopardy-bench.local"
+    title: "Jeopardy Benchmarking System"
+
+prompts:
+  default_template: "jeopardy_style"
+  include_category: true
+  include_value: true
+  include_difficulty: false
+  max_length: 1000
+  templates:
+    basic_qa:
+      system_prompt: "You are an expert quiz contestant. Answer the question accurately and concisely."
+    jeopardy_style:
+      system_prompt: "You are a Jeopardy! contestant. Respond to each clue in the form of a question."
+    chain_of_thought:
+      system_prompt: "You are a Jeopardy! contestant. Think through the clue step by step, then provide your final answer in the form of a question."
+
+costs:
+  billing_tier: "basic"
+  track_usage: true
+  usage_file: "data/usage/model_usage.json"
+  estimation:
+    default_input_tokens_per_question: 100
+    default_output_tokens_per_question: 50
+
+benchmark:
+  modes:
+    quick:
+      sample_size: 50
+      categories: 5
+      timeout: 30
+      max_retries: 2
+    standard:
+      sample_size: 200
+      categories: 10
+      timeout: 60
+      max_retries: 3
+    comprehensive:
+      sample_size: 1000
+      categories: all
+      timeout: 120
+      max_retries: 3
+
+  grading:
+    default_mode: "lenient"
+    confidence_threshold: 0.7
+    partial_credit: true
+    jeopardy_format_required: false
+
+  parallel:
+    max_concurrent_models: 3
+    max_concurrent_requests: 10
+    rate_limit_per_minute: 60
+
+  default_sample_size: 1000
+  confidence_level: 0.95
+  margin_of_error: 0.05
+  answer_similarity_threshold: 0.7
+  max_concurrent_requests: 5
+
+models:
+  defaults:
+    temperature: 0.7
+    max_tokens: 150
+    top_p: 0.9
+
+  overrides:
+    "openai/gpt-4":
+      temperature: 0.5
+      max_tokens: 200
+    "anthropic/claude-3":
+      temperature: 0.6
+      max_tokens: 250
+
+reporting:
+  default_format: "terminal"
+  include_metadata: true
+  export_path: "./reports"
+  visualization: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/benchmark.log"
+  max_size: "10MB"
+  backup_count: 5
+
+kaggle:
+  dataset: "aravindram11/jeopardy-dataset-updated"
+  cache_dir: "data/raw"

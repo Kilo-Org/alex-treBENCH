@@ -1,0 +1,78 @@
+[
+  {
+    "question_id": "1",
+    "model_name": "openai/gpt-3.5-turbo",
+    "response_text": "What is Mars?",
+    "response_time_ms": 150,
+    "tokens_generated": 4,
+    "cost_usd": 0.0012,
+    "is_correct": true,
+    "confidence_score": 0.95,
+    "metadata": {
+      "finish_reason": "stop",
+      "tokens_input": 25,
+      "model_version": "gpt-3.5-turbo-0613"
+    }
+  },
+  {
+    "question_id": "2", 
+    "model_name": "openai/gpt-3.5-turbo",
+    "response_text": "What is the Pacific Ocean?",
+    "response_time_ms": 180,
+    "tokens_generated": 6,
+    "cost_usd": 0.0015,
+    "is_correct": true,
+    "confidence_score": 0.98,
+    "metadata": {
+      "finish_reason": "stop",
+      "tokens_input": 22,
+      "model_version": "gpt-3.5-turbo-0613"
+    }
+  },
+  {
+    "question_id": "3",
+    "model_name": "anthropic/claude-3-haiku", 
+    "response_text": "Who is Harper Lee?",
+    "response_time_ms": 220,
+    "tokens_generated": 5,
+    "cost_usd": 0.0008,
+    "is_correct": true,
+    "confidence_score": 0.92,
+    "metadata": {
+      "finish_reason": "end_turn",
+      "tokens_input": 28,
+      "model_version": "claude-3-haiku-20240307"
+    }
+  },
+  {
+    "question_id": "4",
+    "model_name": "openai/gpt-4",
+    "response_text": "What is Gold?",
+    "response_time_ms": 300,
+    "tokens_generated": 4,
+    "cost_usd": 0.012,
+    "is_correct": false,
+    "confidence_score": 0.65,
+    "metadata": {
+      "finish_reason": "stop", 
+      "tokens_input": 26,
+      "model_version": "gpt-4-0613",
+      "note": "Incorrect - should be 'What is Au?'"
+    }
+  },
+  {
+    "question_id": "5",
+    "model_name": "anthropic/claude-3-sonnet",
+    "response_text": "What is 1989?",
+    "response_time_ms": 250,
+    "tokens_generated": 5,
+    "cost_usd": 0.0045,
+    "is_correct": true,
+    "confidence_score": 0.88,
+    "metadata": {
+      "finish_reason": "end_turn",
+      "tokens_input": 24,
+      "model_version": "claude-3-sonnet-20240229"
+    }
+  }
+]
