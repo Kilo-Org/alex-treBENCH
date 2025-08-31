@@ -1058,11 +1058,11 @@ def data_sample(ctx, size, category, difficulty, min_value, max_value, method, s
         if method == 'random':
             sample_df = sampler.random_sample(df, size, seed)
         elif method == 'stratified':
-            sample_df = sampler.stratified_sample(df, size)
+            sample_df = sampler.stratified_sample(df, size, seed=seed)
         elif method == 'balanced':
-            sample_df = sampler.balanced_difficulty_sample(df, size)
+            sample_df = sampler.balanced_difficulty_sample(df, size, seed=seed)
         else:
-            sample_df = sampler.stratified_sample(df, size)
+            sample_df = sampler.stratified_sample(df, size, seed=seed)
         
         # Display sample information
         console.print(f"[green]✓ Generated {method} sample of {len(sample_df)} questions[/green]")

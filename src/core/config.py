@@ -76,10 +76,26 @@ class BenchmarkGradingConfig:
 
 @dataclass
 class BenchmarkParallelConfig:
-    """Parallel processing configuration."""
+    """Benchmark parallel execution configuration."""
     max_concurrent_models: int = 3
     max_concurrent_requests: int = 10
     rate_limit_per_minute: int = 60
+
+
+@dataclass
+class BenchmarkSamplingConfig:
+    """Benchmark sampling configuration."""
+    method: str = "stratified"  # Options: random, stratified, balanced, temporal
+    seed: Optional[int] = 42  # Fixed seed for reproducibility (None for random)
+    stratify_columns: List[str] = field(default_factory=lambda: ["category", "difficulty_level"])
+    difficulty_distribution: Optional[Dict[str, float]] = field(default_factory=lambda: {
+        "Easy": 0.4,
+        "Medium": 0.4,
+        "Hard": 0.2
+    })
+    enable_temporal_stratification: bool = False
+    confidence_level: float = 0.95
+    margin_of_error: float = 0.05
 
 
 @dataclass
@@ -90,6 +106,7 @@ class BenchmarkConfig:
         "standard": BenchmarkModeConfig(sample_size=200, categories=10, timeout=60, max_retries=3),
         "comprehensive": BenchmarkModeConfig(sample_size=1000, categories="all", timeout=120, max_retries=3)
     })
+    sampling: BenchmarkSamplingConfig = field(default_factory=BenchmarkSamplingConfig)
     grading: BenchmarkGradingConfig = field(default_factory=BenchmarkGradingConfig)
     parallel: BenchmarkParallelConfig = field(default_factory=BenchmarkParallelConfig)
     default_sample_size: int = 1000
@@ -103,6 +120,7 @@ class BenchmarkConfig:
 class LoggingConfig:
     """Logging configuration."""
     level: str = "INFO"
+    console_level: str = "WARNING"  # Separate level for console output
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     file: str = "logs/benchmark.log"
     max_size: str = "10MB"
@@ -254,6 +272,10 @@ class AppConfig:
                 for name, mode in benchmark_data['modes'].items():
                     modes[name] = BenchmarkModeConfig(**mode)
                 benchmark_data['modes'] = modes
+            
+            # Handle sampling
+            if 'sampling' in benchmark_data and isinstance(benchmark_data['sampling'], dict):
+                benchmark_data['sampling'] = BenchmarkSamplingConfig(**benchmark_data['sampling'])
             
             # Handle grading
             if 'grading' in benchmark_data and isinstance(benchmark_data['grading'], dict):

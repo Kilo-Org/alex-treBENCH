@@ -74,6 +74,18 @@ benchmark:
       timeout: 120
       max_retries: 3
 
+  sampling:
+    method: "stratified"  # Options: random, stratified, balanced, temporal
+    seed: 42  # Fixed seed for reproducible comparisons (null for random)
+    stratify_columns: ["category", "difficulty_level"]
+    difficulty_distribution:
+      Easy: 0.4
+      Medium: 0.4
+      Hard: 0.2
+    enable_temporal_stratification: false
+    confidence_level: 0.95
+    margin_of_error: 0.05
+
   grading:
     default_mode: "lenient"
     confidence_threshold: 0.7
@@ -113,6 +125,7 @@ reporting:
 
 logging:
   level: "INFO"
+  console_level: "WARNING"  # Console shows only warnings and errors
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file: "logs/benchmark.log"
   max_size: "10MB"

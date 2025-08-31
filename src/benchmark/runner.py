@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 import traceback
+import pandas as pd
 
 from src.core.config import get_config
 from src.core.database import get_db_session
@@ -54,6 +55,13 @@ class BenchmarkConfig:
     enable_partial_credit: bool = True
     save_results: bool = True
     resume_from_checkpoint: bool = True
+    
+    # Sampling configuration
+    sampling_method: str = "stratified"  # Options: random, stratified, balanced, temporal
+    sampling_seed: Optional[int] = 42  # Fixed seed for reproducibility (None for random)
+    stratify_columns: Optional[List[str]] = None
+    difficulty_distribution: Optional[Dict[str, float]] = None
+    enable_temporal_stratification: bool = False
 
 
 @dataclass 
@@ -121,19 +129,28 @@ class BenchmarkRunner:
                 mode=RunMode.QUICK,
                 sample_size=50,
                 timeout_seconds=30,
-                max_concurrent_requests=3
+                max_concurrent_requests=3,
+                sampling_method="stratified",
+                sampling_seed=42,
+                stratify_columns=["category", "difficulty_level"]
             ),
             RunMode.STANDARD: BenchmarkConfig(
                 mode=RunMode.STANDARD,
                 sample_size=200,
                 timeout_seconds=60,
-                max_concurrent_requests=5
+                max_concurrent_requests=5,
+                sampling_method="stratified",
+                sampling_seed=42,
+                stratify_columns=["category", "difficulty_level"]
             ),
             RunMode.COMPREHENSIVE: BenchmarkConfig(
                 mode=RunMode.COMPREHENSIVE,
                 sample_size=1000,
                 timeout_seconds=120,
-                max_concurrent_requests=3
+                max_concurrent_requests=3,
+                sampling_method="stratified",
+                sampling_seed=42,
+                stratify_columns=["category", "difficulty_level"]
             )
         }
     
@@ -278,12 +295,30 @@ class BenchmarkRunner:
             logger.info(f"Created benchmark {benchmark.id}: {name}")
             return benchmark.id
     
+    def _convert_questions_to_dataframe(self, questions: List[Any]) -> pd.DataFrame:
+        """Convert SQLAlchemy question objects to DataFrame for sampling."""
+        question_data = []
+        for question in questions:
+            question_data.append({
+                'id': question.id,
+                'question_text': question.question_text,
+                'correct_answer': question.correct_answer,
+                'category': question.category,
+                'value': question.value,
+                'difficulty_level': question.difficulty_level,
+                'air_date': getattr(question, 'air_date', None),
+                'show_number': getattr(question, 'show_number', None),
+                'round': getattr(question, 'round', None)
+            })
+        return pd.DataFrame(question_data)
+
     async def _load_questions(self, benchmark_id: int, config: BenchmarkConfig) -> List[Dict[str, Any]]:
-        """Load and sample questions for the benchmark."""
+        """Load and sample questions for the benchmark using statistical sampling."""
         with get_db_session() as session:
             question_repo = QuestionRepository(session)
             
             logger.info(f"Loading {config.sample_size} questions for benchmark {benchmark_id}")
+            logger.info(f"Using sampling method: {config.sampling_method} with seed: {config.sampling_seed}")
             
             # First check if we have real Jeopardy questions in the database
             existing_questions = question_repo.get_questions(limit=1)
@@ -297,8 +332,9 @@ class BenchmarkRunner:
                     table="questions"
                 )
             
-            # Load questions from database using statistical sampling
-            total_questions = len(question_repo.get_questions())
+            # Load all available questions for sampling
+            all_questions = question_repo.get_questions()
+            total_questions = len(all_questions)
             logger.info(f"Found {total_questions} questions in database")
             
             if total_questions < config.sample_size:
@@ -307,24 +343,90 @@ class BenchmarkRunner:
             else:
                 sample_size = config.sample_size
             
-            # Use statistical sampling to get representative sample
-            sampled_questions = question_repo.get_random_questions(sample_size)
+            # Convert questions to DataFrame for statistical sampling
+            questions_df = self._convert_questions_to_dataframe(all_questions)
             
-            # Convert SQLAlchemy objects to dictionaries to prevent DetachedInstanceError
-            question_dicts = []
-            for question in sampled_questions:
-                question_dict = {
-                    'id': question.id,
-                    'question_text': question.question_text,
-                    'correct_answer': question.correct_answer,
-                    'category': question.category,
-                    'value': question.value,
-                    'difficulty_level': question.difficulty_level
-                }
-                question_dicts.append(question_dict)
+            # Initialize statistical sampler with configuration
+            sampler = StatisticalSampler(
+                confidence_level=config.confidence_level,
+                margin_of_error=config.margin_of_error
+            )
             
-            logger.info(f"Loaded {len(question_dicts)} questions for benchmark")
-            return question_dicts
+            # Apply the configured sampling method
+            try:
+                if config.sampling_method == "random":
+                    sampled_df = sampler.random_sample(
+                        df=questions_df,
+                        n=sample_size,
+                        seed=config.sampling_seed
+                    )
+                elif config.sampling_method == "stratified":
+                    stratify_columns = config.stratify_columns or ["category", "difficulty_level"]
+                    sampled_df = sampler.stratified_sample(
+                        df=questions_df,
+                        sample_size=sample_size,
+                        stratify_columns=stratify_columns,
+                        seed=config.sampling_seed
+                    )
+                elif config.sampling_method == "balanced":
+                    sampled_df = sampler.balanced_difficulty_sample(
+                        df=questions_df,
+                        sample_size=sample_size,
+                        difficulty_distribution=config.difficulty_distribution,
+                        seed=config.sampling_seed
+                    )
+                elif config.sampling_method == "temporal":
+                    sampled_df = sampler.temporal_stratified_sample(
+                        df=questions_df,
+                        sample_size=sample_size,
+                        date_column='air_date'
+                    )
+                else:
+                    logger.warning(f"Unknown sampling method '{config.sampling_method}', falling back to stratified")
+                    sampled_df = sampler.stratified_sample(
+                        df=questions_df,
+                        sample_size=sample_size,
+                        stratify_columns=["category", "difficulty_level"],
+                        seed=config.sampling_seed
+                    )
+                
+                # Convert DataFrame back to list of dictionaries
+                question_dicts = sampled_df.to_dict('records')
+                
+                # Log sampling statistics
+                if len(sampled_df) > 0:
+                    stats = sampler.get_sampling_statistics(questions_df, sampled_df)
+                    logger.info(f"Sampling complete: {len(sampled_df)} questions selected")
+                    logger.info(f"Sampling ratio: {stats['sampling_ratio']:.3f}")
+                    
+                    # Log category distribution if available
+                    if 'category' in sampled_df.columns:
+                        category_dist = sampled_df['category'].value_counts()
+                        logger.info(f"Category distribution: {dict(category_dist.head())}")
+                
+                logger.info(f"Successfully sampled {len(question_dicts)} questions using {config.sampling_method} method")
+                return question_dicts
+                
+            except Exception as e:
+                logger.error(f"Statistical sampling failed: {str(e)}")
+                logger.warning("Falling back to simple random sampling")
+                
+                # Fallback to simple random sampling
+                sampled_questions = question_repo.get_random_questions(sample_size)
+                question_dicts = []
+                for question in sampled_questions:
+                    question_dict = {
+                        'id': question.id,
+                        'question_text': question.question_text,
+                        'correct_answer': question.correct_answer,
+                        'category': question.category,
+                        'value': question.value,
+                        'difficulty_level': question.difficulty_level
+                    }
+                    question_dicts.append(question_dict)
+                
+                logger.info(f"Loaded {len(question_dicts)} questions using fallback method")
+                return question_dicts
     
     def _create_sample_questions(self, benchmark_id: int, config: BenchmarkConfig) -> List[BenchmarkQuestion]:
         """Create sample questions for testing (placeholder for real dataset loading)."""

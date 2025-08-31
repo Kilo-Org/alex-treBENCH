@@ -121,7 +121,8 @@ class StatisticalSampler:
     
     def stratified_sample(self, df: pd.DataFrame, 
                          sample_size: Optional[int] = None,
-                         stratify_columns: Optional[List[str]] = None) -> pd.DataFrame:
+                         stratify_columns: Optional[List[str]] = None,
+                         seed: Optional[int] = None) -> pd.DataFrame:
         """
         Perform stratified sampling to maintain representativeness.
         
@@ -129,6 +130,7 @@ class StatisticalSampler:
             df: Source DataFrame
             sample_size: Desired sample size (calculated if None)
             stratify_columns: Columns to stratify by
+            seed: Random seed for reproducibility (None for true randomness)
             
         Returns:
             Stratified sample DataFrame
@@ -203,7 +205,7 @@ class StatisticalSampler:
                 stratum_data = df_with_strata[df_with_strata['stratum'] == stratum]
                 
                 if len(stratum_data) >= n_samples:
-                    sampled_stratum = stratum_data.sample(n=n_samples, random_state=42)
+                    sampled_stratum = stratum_data.sample(n=n_samples, random_state=seed)
                 else:
                     # Take all available if stratum is smaller than required sample
                     sampled_stratum = stratum_data
@@ -246,7 +248,7 @@ class StatisticalSampler:
                 raise SamplingError("Cannot sample from empty dataset")
             
             # Use provided seed or default
-            random_state = seed if seed is not None else 42
+            random_state = seed
             
             # Cap sample size at population size
             actual_sample_size = min(n, len(df))
@@ -329,7 +331,8 @@ class StatisticalSampler:
     
     def balanced_difficulty_sample(self, df: pd.DataFrame,
                                  sample_size: Optional[int] = None,
-                                 difficulty_distribution: Optional[Dict[str, float]] = None) -> pd.DataFrame:
+                                 difficulty_distribution: Optional[Dict[str, float]] = None,
+                                 seed: Optional[int] = None) -> pd.DataFrame:
         """
         Sample with specified difficulty distribution.
         
@@ -337,6 +340,7 @@ class StatisticalSampler:
             df: Source DataFrame
             sample_size: Desired sample size
             difficulty_distribution: Target distribution by difficulty
+            seed: Random seed for reproducibility (None for true randomness)
             
         Returns:
             Difficulty-balanced sample
@@ -370,7 +374,7 @@ class StatisticalSampler:
                 
                 if actual_count > 0:
                     sampled_dfs.append(
-                        difficulty_data.sample(n=actual_count, random_state=42)
+                        difficulty_data.sample(n=actual_count, random_state=seed)
                     )
             
             result_df = pd.concat(sampled_dfs, ignore_index=True)

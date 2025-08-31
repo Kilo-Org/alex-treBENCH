@@ -84,18 +84,18 @@ def setup_logging(config=None, enable_json: bool = False) -> None:
     # Clear any existing handlers
     root_logger.handlers.clear()
     
-    # Console handler
+    # Console handler - use console_level for reduced terminal output
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(getattr(logging, config.logging.level.upper()))
+    console_handler.setLevel(getattr(logging, config.logging.console_level.upper()))
     
-    # File handler with rotation
+    # File handler with rotation - use main level for comprehensive file logging
     file_handler = logging.handlers.RotatingFileHandler(
         filename=log_file,
         maxBytes=_parse_size(config.logging.max_size),
         backupCount=config.logging.backup_count,
         encoding='utf-8'
     )
-    file_handler.setLevel(logging.DEBUG)  # File gets all messages
+    file_handler.setLevel(getattr(logging, config.logging.level.upper()))
     
     # Set formatters
     if enable_json:
@@ -120,9 +120,9 @@ def setup_logging(config=None, enable_json: bool = False) -> None:
     # Set specific logger levels
     _configure_third_party_loggers()
     
-    # Log startup message
+    # Log startup message - this will only show in file if console_level is WARNING+
     logger = logging.getLogger(__name__)
-    logger.info(f"Logging configured - Level: {config.logging.level}, File: {log_file}")
+    logger.info(f"Logging configured - Console: {config.logging.console_level}, File: {config.logging.level}, Path: {log_file}")
 
 
 def get_logger(name: str) -> logging.Logger:
