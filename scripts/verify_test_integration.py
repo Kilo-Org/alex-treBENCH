@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from rich.console import Console
 from rich.panel import Panel

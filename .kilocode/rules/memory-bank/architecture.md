@@ -4,21 +4,21 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     CLI Interface (Click)                    │
+│                     CLI Interface (Click)                   │
 ├─────────────────────────────────────────────────────────────┤
-│                    Benchmark Runner                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │ Sampling │  │  Model   │  │  Grader  │  │ Metrics  │  │
-│  │  Engine  │  │  Client  │  │  System  │  │   Calc   │  │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
+│                    Benchmark Runner                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+│  │ Sampling │  │  Model   │  │  Grader  │  │ Metrics  │     │
+│  │  Engine  │  │  Client  │  │  System  │  │   Calc   │     │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │
 ├─────────────────────────────────────────────────────────────┤
-│                    Data Access Layer                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  Question    │  │  Benchmark   │  │ Performance  │     │
-│  │  Repository  │  │  Repository  │  │ Repository   │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│                    Data Access Layer                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │  Question    │  │  Benchmark   │  │ Performance  │       │
+│  │  Repository  │  │  Repository  │  │ Repository   │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
 ├─────────────────────────────────────────────────────────────┤
-│              SQLAlchemy ORM / Database Layer                 │
+│              SQLAlchemy ORM / Database Layer                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -43,7 +43,7 @@
 ### 3. Evaluation System (`src/evaluation/`)
 
 - **matcher.py**: Fuzzy string matching algorithms
-- **grader.py**: Multi-mode grading system (strict/lenient/adaptive)
+- **grader.py**: Multi-mode grading system (strict/lenient/adaptive/jeopardy)
 - **metrics.py**: Comprehensive metrics calculation
 
 ### 4. Benchmark Engine (`src/benchmark/`)
@@ -54,15 +54,23 @@
 
 ### 5. Storage Layer (`src/storage/`)
 
-- **models.py**: SQLAlchemy ORM models
+- **models.py**: SQLAlchemy ORM models with backward compatibility
 - **repositories.py**: Repository pattern implementation
 - **cache.py**: Response caching system
 - **backup.py**: Database backup utilities
+- **state_manager.py**: State management for pause/resume
 
 ### 6. CLI Interface (`src/cli/`)
 
 - **commands.py**: Click-based command definitions
 - **formatting.py**: Rich terminal output formatting
+
+### 7. Core Infrastructure (`src/core/`)
+
+- **config.py**: Configuration management with dataclasses
+- **database.py**: Database connection and session management
+- **exceptions.py**: Custom exception hierarchy
+- **session.py**: Benchmark session management with pause/resume
 
 ## Database Schema
 
@@ -70,18 +78,30 @@
 
 1. **questions**: Jeopardy questions cache
 
-   - id, question_text, correct_answer, category, value, difficulty_level
+   - id, question_text, correct_answer, category, value, difficulty_level, air_date, show_number, round
 
-2. **benchmark_runs**: Benchmark execution records
+2. **benchmark_runs**: Benchmark execution records (formerly "benchmarks")
 
-   - id, name, status, models_tested, created_at, completed_at
+   - id, name, status, models_tested, created_at, completed_at, benchmark_mode, sample_size
+   - config_snapshot, environment, total_cost_usd, total_tokens, avg_response_time_ms
 
-3. **benchmark_results**: Individual question results
+3. **benchmark_results**: Individual question results (formerly "model_responses")
 
    - id, benchmark_run_id, question_id, model_name, response_text, is_correct
+   - confidence_score, response_time_ms, tokens_generated, cost_usd
 
-4. **model_performance**: Aggregated performance metrics
-   - id, benchmark_run_id, model_name, accuracy_rate, avg_response_time, total_cost
+4. **model_performance**: Aggregated performance metrics (formerly "model_performance_summary")
+   - id, benchmark_run_id, model_name, accuracy_rate, avg_response_time_ms, total_cost_usd
+   - category_performance, difficulty_performance, confidence_accuracy_correlation
+
+### Backward Compatibility
+
+The system maintains backward compatibility through aliases in `src/storage/models.py`:
+
+- `Benchmark = BenchmarkRun`
+- `BenchmarkQuestion = Question`
+- `ModelResponse = BenchmarkResult`
+- `ModelPerformanceSummary = ModelPerformance`
 
 ## Key Design Patterns
 
@@ -99,7 +119,7 @@
 
 ### Strategy Pattern
 
-- Multiple grading strategies (strict, lenient, adaptive)
+- Multiple grading strategies (strict, lenient, adaptive, jeopardy)
 - Configurable prompt formatting templates
 - Flexible sampling algorithms
 
@@ -109,6 +129,12 @@
 - Rate limiting and throttling
 - Efficient batch processing
 
+### Session Management Pattern
+
+- Pause/resume capability for long-running benchmarks
+- State persistence and recovery
+- Signal handling for graceful shutdown
+
 ## External Integrations
 
 ### OpenRouter API
@@ -117,6 +143,7 @@
 - Rate limiting: 60 requests/minute default
 - Retry logic with exponential backoff
 - Cost tracking per request
+- Support for streaming responses
 
 ### Kaggle Dataset
 
@@ -141,6 +168,7 @@
 - Benchmark execution parameters
 - Grading and evaluation settings
 - Logging and monitoring
+- Session management settings
 
 ## Performance Considerations
 
@@ -151,6 +179,7 @@
 - Async execution for I/O operations
 - Response caching to avoid duplicate calls
 - Efficient sampling algorithms
+- Session-based checkpointing
 
 ### Scalability
 
@@ -158,6 +187,7 @@
 - Database can be upgraded to PostgreSQL for production
 - Docker deployment for containerization
 - Horizontal scaling possible with queue system
+- Pause/resume for handling long-running benchmarks
 
 ## Security Considerations
 
@@ -172,3 +202,21 @@
 - Input validation and sanitization
 - SQL injection prevention via ORM
 - Rate limiting to prevent abuse
+- Session state encryption (future enhancement)
+
+## Testing Infrastructure
+
+### Test Suites
+
+- **Unit Tests**: Component-level testing
+- **Integration Tests**: End-to-end workflows
+- **Smoke Tests**: Quick system verification with simulation mode
+- **Test Agents**: Specialized testing for different components
+- **Performance Tests**: Load and stress testing
+
+### Test Utilities
+
+- Mock data generation
+- API simulation mode for testing without costs
+- Temporary database creation for isolated tests
+- Comprehensive test coverage reporting

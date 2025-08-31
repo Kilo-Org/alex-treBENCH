@@ -84,10 +84,21 @@ class BaseTestAgent:
         fd, path = tempfile.mkstemp(suffix='.db')
         os.close(fd)  # Close the file descriptor
         
+        # Ensure file is writable
+        try:
+            os.chmod(path, 0o666)  # Read/write for owner, group, other
+        except OSError:
+            pass  # File permissions are usually fine by default
+        
         # Update config to use test database
         test_config = AppConfig()
         test_config.database.url = f"sqlite:///{path}"
         set_config(test_config)
+        
+        # CRITICAL FIX: Close existing database connections to force engine recreation
+        # This ensures SQLAlchemy uses the new database URL instead of a cached engine
+        from src.core.database import close_connections
+        close_connections()
         
         self.test_db_path = path
         self.config = test_config
