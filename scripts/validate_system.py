@@ -21,7 +21,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from core.config import get_config, AppConfig
-from core.database import init_database, get_session, check_database_connection
+from core.database import init_database, get_db_session, check_database_connection
 from models.openrouter import OpenRouterClient
 from models.base import ModelConfig
 from benchmark.runner import BenchmarkRunner
@@ -258,7 +258,7 @@ class SystemValidator:
 
                 # Check if tables exist by trying to create a session
                 try:
-                    with get_session() as session:
+                    with get_db_session() as session:
                         self.log_check(
                             "Database Tables",
                             True,
@@ -488,15 +488,15 @@ class SystemValidator:
         print(f"Total Checks: {summary['total_checks']}")
         print(f"Passed: {summary['passed_checks']}")
         print(f"Failed: {summary['failed_checks']}")
-        print(".1f"
+        print(f"Success Rate: {summary['passed_checks']/summary['total_checks']*100:.1f}%")
         if summary["overall_status"] == "HEALTHY":
             print("🎉 Overall Status: HEALTHY")
         else:
             print("⚠️  Overall Status: ISSUES FOUND")
 
         if report["recommendations"]:
-            print("
-💡 Recommendations:"            for rec in report["recommendations"]:
+            print("\n💡 Recommendations:")
+            for rec in report["recommendations"]:
                 print(f"  • {rec}")
 
         print("\n" + "="*60)
@@ -543,11 +543,11 @@ async def main():
 
     # Exit with appropriate code
     if validator.failed_checks > 0:
-        print("
-❌ System validation found issues. Please address the recommendations above."        sys.exit(1)
+        print("\n❌ System validation found issues. Please address the recommendations above.")
+        sys.exit(1)
     else:
-        print("
-✅ System validation passed! The Jeopardy Benchmarking System is ready to use."        sys.exit(0)
+        print("\n✅ System validation passed! The Jeopardy Benchmarking System is ready to use.")
+        sys.exit(0)
 
 
 if __name__ == "__main__":

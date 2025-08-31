@@ -8,23 +8,25 @@ model querying, answer grading, metrics calculation, and result storage.
 import asyncio
 import json
 import time
+import uuid
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 import traceback
 
-from ..core.config import get_config
-from ..core.database import get_session
-from ..data.sampling import StatisticalSampler
-from ..models.openrouter import OpenRouterClient
-from ..models.prompt_formatter import PromptFormatter, PromptConfig, PromptTemplate
-from ..models.response_parser import ResponseParser
-from ..evaluation.grader import AnswerGrader, GradingCriteria, GradingMode
-from ..evaluation.metrics import MetricsCalculator, ComprehensiveMetrics
-from ..storage.repositories import BenchmarkRepository, QuestionRepository, ResponseRepository
-from ..storage.models import Benchmark, BenchmarkQuestion, ModelResponse, create_benchmark, create_benchmark_question, create_model_response
-from ..utils.logging import get_logger
+from src.core.config import get_config
+from src.core.database import get_db_session
+from src.core.exceptions import DatabaseError
+from src.data.sampling import StatisticalSampler
+from src.models.openrouter import OpenRouterClient
+from src.models.prompt_formatter import PromptFormatter, PromptConfig, PromptTemplate
+from src.models.response_parser import ResponseParser
+from src.evaluation.grader import AnswerGrader, GradingCriteria, GradingMode
+from src.evaluation.metrics import MetricsCalculator, ComprehensiveMetrics
+from src.storage.repositories import BenchmarkRepository, QuestionRepository, ResponseRepository
+from src.storage.models import Benchmark, BenchmarkQuestion, ModelResponse, create_benchmark_run, create_question, create_benchmark_result
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -259,14 +261,14 @@ class BenchmarkRunner:
     
     async def _initialize_benchmark(self, name: str, config: BenchmarkConfig, model_name: str) -> int:
         """Initialize a new benchmark in the database."""
-        with get_session() as session:
+        with get_db_session() as session:
             benchmark_repo = BenchmarkRepository(session)
             
             # Create benchmark record
-            benchmark = create_benchmark(
+            benchmark = create_benchmark_run(
                 name=name,
                 description=f"{config.mode.value} benchmark for {model_name}",
-                question_count=config.sample_size
+                sample_size=config.sample_size
             )
             benchmark.models_tested_list = [model_name]
             
@@ -276,31 +278,59 @@ class BenchmarkRunner:
             logger.info(f"Created benchmark {benchmark.id}: {name}")
             return benchmark.id
     
-    async def _load_questions(self, benchmark_id: int, config: BenchmarkConfig) -> List[BenchmarkQuestion]:
+    async def _load_questions(self, benchmark_id: int, config: BenchmarkConfig) -> List[Dict[str, Any]]:
         """Load and sample questions for the benchmark."""
-        with get_session() as session:
+        with get_db_session() as session:
             question_repo = QuestionRepository(session)
-            
-            # Check if we need to load from existing dataset
-            # For now, we'll create sample questions - in real implementation,
-            # this would load from the Jeopardy dataset
             
             logger.info(f"Loading {config.sample_size} questions for benchmark {benchmark_id}")
             
-            # This is a placeholder - in real implementation, you'd load from your dataset
-            questions = self._create_sample_questions(benchmark_id, config)
+            # First check if we have real Jeopardy questions in the database
+            existing_questions = question_repo.get_questions(limit=1)
             
-            # Save questions to database
-            saved_questions = question_repo.add_questions(questions)
+            if not existing_questions:
+                # No questions in database - recommend data initialization
+                logger.error("No questions found in database. Please initialize the dataset first.")
+                raise DatabaseError(
+                    "No questions available in database. Run 'python -m src.scripts.init_data' to initialize the Jeopardy dataset first.",
+                    operation="load_questions",
+                    table="questions"
+                )
             
-            logger.info(f"Loaded and saved {len(saved_questions)} questions")
-            return saved_questions
+            # Load questions from database using statistical sampling
+            total_questions = len(question_repo.get_questions())
+            logger.info(f"Found {total_questions} questions in database")
+            
+            if total_questions < config.sample_size:
+                logger.warning(f"Requested sample size ({config.sample_size}) exceeds available questions ({total_questions}). Using all available questions.")
+                sample_size = total_questions
+            else:
+                sample_size = config.sample_size
+            
+            # Use statistical sampling to get representative sample
+            sampled_questions = question_repo.get_random_questions(sample_size)
+            
+            # Convert SQLAlchemy objects to dictionaries to prevent DetachedInstanceError
+            question_dicts = []
+            for question in sampled_questions:
+                question_dict = {
+                    'id': question.id,
+                    'question_text': question.question_text,
+                    'correct_answer': question.correct_answer,
+                    'category': question.category,
+                    'value': question.value,
+                    'difficulty_level': question.difficulty_level
+                }
+                question_dicts.append(question_dict)
+            
+            logger.info(f"Loaded {len(question_dicts)} questions for benchmark")
+            return question_dicts
     
     def _create_sample_questions(self, benchmark_id: int, config: BenchmarkConfig) -> List[BenchmarkQuestion]:
         """Create sample questions for testing (placeholder for real dataset loading)."""
         sample_questions = [
             {
-                'question_id': f'q_{i}',
+                'question_id': f'q_{uuid.uuid4().hex[:8]}_{i}',  # Use unique UUID-based IDs
                 'question_text': f'This is sample question {i}',
                 'correct_answer': f'What is answer {i}?',
                 'category': f'CATEGORY_{i % 5 + 1}',
@@ -312,20 +342,18 @@ class BenchmarkRunner:
         
         questions = []
         for q_data in sample_questions:
-            question = create_benchmark_question(
-                benchmark_id=benchmark_id,
+            question = create_question(
                 question_id=q_data['question_id'],
                 question_text=q_data['question_text'],
                 correct_answer=q_data['correct_answer'],
                 category=q_data['category'],
-                value=q_data['value'],
-                difficulty_level=q_data['difficulty_level']
+                value=q_data['value']
             )
             questions.append(question)
         
         return questions
     
-    async def _format_prompts(self, questions: List[BenchmarkQuestion], 
+    async def _format_prompts(self, questions: List[Dict[str, Any]], 
                             config: BenchmarkConfig) -> Tuple[List[str], List[Dict[str, Any]]]:
         """Format questions into prompts."""
         logger.info(f"Formatting {len(questions)} questions into prompts")
@@ -342,20 +370,20 @@ class BenchmarkRunner:
         for question in questions:
             # Format the prompt
             prompt = self.prompt_formatter.format_prompt(
-                question=question.question_text,
-                category=question.category,
-                value=f"${question.value}" if question.value else None,
-                difficulty=question.difficulty_level,
+                question=question['question_text'],
+                category=question['category'],
+                value=f"${question['value']}" if question['value'] else None,
+                difficulty=question['difficulty_level'],
                 config=prompt_config
             )
             
             # Create context for grading
             context = {
-                'question_id': question.question_id,
-                'category': question.category,
-                'value': question.value,
-                'difficulty_level': question.difficulty_level,
-                'correct_answer': question.correct_answer
+                'question_id': question['id'],
+                'category': question['category'],
+                'value': question['value'],
+                'difficulty_level': question['difficulty_level'],
+                'correct_answer': question['correct_answer']
             }
             
             prompts.append(prompt)
@@ -370,7 +398,7 @@ class BenchmarkRunner:
         logger.info(f"Querying model {model_name} with {len(prompts)} prompts")
         
         # Initialize OpenRouter client
-        from ..models.base import ModelConfig
+        from src.models.base import ModelConfig
         
         model_config = ModelConfig(
             model_name=model_name,
@@ -383,20 +411,21 @@ class BenchmarkRunner:
             responses = await client.batch_query(prompts)
             
             # Update progress
-            self.progress.completed_questions = len(responses)
-            self.progress.successful_responses = sum(
-                1 for r in responses if not r.metadata.get('failed', False)
-            )
-            self.progress.failed_responses = len(responses) - self.progress.successful_responses
-            
-            logger.info(f"Model querying complete: {self.progress.successful_responses} successful, "
-                       f"{self.progress.failed_responses} failed")
+            if self.progress:
+                self.progress.completed_questions = len(responses)
+                self.progress.successful_responses = sum(
+                    1 for r in responses if not r.metadata.get('failed', False)
+                )
+                self.progress.failed_responses = len(responses) - self.progress.successful_responses
+                
+                logger.info(f"Model querying complete: {self.progress.successful_responses} successful, "
+                           f"{self.progress.failed_responses} failed")
             
             return responses
     
     async def _grade_responses(self, 
                              model_responses: List[ModelResponse],
-                             questions: List[BenchmarkQuestion],
+                             questions: List[Dict[str, Any]],
                              question_contexts: List[Dict[str, Any]],
                              config: BenchmarkConfig) -> List[Any]:
         """Grade model responses."""
@@ -413,7 +442,7 @@ class BenchmarkRunner:
             # Grade the response
             graded = self.grader.grade_response(
                 response_text=response.response,
-                correct_answer=question.correct_answer,
+                correct_answer=question['correct_answer'],
                 question_context=context,
                 criteria=grading_criteria
             )
@@ -460,20 +489,20 @@ class BenchmarkRunner:
         """Save benchmark results to database."""
         logger.info("Saving benchmark results")
         
-        with get_session() as session:
+        with get_db_session() as session:
             response_repo = ResponseRepository(session)
             
             # Convert model responses to database format
             db_responses = []
             for i, (model_resp, graded_resp) in enumerate(zip(model_responses, graded_responses)):
-                db_response = create_model_response(
-                    benchmark_id=benchmark_id,
-                    question_id=i + 1,  # Assuming sequential IDs
+                db_response = create_benchmark_result(
+                    benchmark_run_id=benchmark_id,
+                    question_id=str(i + 1),  # Assuming sequential IDs as string
                     model_name=model_resp.model_id,
                     response_text=model_resp.response,
-                    response_time_ms=int(model_resp.latency_ms or 0),
                     is_correct=graded_resp.is_correct,
                     confidence_score=graded_resp.confidence,
+                    response_time_ms=int(model_resp.latency_ms or 0),
                     tokens_generated=model_resp.tokens_used,
                     cost_usd=model_resp.cost,
                     metadata={
@@ -491,7 +520,7 @@ class BenchmarkRunner:
     
     async def _finalize_benchmark(self, benchmark_id: int, success: bool, error_message: Optional[str] = None):
         """Finalize the benchmark run."""
-        with get_session() as session:
+        with get_db_session() as session:
             benchmark_repo = BenchmarkRepository(session)
             
             status = 'completed' if success else 'failed'

@@ -5,12 +5,12 @@ Answer evaluation and performance measurement with fuzzy string matching
 for answer validation and confidence scoring.
 """
 
-from .matcher import FuzzyAnswerMatcher
+from .matcher import FuzzyMatcher
 from .grader import AnswerGrader
 from .metrics import MetricsCalculator
 
 __all__ = [
-    "FuzzyAnswerMatcher",
+    "FuzzyMatcher",
     "AnswerGrader",
     "MetricsCalculator",
 ]

@@ -132,6 +132,49 @@ class ModelsConfig:
 
 
 @dataclass
+class PromptTemplateConfig:
+    """Configuration for a specific prompt template."""
+    system_prompt: str
+
+
+@dataclass
+class PromptsConfig:
+    """Prompt configuration."""
+    default_template: str = "jeopardy_style"
+    include_category: bool = True
+    include_value: bool = True
+    include_difficulty: bool = False
+    max_length: int = 1000
+    templates: Dict[str, PromptTemplateConfig] = field(default_factory=lambda: {
+        "basic_qa": PromptTemplateConfig(
+            system_prompt="You are an expert quiz contestant. Answer the question accurately and concisely."
+        ),
+        "jeopardy_style": PromptTemplateConfig(
+            system_prompt="You are a Jeopardy! contestant. Respond to each clue in the form of a question."
+        ),
+        "chain_of_thought": PromptTemplateConfig(
+            system_prompt="You are a Jeopardy! contestant. Think through the clue step by step, then provide your final answer in the form of a question."
+        )
+    })
+
+
+@dataclass
+class CostEstimationConfig:
+    """Cost estimation configuration."""
+    default_input_tokens_per_question: int = 100
+    default_output_tokens_per_question: int = 50
+
+
+@dataclass
+class CostsConfig:
+    """Cost tracking configuration."""
+    billing_tier: str = "basic"
+    track_usage: bool = True
+    usage_file: str = "data/usage/model_usage.json"
+    estimation: CostEstimationConfig = field(default_factory=CostEstimationConfig)
+
+
+@dataclass
 class ReportingConfig:
     """Reporting configuration."""
     default_format: str = "terminal"
@@ -151,6 +194,8 @@ class AppConfig:
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     openrouter: OpenRouterConfig = field(default_factory=OpenRouterConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
+    prompts: PromptsConfig = field(default_factory=PromptsConfig)
+    costs: CostsConfig = field(default_factory=CostsConfig)
     benchmark: BenchmarkConfig = field(default_factory=BenchmarkConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     kaggle: KaggleConfig = field(default_factory=KaggleConfig)
@@ -165,6 +210,75 @@ class AppConfig:
 
         # Apply environment variable overrides
         config_data = cls._apply_env_overrides(config_data)
+
+        # Handle nested app configuration structure
+        if 'app' in config_data:
+            app_config = config_data.pop('app')
+            # Merge app-level config into the main config
+            config_data.update(app_config)
+
+        # Convert nested dictionaries to their corresponding dataclass objects
+        if 'database' in config_data and isinstance(config_data['database'], dict):
+            db_data = config_data['database']
+            if 'backup' in db_data and isinstance(db_data['backup'], dict):
+                db_data['backup'] = DatabaseBackupConfig(**db_data['backup'])
+            config_data['database'] = DatabaseConfig(**db_data)
+
+        if 'openrouter' in config_data and isinstance(config_data['openrouter'], dict):
+            config_data['openrouter'] = OpenRouterConfig(**config_data['openrouter'])
+
+        if 'cache' in config_data and isinstance(config_data['cache'], dict):
+            config_data['cache'] = CacheConfig(**config_data['cache'])
+
+        if 'prompts' in config_data and isinstance(config_data['prompts'], dict):
+            prompts_data = config_data['prompts']
+            if 'templates' in prompts_data and isinstance(prompts_data['templates'], dict):
+                templates = {}
+                for name, template in prompts_data['templates'].items():
+                    templates[name] = PromptTemplateConfig(**template)
+                prompts_data['templates'] = templates
+            config_data['prompts'] = PromptsConfig(**prompts_data)
+
+        if 'costs' in config_data and isinstance(config_data['costs'], dict):
+            costs_data = config_data['costs']
+            if 'estimation' in costs_data and isinstance(costs_data['estimation'], dict):
+                costs_data['estimation'] = CostEstimationConfig(**costs_data['estimation'])
+            config_data['costs'] = CostsConfig(**costs_data)
+
+        if 'benchmark' in config_data and isinstance(config_data['benchmark'], dict):
+            benchmark_data = config_data['benchmark']
+            
+            # Handle modes
+            if 'modes' in benchmark_data and isinstance(benchmark_data['modes'], dict):
+                modes = {}
+                for name, mode in benchmark_data['modes'].items():
+                    modes[name] = BenchmarkModeConfig(**mode)
+                benchmark_data['modes'] = modes
+            
+            # Handle grading
+            if 'grading' in benchmark_data and isinstance(benchmark_data['grading'], dict):
+                benchmark_data['grading'] = BenchmarkGradingConfig(**benchmark_data['grading'])
+            
+            # Handle parallel
+            if 'parallel' in benchmark_data and isinstance(benchmark_data['parallel'], dict):
+                benchmark_data['parallel'] = BenchmarkParallelConfig(**benchmark_data['parallel'])
+            
+            config_data['benchmark'] = BenchmarkConfig(**benchmark_data)
+
+        if 'logging' in config_data and isinstance(config_data['logging'], dict):
+            config_data['logging'] = LoggingConfig(**config_data['logging'])
+
+        if 'kaggle' in config_data and isinstance(config_data['kaggle'], dict):
+            config_data['kaggle'] = KaggleConfig(**config_data['kaggle'])
+
+        if 'models' in config_data and isinstance(config_data['models'], dict):
+            models_data = config_data['models']
+            if 'defaults' in models_data and isinstance(models_data['defaults'], dict):
+                models_data['defaults'] = ModelDefaultsConfig(**models_data['defaults'])
+            config_data['models'] = ModelsConfig(**models_data)
+
+        if 'reporting' in config_data and isinstance(config_data['reporting'], dict):
+            config_data['reporting'] = ReportingConfig(**config_data['reporting'])
 
         return cls(**config_data)
 

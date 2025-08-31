@@ -7,7 +7,7 @@ for the benchmarking system with SQLite support.
 
 from typing import Optional, Generator
 from contextlib import contextmanager
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import create_engine, Engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
@@ -155,7 +155,7 @@ def check_database_connection() -> bool:
         engine = get_engine()
         with engine.connect() as conn:
             # Simple query to test connection
-            result = conn.execute("SELECT 1")
+            result = conn.execute(text("SELECT 1"))
             return result.fetchone()[0] == 1
     except Exception as e:
         raise DatabaseError(

@@ -22,9 +22,9 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
 from .models import Base
-from core.database import get_db_url
-from core.config import get_config
-from core.exceptions import DatabaseError
+from src.core.database import get_db_url
+from src.core.config import get_config
+from src.core.exceptions import DatabaseError
 
 logger = logging.getLogger(__name__)
 

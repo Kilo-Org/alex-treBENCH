@@ -21,9 +21,9 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from .models import BenchmarkRun, BenchmarkResult, ModelPerformance, Question
-from core.database import get_db_url, get_db_session
-from core.config import get_config
-from core.exceptions import DatabaseError
+from src.core.database import get_db_url, get_db_session
+from src.core.config import get_config
+from src.core.exceptions import DatabaseError
 
 logger = logging.getLogger(__name__)
 
@@ -244,14 +244,13 @@ class DatabaseBackup:
 
     def _export_all_tables(self) -> Dict[str, List[Dict[str, Any]]]:
         """Export all tables to dictionary format."""
-        session = get_session()
+        with get_db_session() as session:
+            try:
+                data = {}
 
-        try:
-            data = {}
-
-            # Export questions
-            questions = session.query(Question).all()
-            data["questions"] = [self._model_to_dict(q) for q in questions]
+                # Export questions
+                questions = session.query(Question).all()
+                data["questions"] = [self._model_to_dict(q) for q in questions]
 
             # Export benchmark runs
             runs = session.query(BenchmarkRun).all()
@@ -339,16 +338,15 @@ class DatabaseBackup:
 
     def _restore_data(self, data: Dict[str, List[Dict[str, Any]]], drop_existing: bool) -> None:
         """Restore data to database."""
-        session = get_session()
+        with get_db_session() as session:
+            try:
+                # Clear existing data if requested
+                if drop_existing:
+                    self._clear_all_tables(session)
 
-        try:
-            # Clear existing data if requested
-            if drop_existing:
-                self._clear_all_tables(session)
-
-            # Restore in order (respecting foreign keys)
-            if "questions" in data:
-                self._restore_questions(session, data["questions"])
+                # Restore in order (respecting foreign keys)
+                if "questions" in data:
+                    self._restore_questions(session, data["questions"])
 
             if "benchmark_runs" in data:
                 self._restore_benchmark_runs(session, data["benchmark_runs"])

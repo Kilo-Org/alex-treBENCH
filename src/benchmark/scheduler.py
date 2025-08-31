@@ -15,8 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 
 from .runner import BenchmarkRunner, BenchmarkConfig, BenchmarkResult, RunMode
-from ..core.config import get_config
-from ..utils.logging import get_logger
+from src.core.config import get_config
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

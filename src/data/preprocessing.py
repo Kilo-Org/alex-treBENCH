@@ -11,8 +11,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-from ..core.exceptions import DataIngestionError, ValidationError
-from ..utils.logging import get_logger
+from src.core.exceptions import DataIngestionError, ValidationError
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

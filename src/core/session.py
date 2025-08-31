@@ -16,9 +16,9 @@ from enum import Enum
 import logging
 import threading
 
-from ..core.config import get_config
-from ..core.exceptions import SessionError
-from ..storage.models import BenchmarkRun, BenchmarkResult
+from src.core.config import get_config
+from src.core.exceptions import SessionError
+from src.storage.models import BenchmarkRun, BenchmarkResult
 
 logger = logging.getLogger(__name__)
 

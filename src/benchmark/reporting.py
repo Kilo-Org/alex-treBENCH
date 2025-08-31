@@ -31,8 +31,8 @@ except ImportError:
     Table = None
 
 from .runner import BenchmarkResult
-from ..evaluation.metrics import ComprehensiveMetrics
-from ..utils.logging import get_logger
+from src.evaluation.metrics import ComprehensiveMetrics
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -13,7 +13,7 @@ import yaml
 from copy import deepcopy
 
 from .config import AppConfig, get_config
-from ..core.exceptions import ConfigurationError
+from src.core.exceptions import ConfigurationError
 
 
 class ConfigValidator:

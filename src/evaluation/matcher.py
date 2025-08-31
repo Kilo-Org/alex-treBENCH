@@ -17,7 +17,7 @@ from nltk.corpus import wordnet, stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
-from ..utils.logging import get_logger
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

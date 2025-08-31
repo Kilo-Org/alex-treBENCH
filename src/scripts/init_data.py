@@ -21,7 +21,7 @@ from data.ingestion import KaggleDatasetLoader
 from data.preprocessing import DataPreprocessor
 from data.validation import DataValidator
 from storage.repositories import QuestionRepository, BenchmarkRepository
-from storage.models import create_benchmark
+from storage.models import create_benchmark_run
 from core.database import get_db_session, init_database
 from core.config import get_config
 from core.exceptions import DataIngestionError, ValidationError, DatabaseError
@@ -178,10 +178,10 @@ class DataInitializer:
                     progress.update(task, advance=1, description="Creating benchmark record...")
                     benchmark_repo = BenchmarkRepository(session)
                     
-                    benchmark = create_benchmark(
+                    benchmark = create_benchmark_run(
                         name=f"jeopardy_dataset_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}",
                         description="Complete Jeopardy dataset from Kaggle",
-                        question_count=len(df)
+                        sample_size=len(df)
                     )
                     benchmark = benchmark_repo.create_benchmark(benchmark)
                     

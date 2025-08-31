@@ -5,14 +5,18 @@ Data access layer using repository pattern for clean separation
 between business logic and database operations.
 """
 
+import uuid
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, desc, text
 import pandas as pd
 
-from .models import Benchmark, BenchmarkQuestion, ModelResponse, ModelPerformanceSummary
-from core.exceptions import DatabaseError
-from utils.logging import get_logger
+from .models import (
+    Benchmark, BenchmarkQuestion, ModelResponse, ModelPerformanceSummary,
+    Question, BenchmarkResult, BenchmarkRun, ModelPerformance
+)
+from src.core.exceptions import DatabaseError
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -123,7 +127,7 @@ class BenchmarkRepository:
             
             # Set additional fields
             if run_data.get('models_tested'):
-                benchmark.models_tested_list = run_data['models_tested']
+                benchmark.models_tested = run_data['models_tested']
             
             if run_data.get('status'):
                 benchmark.status = run_data['status']
@@ -372,7 +376,7 @@ class QuestionRepository:
         
         Args:
             questions_df: DataFrame with question data
-            benchmark_id: ID of the benchmark these questions belong to
+            benchmark_id: ID of the benchmark these questions belong to (not used for Question model)
             
         Returns:
             List of saved BenchmarkQuestion objects
@@ -381,23 +385,35 @@ class QuestionRepository:
             DatabaseError: If save operation fails
         """
         try:
-            logger.info(f"Saving {len(questions_df)} questions for benchmark {benchmark_id}")
+            logger.info(f"Saving {len(questions_df)} questions to database")
             
             questions = []
             for _, row in questions_df.iterrows():
+                # Generate unique ID if not provided
+                question_id = str(row.get('id', row.get('question_id', f"q_{uuid.uuid4().hex[:8]}")))
+                
                 question = BenchmarkQuestion(
-                    benchmark_id=benchmark_id,
-                    question_id=str(row.get('question_id', row.name)),
+                    id=question_id,
                     question_text=str(row.get('question', row.get('clue', ''))),
                     correct_answer=str(row.get('answer', row.get('response', ''))),
                     category=str(row.get('category', '')) if pd.notna(row.get('category')) else None,
                     value=int(row.get('value', 0)) if pd.notna(row.get('value')) else None,
-                    difficulty_level=str(row.get('difficulty_level', '')) if pd.notna(row.get('difficulty_level')) else None
+                    difficulty_level=str(row.get('difficulty_level', '')) if pd.notna(row.get('difficulty_level')) else None,
+                    air_date=pd.to_datetime(row.get('air_date')) if pd.notna(row.get('air_date')) else None,
+                    show_number=int(row.get('show_number', 0)) if pd.notna(row.get('show_number')) else None,
+                    round=str(row.get('round', '')) if pd.notna(row.get('round')) else None
                 )
                 questions.append(question)
             
-            # Bulk insert
-            self.session.add_all(questions)
+            # Bulk insert with conflict handling
+            for question in questions:
+                existing = self.session.query(BenchmarkQuestion).filter(
+                    BenchmarkQuestion.id == question.id
+                ).first()
+                
+                if not existing:
+                    self.session.add(question)
+            
             self.session.commit()
             
             logger.info(f"Successfully saved {len(questions)} questions")
@@ -520,10 +536,15 @@ class QuestionRepository:
             DatabaseError: If query fails
         """
         try:
-            base_query = self.session.query(BenchmarkQuestion)
+            # Use Question model directly (BenchmarkQuestion is just an alias)
+            base_query = self.session.query(Question)
             
+            # If benchmark_id is provided, we need to join with BenchmarkResult 
+            # to filter questions that were part of that benchmark
             if benchmark_id:
-                base_query = base_query.filter(BenchmarkQuestion.benchmark_id == benchmark_id)
+                base_query = base_query.join(BenchmarkResult).filter(
+                    BenchmarkResult.benchmark_run_id == benchmark_id
+                ).distinct()
             
             stats = {
                 'total_questions': base_query.count(),
@@ -535,29 +556,29 @@ class QuestionRepository:
             }
             
             # Category distribution
-            category_counts = base_query.filter(BenchmarkQuestion.category.isnot(None))\
-                                      .with_entities(BenchmarkQuestion.category, func.count())\
-                                      .group_by(BenchmarkQuestion.category)\
+            category_counts = base_query.filter(Question.category.isnot(None))\
+                                      .with_entities(Question.category, func.count())\
+                                      .group_by(Question.category)\
                                       .all()
             
             stats['category_distribution'] = {cat: count for cat, count in category_counts}
             stats['unique_categories'] = len(category_counts)
             
             # Difficulty distribution
-            difficulty_counts = base_query.filter(BenchmarkQuestion.difficulty_level.isnot(None))\
-                                         .with_entities(BenchmarkQuestion.difficulty_level, func.count())\
-                                         .group_by(BenchmarkQuestion.difficulty_level)\
+            difficulty_counts = base_query.filter(Question.difficulty_level.isnot(None))\
+                                         .with_entities(Question.difficulty_level, func.count())\
+                                         .group_by(Question.difficulty_level)\
                                          .all()
             
             stats['difficulty_distribution'] = {diff: count for diff, count in difficulty_counts}
             
             # Value statistics
-            value_stats = base_query.filter(BenchmarkQuestion.value.isnot(None))\
+            value_stats = base_query.filter(Question.value.isnot(None))\
                                    .with_entities(
-                                       func.min(BenchmarkQuestion.value),
-                                       func.max(BenchmarkQuestion.value),
-                                       func.avg(BenchmarkQuestion.value),
-                                       func.count(BenchmarkQuestion.value)
+                                       func.min(Question.value),
+                                       func.max(Question.value),
+                                       func.avg(Question.value),
+                                       func.count(Question.value)
                                    ).first()
             
             if value_stats and value_stats[3] > 0:  # If we have values
@@ -578,8 +599,8 @@ class QuestionRepository:
                 for range_name, min_val, max_val in value_ranges:
                     count = base_query.filter(
                         and_(
-                            BenchmarkQuestion.value >= min_val,
-                            BenchmarkQuestion.value <= max_val
+                            Question.value >= min_val,
+                            Question.value <= max_val
                         )
                     ).count()
                     stats['value_distribution'][range_name] = count
@@ -591,7 +612,7 @@ class QuestionRepository:
             raise DatabaseError(
                 f"Failed to get question statistics: {str(e)}",
                 operation="get",
-                table="benchmark_questions"
+                table="questions"
             ) from e
 
 

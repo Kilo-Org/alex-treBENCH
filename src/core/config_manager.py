@@ -15,7 +15,7 @@ from copy import deepcopy
 
 from .config import AppConfig, get_config, set_config, reload_config
 from .config_validator import ConfigValidator
-from ..core.exceptions import ConfigurationError
+from src.core.exceptions import ConfigurationError
 
 
 class ConfigManager:

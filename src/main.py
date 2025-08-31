@@ -26,7 +26,6 @@ from utils.logging import setup_logging, get_logger
 console = Console()
 logger = get_logger(__name__)
 
-
 @click.group()
 @click.option('--config', '-c', type=click.Path(exists=True), help='Configuration file path')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
@@ -624,17 +623,17 @@ def config_show(ctx, format):
         table.add_column("Value", style="green")
         
         # App settings
-        table.add_row("app", "name", config.app.name)
-        table.add_row("app", "version", config.app.version)
-        table.add_row("app", "debug", str(config.app.debug))
+        table.add_row("app", "name", config.name)
+        table.add_row("app", "version", config.version)
+        table.add_row("app", "debug", str(config.debug))
         
         # Database settings
         table.add_row("database", "url", config.database.url)
         table.add_row("database", "echo", str(config.database.echo))
         
         # Benchmark settings
-        table.add_row("benchmarks", "default_sample_size", str(config.benchmarks.default_sample_size))
-        table.add_row("benchmarks", "max_concurrent_requests", str(config.benchmarks.max_concurrent_requests))
+        table.add_row("benchmark", "default_sample_size", str(config.benchmark.default_sample_size))
+        table.add_row("benchmark", "max_concurrent_requests", str(config.benchmark.max_concurrent_requests))
         
         console.print(table)
         

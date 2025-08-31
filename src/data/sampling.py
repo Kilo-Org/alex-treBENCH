@@ -12,9 +12,9 @@ from sklearn.model_selection import train_test_split
 import math
 from collections import defaultdict
 
-from ..core.config import get_config
-from ..core.exceptions import SamplingError
-from ..utils.logging import get_logger
+from src.core.config import get_config
+from src.core.exceptions import SamplingError
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -13,8 +13,8 @@ import numpy as np
 from datetime import datetime, timedelta
 
 from .grader import GradedResponse
-from ..models.base import ModelResponse
-from ..utils.logging import get_logger
+from src.models.base import ModelResponse
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
