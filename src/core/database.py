@@ -21,7 +21,7 @@ Base = declarative_base()
 
 # Global engine and session factory
 _engine: Optional[Engine] = None
-_SessionFactory: Optional[sessionmaker] = None
+SessionFactory: Optional[sessionmaker] = None
 
 
 def get_engine() -> Engine:

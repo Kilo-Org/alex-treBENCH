@@ -34,8 +34,22 @@ from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.panel import Panel
 
-# Add src to path for imports
+
+# Add current directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Create src namespace mapping for installed package
+import sys
+import types
+if 'src' not in sys.modules:
+    src_module = types.ModuleType('src')
+    sys.modules['src'] = src_module
+    # Add current directory as src for submodule imports
+    src_module.__path__ = [str(Path(__file__).parent)]
+
+
+# Import storage to populate src namespace
+import storage
 
 from core.config import get_config, reload_config
 from core.database import init_database, check_database_connection, get_db_session
@@ -1354,7 +1368,7 @@ def export(ctx, benchmark_id, format, output):
     """Export benchmark results."""
     
     # TODO: Implement result export
-    console.print(f"[yellow]⚠️  Exporting benchmark {benchmark_id} to {format} not yet implemented[/yellow]")
+    console.print(f"[yellow]⚠️  Export Exporting benchmark {benchmark_id} to {format} not yet implemented[/yellow]")
     
     if output:
         console.print(f"[dim]Would export to: {output}[/dim]")
@@ -1420,7 +1434,7 @@ def data_stats(ctx, benchmark_id, detailed):
             table.add_column("Value", style="green")
             
             table.add_row("Total Questions", f"{stats['total_questions']:,}")
-            table.add_row("Unique Categories", f"{stats['unique_categories']:,}")
+            table.add_row("Unique Categories", f"{stats['unique_categories']:,}");
             
             if stats['value_range']:
                 table.add_row("Value Range", f"${stats['value_range']['min']} - ${stats['value_range']['max']}")

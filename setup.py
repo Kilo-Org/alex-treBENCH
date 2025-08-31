@@ -40,6 +40,11 @@ setup(
     url="https://github.com/yourusername/alex-trebench",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    entry_points={
+        "console_scripts": [
+            "alex=main:cli",
+        ],
+    },
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -74,11 +79,6 @@ setup(
             "mkdocs>=1.5.0", 
             "mkdocs-material>=9.2.0",
         ]
-    },
-    entry_points={
-        "console_scripts": [
-            "alex-trebench=main:cli",
-        ],
     },
     include_package_data=True,
     package_data={
