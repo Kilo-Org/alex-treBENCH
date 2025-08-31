@@ -43,8 +43,8 @@ class OpenRouterConfig:
     default_model: str = "openai/gpt-3.5-turbo"
     streaming: bool = False
     headers: Dict[str, str] = field(default_factory=lambda: {
-        "referer": "https://jeopardy-bench.local",
-        "title": "Jeopardy Benchmarking System"
+        "referer": "https://alex-trebench.local",
+        "title": "alex-treBENCH Benchmarking System"
     })
 
 

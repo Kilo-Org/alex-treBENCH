@@ -159,7 +159,7 @@ make quality
 
 ```bash
 # Build image
-docker build -t jeopardy-benchmark .
+docker build -t alex-trebench .
 
 # Run with docker-compose
 docker-compose up

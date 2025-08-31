@@ -7,7 +7,7 @@ management, database connections, and custom exceptions.
 
 from .config import get_config, AppConfig
 from .exceptions import (
-    JeopardyBenchException,
+    AlexTreBenchException,
     ConfigurationError,
     DatabaseError,
     ModelAPIError,
@@ -17,7 +17,7 @@ from .exceptions import (
 __all__ = [
     "get_config",
     "AppConfig",
-    "JeopardyBenchException",
+    "AlexTreBenchException",
     "ConfigurationError", 
     "DatabaseError",
     "ModelAPIError",

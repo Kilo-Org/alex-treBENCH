@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
@@ -289,16 +289,16 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
   # =============================================================================
   # Docker Build & Test
@@ -320,7 +320,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          tags: jeopardy-benchmark:latest
+          tags: alex-trebench:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -331,8 +331,8 @@ jobs:
       - name: Test Docker image
         run: |
           # Test that the container starts and basic commands work
-          docker run --rm jeopardy-benchmark python --version
-          docker run --rm jeopardy-benchmark python -c "import sys; print('Python works')"
+          docker run --rm alex-trebench python --version
+          docker run --rm alex-trebench python -c "import sys; print('Python works')"
 
   # =============================================================================
   # Coverage Report
@@ -428,12 +428,12 @@ jobs:
 
             ## Installation
             ```bash
-            pip install jeopardy-benchmark
+            pip install alex-trebench
             ```
 
             ## Docker
             ```bash
-            docker pull jeopardy-benchmark:latest
+            docker pull alex-trebench:latest
             ```
           draft: false
           prerelease: false
@@ -444,7 +444,18 @@ jobs:
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [quality, test-unit, test-integration, test-e2e, test-performance, validate, security, docker, coverage]
+    needs:
+      [
+        quality,
+        test-unit,
+        test-integration,
+        test-e2e,
+        test-performance,
+        validate,
+        security,
+        docker,
+        coverage,
+      ]
     if: always()
     steps:
       - name: Pipeline Summary

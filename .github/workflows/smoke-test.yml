@@ -1,0 +1,206 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: # Allow manual triggering
+    inputs:
+      use_api:
+        description: "Use real API calls (requires secrets)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, "3.10", "3.11"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Create necessary directories
+        run: |
+          mkdir -p data logs reports
+
+      - name: Set up environment variables
+        run: |
+          echo "PYTHONPATH=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
+          echo "DATABASE_URL=sqlite:///data/test.db" >> $GITHUB_ENV
+          echo "LOG_LEVEL=INFO" >> $GITHUB_ENV
+
+      - name: Set API key for real API tests (if enabled)
+        if: ${{ github.event.inputs.use_api == 'true' }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          if [ -n "$OPENROUTER_API_KEY" ]; then
+            echo "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" >> $GITHUB_ENV
+            echo "✅ API key configured for real API testing"
+          else
+            echo "⚠️ API key not found in secrets, using simulation mode"
+            echo "OPENROUTER_API_KEY=" >> $GITHUB_ENV
+          fi
+
+      - name: Ensure simulation mode for standard runs
+        if: ${{ github.event.inputs.use_api != 'true' }}
+        run: |
+          echo "🎭 Using simulation mode (no API calls)"
+          unset OPENROUTER_API_KEY || true
+
+      - name: Run code quality checks
+        run: |
+          echo "🔍 Running code quality checks..."
+          python -m flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          python -m black --check src/ tests/ || echo "⚠️ Code formatting issues found (non-blocking)"
+
+      - name: Run unit tests
+        run: |
+          echo "🧪 Running unit tests..."
+          python -m pytest tests/unit/ -v --tb=short
+
+      - name: Initialize database
+        run: |
+          echo "🗄️ Initializing database..."
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from src.core.database import init_database
+          init_database()
+          print('✅ Database initialized successfully')
+          "
+
+      - name: Run smoke test
+        id: smoke_test
+        run: |
+          echo "🔥 Running smoke test..."
+          python scripts/smoke_test.py
+          echo "smoke_test_result=$?" >> $GITHUB_OUTPUT
+
+      - name: Run test agents
+        if: success() || failure() # Run even if smoke test fails
+        run: |
+          echo "🤖 Running test agents..."
+          python scripts/test_agents.py || echo "⚠️ Some test agents failed (non-blocking)"
+
+      - name: Generate test report
+        if: always() # Always run this step
+        run: |
+          echo "📊 Generating test report..."
+
+          # Create a simple test report
+          cat > test_report.md << 'EOF'
+          # alex-treBENCH Test Report
+
+          **Date:** $(date)
+          **Python Version:** ${{ matrix.python-version }}
+          **OS:** ubuntu-latest
+          **Trigger:** ${{ github.event_name }}
+          **API Mode:** ${{ github.event.inputs.use_api == 'true' && 'Real API' || 'Simulation' }}
+
+          ## Test Results
+
+          - **Code Quality:** ${{ job.status == 'success' && '✅ PASSED' || '❌ FAILED' }}
+          - **Unit Tests:** ${{ job.status == 'success' && '✅ PASSED' || '❌ FAILED' }}
+          - **Database Init:** ${{ job.status == 'success' && '✅ PASSED' || '❌ FAILED' }}
+          - **Smoke Test:** ${{ steps.smoke_test.outputs.smoke_test_result == '0' && '✅ PASSED' || '❌ FAILED' }}
+
+          ## System Information
+
+          - **Repository:** ${{ github.repository }}
+          - **Branch:** ${{ github.ref_name }}
+          - **Commit:** ${{ github.sha }}
+          - **Workflow:** ${{ github.workflow }}
+          - **Run ID:** ${{ github.run_id }}
+
+          EOF
+
+          echo "📋 Test report generated"
+          cat test_report.md
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-artifacts-python-${{ matrix.python-version }}
+          path: |
+            test_report.md
+            data/*.db
+            logs/*.log
+          retention-days: 7
+
+      - name: Check smoke test result
+        if: steps.smoke_test.outputs.smoke_test_result != '0'
+        run: |
+          echo "❌ Smoke test failed!"
+          echo "Check the test output above for details."
+          exit 1
+
+      - name: Success summary
+        if: success()
+        run: |
+          echo "🎉 All tests passed successfully!"
+          echo "✅ Smoke test completed"
+          echo "✅ System is working correctly"
+
+  # Summary job that runs after all matrix jobs
+  test-summary:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check overall test results
+        run: |
+          if [ "${{ needs.smoke-test.result }}" == "success" ]; then
+            echo "🎉 All smoke tests passed across all Python versions!"
+            echo "✅ alex-treBENCH is working correctly"
+          else
+            echo "❌ Some smoke tests failed"
+            echo "Check the individual job logs for details"
+            exit 1
+          fi
+
+      - name: Post success message
+        if: needs.smoke-test.result == 'success'
+        run: |
+          echo "## 🎉 Smoke Test Success! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "alex-treBENCH smoke tests passed on all tested Python versions:" >> $GITHUB_STEP_SUMMARY
+          echo "- Python 3.8 ✅" >> $GITHUB_STEP_SUMMARY  
+          echo "- Python 3.9 ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- Python 3.10 ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- Python 3.11 ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The system is ready for use! 🚀" >> $GITHUB_STEP_SUMMARY
+
+      - name: Post failure message
+        if: needs.smoke-test.result == 'failure'
+        run: |
+          echo "## ❌ Smoke Test Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Some smoke tests failed. Please check the individual job logs for details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Common troubleshooting steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check for dependency conflicts" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify database initialization" >> $GITHUB_STEP_SUMMARY
+          echo "3. Check for API connectivity issues" >> $GITHUB_STEP_SUMMARY
+          echo "4. Review test agent outputs" >> $GITHUB_STEP_SUMMARY

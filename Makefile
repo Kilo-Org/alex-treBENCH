@@ -145,7 +145,7 @@ demo: ## Run interactive demo
 
 docker-build: ## Build Docker image
 	@echo "🏗️  Building Docker image..."
-	docker build -t jeopardy-benchmark .
+	docker build -t alex-trebench .
 
 docker-run: ## Run application in Docker
 	@echo "🐳 Running in Docker..."
@@ -154,7 +154,7 @@ docker-run: ## Run application in Docker
 		-v $(PWD)/data:/app/data \
 		-v $(PWD)/logs:/app/logs \
 		-v $(PWD)/reports:/app/reports \
-		jeopardy-benchmark
+		alex-trebench
 
 docker-dev: ## Run development environment with Docker Compose
 	@echo "🐳 Starting development environment..."
@@ -176,7 +176,7 @@ docker-clean: ## Clean up Docker resources
 	@echo "🧹 Cleaning up Docker resources..."
 	docker-compose down -v
 	docker system prune -f
-	docker image rm jeopardy-benchmark 2>/dev/null || true
+	docker image rm alex-trebench 2>/dev/null || true
 
 # =============================================================================
 # Database
@@ -211,7 +211,7 @@ db-restore: ## Restore database from backup
 	@read -p "Enter backup filename: " backup_file; \
 	if [ -f "backups/$$backup_file" ]; then \
 		echo "🔄 Restoring from $$backup_file..."; \
-		cp backups/$$backup_file data/jeopardy_benchmark.db; \
+		cp backups/$$backup_file data/alex_trebench.db; \
 		echo "✅ Database restored."; \
 	else \
 		echo "❌ Backup file not found."; \

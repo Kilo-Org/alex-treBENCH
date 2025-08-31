@@ -3,7 +3,7 @@
 Test Infrastructure Integration Verification
 
 This script verifies that the test infrastructure (test agents and smoke test)
-integrates properly with the existing JeopardyBench codebase by checking:
+integrates properly with the existing alex-treBENCH codebase by checking:
 1. All imports work correctly
 2. Test scripts can be executed
 3. Dependencies are satisfied
@@ -37,7 +37,7 @@ class IntegrationVerifier:
     def verify_all(self) -> bool:
         """Run all verification checks."""
         console.print(Panel.fit(
-            "[bold blue]🔧 JeopardyBench Test Infrastructure Verification[/bold blue]\n"
+            "[bold blue]🔧 alex-treBENCH Test Infrastructure Verification[/bold blue]\n"
             "Checking integration with existing codebase",
             title="Integration Verification",
             border_style="blue"
@@ -390,7 +390,7 @@ class IntegrationVerifier:
 
 def main():
     """Main entry point."""
-    console.print("[blue]Starting JeopardyBench Test Infrastructure Integration Verification...[/blue]\n")
+    console.print("[blue]Starting alex-treBENCH Test Infrastructure Integration Verification...[/blue]\n")
     
     verifier = IntegrationVerifier()
     success = verifier.verify_all()
@@ -398,7 +398,7 @@ def main():
     if success:
         console.print(Panel.fit(
             "[bold green]✅ Integration Verification PASSED[/bold green]\n"
-            "Test infrastructure is properly integrated with JeopardyBench!",
+            "Test infrastructure is properly integrated with alex-treBENCH!",
             title="Success",
             border_style="green"
         ))

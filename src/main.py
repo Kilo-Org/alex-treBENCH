@@ -39,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from core.config import get_config, reload_config
 from core.database import init_database, check_database_connection, get_db_session
-from core.exceptions import JeopardyBenchException
+from core.exceptions import AlexTreBenchException
 from utils.logging import setup_logging, get_logger
 
 console = Console()
@@ -1126,7 +1126,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         console.print("\n[yellow]Operation cancelled by user[/yellow]")
         sys.exit(1)
-    except JeopardyBenchException as e:
+    except AlexTreBenchException as e:
         logger.error(f"Application error: {str(e)}")
         console.print(f"[red]Error: {str(e)}[/red]")
         sys.exit(1)

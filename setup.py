@@ -30,14 +30,14 @@ def read_requirements(filename):
 install_requires = read_requirements("requirements.txt")
 
 setup(
-    name="jeopardy-bench",
+    name="alex-trebench",
     version="1.0.0",
     author="Your Name",
     author_email="your.email@example.com",
     description="Language Model Benchmarking System using Jeopardy Questions",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/jeopardy-bench",
+    url="https://github.com/yourusername/alex-trebench",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     classifiers=[
@@ -77,7 +77,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "jeopardy-bench=main:cli",
+            "alex-trebench=main:cli",
         ],
     },
     include_package_data=True,
@@ -85,8 +85,8 @@ setup(
         "": ["*.yaml", "*.yml", "*.json", "*.md"],
     },
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/jeopardy-bench/issues",
-        "Source": "https://github.com/yourusername/jeopardy-bench",
-        "Documentation": "https://jeopardy-bench.readthedocs.io/",
+        "Bug Reports": "https://github.com/yourusername/alex-trebench/issues",
+        "Source": "https://github.com/yourusername/alex-trebench",
+        "Documentation": "https://alex-trebench.readthedocs.io/",
     },
 )

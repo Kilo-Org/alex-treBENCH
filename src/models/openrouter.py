@@ -112,8 +112,8 @@ class OpenRouterClient(ModelAdapter):
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://jeopardy-bench.local",
-                "X-Title": "Jeopardy Benchmarking System"
+                "HTTP-Referer": "https://alex-trebench.local",
+                "X-Title": "alex-treBENCH Benchmarking System"
             }
             
             # Merge config with any override parameters

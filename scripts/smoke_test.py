@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-JeopardyBench Smoke Test
+alex-treBENCH Smoke Test
 
-Complete end-to-end test that verifies the entire JeopardyBench system works correctly.
+Complete end-to-end test that verifies the entire alex-treBENCH system works correctly.
 This test:
 1. Initializes a clean test database
 2. Loads a small sample of questions
@@ -45,7 +45,7 @@ class SmokeTestRunner:
     async def run_smoke_test(self) -> bool:
         """Run the complete smoke test suite."""
         console.print(Panel.fit(
-            "[bold blue]🔥 JeopardyBench Smoke Test[/bold blue]\n"
+            "[bold blue]🔥 alex-treBENCH Smoke Test[/bold blue]\n"
             "Running complete end-to-end system verification",
             title="Smoke Test",
             border_style="blue"
@@ -408,7 +408,7 @@ class SmokeTestRunner:
 
 async def main():
     """Main entry point for smoke test."""
-    console.print("[blue]Starting JeopardyBench Smoke Test...[/blue]\n")
+    console.print("[blue]Starting alex-treBENCH Smoke Test...[/blue]\n")
     
     runner = SmokeTestRunner()
     success = await runner.run_smoke_test()
@@ -416,7 +416,7 @@ async def main():
     if success:
         console.print(Panel.fit(
             "[bold green]🎉 Smoke Test PASSED[/bold green]\n"
-            "JeopardyBench system is working correctly!",
+            "alex-treBENCH system is working correctly!",
             title="Success",
             border_style="green"
         ))
@@ -424,7 +424,7 @@ async def main():
     else:
         console.print(Panel.fit(
             "[bold red]❌ Smoke Test FAILED[/bold red]\n"
-            "JeopardyBench system has issues that need attention",
+            "alex-treBENCH system has issues that need attention",
             title="Failure",
             border_style="red"
         ))

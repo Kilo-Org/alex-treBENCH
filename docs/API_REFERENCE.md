@@ -36,6 +36,7 @@ class ModelResponse:
 ```
 
 **Attributes:**
+
 - `model_id` (str): Identifier of the model that generated the response
 - `prompt` (str): The input prompt sent to the model
 - `response` (str): The generated response text
@@ -63,6 +64,7 @@ class ModelConfig:
 ```
 
 **Attributes:**
+
 - `model_name` (str): Name/identifier of the model
 - `max_tokens` (int): Maximum tokens to generate
 - `temperature` (float): Sampling temperature (0.0 to 1.0)
@@ -136,6 +138,7 @@ class OpenRouterClient(ModelAdapter):
 ```
 
 **Usage Example:**
+
 ```python
 from src.models.openrouter import OpenRouterClient
 from src.models.base import ModelConfig
@@ -190,6 +193,7 @@ class DatabaseConfig:
 ```
 
 **Configuration Options:**
+
 - `url`: Database connection URL
 - `echo`: Enable SQL query logging
 - `pool_size`: Connection pool size
@@ -215,8 +219,8 @@ class OpenRouterConfig:
     default_model: str = "openai/gpt-3.5-turbo"
     streaming: bool = False
     headers: Dict[str, str] = field(default_factory=lambda: {
-        "referer": "https://jeopardy-bench.local",
-        "title": "Jeopardy Benchmarking System"
+        "referer": "https://alex-trebench.local",
+        "title": "alex-treBENCH Benchmarking System"
     })
 ```
 
@@ -238,6 +242,7 @@ class BenchmarkConfig:
 ```
 
 **Benchmark Modes:**
+
 - `quick`: 50 questions, 30s timeout
 - `standard`: 200 questions, 60s timeout
 - `comprehensive`: 1000 questions, 120s timeout
@@ -375,6 +380,7 @@ class MetricsCalculator:
 ```
 
 **Usage Example:**
+
 ```python
 from src.evaluation.metrics import MetricsCalculator
 
@@ -452,6 +458,7 @@ class BenchmarkResult:
 ```
 
 **Usage Example:**
+
 ```python
 from src.benchmark.runner import BenchmarkRunner, RunMode
 
@@ -509,6 +516,7 @@ class ReportFormat(str, Enum):
 ```
 
 **Usage Example:**
+
 ```python
 from src.benchmark.reporting import ReportGenerator, ReportFormat
 
@@ -529,50 +537,53 @@ generator.display_terminal_report(result)
 
 ### OpenAI Models
 
-| Model | Context Length | Pricing (per 1K tokens) |
-|-------|----------------|------------------------|
-| gpt-3.5-turbo | 4K | $0.0015 / $0.002 |
-| gpt-3.5-turbo-16k | 16K | $0.003 / $0.004 |
-| gpt-4 | 8K | $0.03 / $0.06 |
-| gpt-4-32k | 32K | $0.06 / $0.12 |
-| gpt-4-turbo | 128K | $0.01 / $0.03 |
+| Model             | Context Length | Pricing (per 1K tokens) |
+| ----------------- | -------------- | ----------------------- |
+| gpt-3.5-turbo     | 4K             | $0.0015 / $0.002        |
+| gpt-3.5-turbo-16k | 16K            | $0.003 / $0.004         |
+| gpt-4             | 8K             | $0.03 / $0.06           |
+| gpt-4-32k         | 32K            | $0.06 / $0.12           |
+| gpt-4-turbo       | 128K           | $0.01 / $0.03           |
 
 ### Anthropic Models
 
-| Model | Context Length | Pricing (per 1K tokens) |
-|-------|----------------|------------------------|
-| claude-3-haiku | 200K | $0.25 / $1.25 |
-| claude-3-sonnet | 200K | $3.00 / $15.00 |
-| claude-3-opus | 200K | $15.00 / $75.00 |
-| claude-2 | 100K | $8.00 / $24.00 |
+| Model           | Context Length | Pricing (per 1K tokens) |
+| --------------- | -------------- | ----------------------- |
+| claude-3-haiku  | 200K           | $0.25 / $1.25           |
+| claude-3-sonnet | 200K           | $3.00 / $15.00          |
+| claude-3-opus   | 200K           | $15.00 / $75.00         |
+| claude-2        | 100K           | $8.00 / $24.00          |
 
 ### Google Models
 
-| Model | Context Length | Pricing (per 1K tokens) |
-|-------|----------------|------------------------|
-| gemini-pro | 32K | $0.50 / $1.50 |
-| gemini-pro-vision | 16K | $0.50 / $1.50 |
-| gemini-ultra | 32K | $10.00 / $30.00 |
+| Model             | Context Length | Pricing (per 1K tokens) |
+| ----------------- | -------------- | ----------------------- |
+| gemini-pro        | 32K            | $0.50 / $1.50           |
+| gemini-pro-vision | 16K            | $0.50 / $1.50           |
+| gemini-ultra      | 32K            | $10.00 / $30.00         |
 
 ### Meta Models
 
-| Model | Context Length | Pricing (per 1K tokens) |
-|-------|----------------|------------------------|
-| llama-2-7b-chat | 4K | $0.001 / $0.001 |
-| llama-2-13b-chat | 4K | $0.001 / $0.001 |
-| llama-2-70b-chat | 4K | $0.001 / $0.001 |
+| Model            | Context Length | Pricing (per 1K tokens) |
+| ---------------- | -------------- | ----------------------- |
+| llama-2-7b-chat  | 4K             | $0.001 / $0.001         |
+| llama-2-13b-chat | 4K             | $0.001 / $0.001         |
+| llama-2-70b-chat | 4K             | $0.001 / $0.001         |
 
 ### Model Selection Guide
 
 **For Speed:**
+
 - OpenAI: gpt-3.5-turbo
 - Anthropic: claude-3-haiku
 
 **For Quality:**
+
 - OpenAI: gpt-4-turbo
 - Anthropic: claude-3-opus
 
 **For Cost Efficiency:**
+
 - OpenAI: gpt-3.5-turbo
 - Meta: llama-2-13b-chat
 
@@ -581,23 +592,23 @@ generator.display_terminal_report(result)
 ### Exception Classes
 
 ```python
-class JeopardyBenchException(Exception):
+class AlexTreBenchException(Exception):
     """Base exception for the benchmarking system."""
     pass
 
-class ModelAPIError(JeopardyBenchException):
+class ModelAPIError(AlexTreBenchException):
     """Exception raised when model API calls fail."""
     pass
 
-class ConfigurationError(JeopardyBenchException):
+class ConfigurationError(AlexTreBenchException):
     """Exception raised for configuration errors."""
     pass
 
-class DatabaseError(JeopardyBenchException):
+class DatabaseError(AlexTreBenchException):
     """Exception raised for database operations."""
     pass
 
-class ValidationError(JeopardyBenchException):
+class ValidationError(AlexTreBenchException):
     """Exception raised for data validation errors."""
     pass
 ```
@@ -605,140 +616,18 @@ class ValidationError(JeopardyBenchException):
 ### Error Handling Patterns
 
 ```python
-from src.core.exceptions import JeopardyBenchException, ModelAPIError
+from src.core.exceptions import AlexTreBenchException, ModelAPIError
 
 try:
-    result = await runner.run_benchmark("openai/gpt-4", RunMode.STANDARD)
+    # Your benchmarking code here
+    pass
 except ModelAPIError as e:
     print(f"Model API error: {e}")
     # Handle API-specific errors
-except JeopardyBenchException as e:
+except AlexTreBenchException as e:
     print(f"Benchmark error: {e}")
     # Handle general benchmarking errors
 except Exception as e:
     print(f"Unexpected error: {e}")
     # Handle unexpected errors
 ```
-
-## Examples
-
-### Basic Benchmark
-
-```python
-import asyncio
-from src.benchmark.runner import BenchmarkRunner, RunMode
-
-async def basic_benchmark():
-    runner = BenchmarkRunner()
-
-    result = await runner.run_benchmark(
-        model_name="openai/gpt-3.5-turbo",
-        mode=RunMode.QUICK
-    )
-
-    print(f"Accuracy: {result.metrics.accuracy.overall_accuracy:.1%}")
-    print(f"Cost: ${result.metrics.cost.total_cost:.4f}")
-
-asyncio.run(basic_benchmark())
-```
-
-### Model Comparison
-
-```python
-import asyncio
-from src.benchmark.runner import BenchmarkRunner, RunMode
-from src.benchmark.reporting import ReportGenerator, ReportFormat
-
-async def compare_models():
-    runner = BenchmarkRunner()
-    generator = ReportGenerator()
-
-    models = ["openai/gpt-3.5-turbo", "openai/gpt-4", "anthropic/claude-3-haiku"]
-    results = []
-
-    for model in models:
-        result = await runner.run_benchmark(model, RunMode.STANDARD)
-        results.append(result)
-
-    # Generate comparison report
-    comparison = generator.generate_comparison_report(
-        results, ReportFormat.MARKDOWN
-    )
-
-    with open("model_comparison.md", "w") as f:
-        f.write(comparison)
-
-asyncio.run(compare_models())
-```
-
-### Custom Configuration
-
-```python
-from src.benchmark.runner import BenchmarkRunner, BenchmarkConfig
-from src.models.base import ModelConfig
-
-# Custom model configuration
-model_config = ModelConfig(
-    model_name="openai/gpt-4",
-    temperature=0.3,
-    max_tokens=200
-)
-
-# Custom benchmark configuration
-benchmark_config = BenchmarkConfig(
-    sample_size=100,
-    timeout_seconds=45,
-    grading_mode=GradingMode.STRICT
-)
-
-runner = BenchmarkRunner()
-result = await runner.run_benchmark(
-    model_name="openai/gpt-4",
-    custom_config=benchmark_config
-)
-```
-
-### Metrics Analysis
-
-```python
-from src.evaluation.metrics import MetricsCalculator
-
-calculator = MetricsCalculator()
-
-# Calculate metrics
-metrics = calculator.calculate_metrics(
-    graded_responses=graded_list,
-    model_responses=model_responses,
-    model_name="openai/gpt-4"
-)
-
-# Access different metric categories
-print(f"Overall Score: {metrics.overall_score:.3f}")
-print(f"Accuracy by Category: {metrics.accuracy.by_category}")
-print(f"Cost Efficiency: {metrics.cost.cost_efficiency_score:.2f}")
-print(f"Response Time (P95): {metrics.performance.p95_response_time:.2f}s")
-```
-
-### Configuration Management
-
-```python
-from src.core.config import get_config, AppConfig
-from pathlib import Path
-
-# Load configuration
-config = get_config()
-
-# Modify configuration
-config.benchmark.max_concurrent_requests = 10
-config.database.echo = True
-
-# Save configuration
-config_path = Path("custom_config.yaml")
-with open(config_path, 'w') as f:
-    # Use YAML library to save
-    pass
-```
-
----
-
-For more examples and advanced usage, see the [User Guide](USER_GUIDE.md) and [Technical Documentation](../TECHNICAL_SPEC.md).

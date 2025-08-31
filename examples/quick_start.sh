@@ -31,7 +31,7 @@ print_error() {
 
 # Check if we're in the right directory
 if [ ! -f "setup.py" ] || [ ! -d "src" ]; then
-    print_error "Please run this script from the jeopardy-benchmark project root directory"
+    print_error "Please run this script from the alex-trebench project root directory"
     exit 1
 fi
 

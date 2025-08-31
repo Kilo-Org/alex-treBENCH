@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Main application service
@@ -10,15 +10,15 @@ services:
         BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
         VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}
         VERSION: ${VERSION:-1.0.0}
-    container_name: jeopardy-benchmark
+    container_name: alex-trebench
     restart: unless-stopped
 
     # Environment configuration
     env_file:
       - .env
     environment:
-      - JEOPARDY_ENV=production
-      - DATABASE_URL=postgresql://jeopardy:jeopardy_pass@db:5432/jeopardy_benchmark
+      - ALEX_TREBENCH_ENV=production
+      - DATABASE_URL=postgresql://alex_trebench:alex_trebench_pass@db:5432/alex_trebench
       - LOG_LEVEL=INFO
       - PYTHONPATH=/app
 
@@ -38,7 +38,13 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD", "python", "-c", "from src.core.config import get_config; print('OK')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from src.core.config import get_config; print('OK')",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -49,10 +55,10 @@ services:
       resources:
         limits:
           memory: 2G
-          cpus: '1.0'
+          cpus: "1.0"
         reservations:
           memory: 512M
-          cpus: '0.5'
+          cpus: "0.5"
 
   # Database service
   db:
@@ -62,8 +68,8 @@ services:
 
     # Environment configuration
     environment:
-      POSTGRES_DB: jeopardy_benchmark
-      POSTGRES_USER: jeopardy
+      POSTGRES_DB: alex_trebench
+      POSTGRES_USER: alex_trebench
       POSTGRES_PASSWORD: jeopardy_pass
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
 
@@ -78,7 +84,7 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jeopardy -d jeopardy_benchmark"]
+      test: ["CMD-SHELL", "pg_isready -U alex_trebench -d alex_trebench"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,10 +94,10 @@ services:
       resources:
         limits:
           memory: 1G
-          cpus: '0.5'
+          cpus: "0.5"
         reservations:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
 
   # Redis for caching (optional)
   redis:
@@ -120,10 +126,10 @@ services:
       resources:
         limits:
           memory: 256M
-          cpus: '0.25'
+          cpus: "0.25"
         reservations:
           memory: 64M
-          cpus: '0.1'
+          cpus: "0.1"
 
   # Development service (for development environment)
   dev:
@@ -138,8 +144,8 @@ services:
     env_file:
       - .env
     environment:
-      - JEOPARDY_ENV=development
-      - DATABASE_URL=postgresql://jeopardy:jeopardy_pass@db:5432/jeopardy_benchmark
+      - ALEX_TREBENCH_ENV=development
+      - DATABASE_URL=postgresql://alex_trebench:alex_trebench_pass@db:5432/alex_trebench
       - LOG_LEVEL=DEBUG
       - PYTHONPATH=/app
 
@@ -212,7 +218,7 @@ services:
 networks:
   benchmark-network:
     driver: bridge
-    name: jeopardy-benchmark-network
+    name: alex-trebench-network
 
 # Volumes
 volumes:

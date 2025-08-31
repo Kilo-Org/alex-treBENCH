@@ -28,7 +28,7 @@ The Jeopardy Benchmarking System is a comprehensive tool for evaluating and comp
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd jeopardy-benchmark
+cd alex-trebench
 
 # Install dependencies
 pip install -r requirements.txt
@@ -76,29 +76,34 @@ pydantic>=1.8.0
 ### Installation Steps
 
 1. **Clone the repository**:
+
    ```bash
    git clone <repository-url>
-   cd jeopardy-benchmark
+   cd alex-trebench
    ```
 
 2. **Create virtual environment** (recommended):
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install dependencies**:
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. **Set up environment variables**:
+
    ```bash
    cp .env.example .env
    # Edit .env with your API keys and configuration
    ```
 
 5. **Initialize the database**:
+
    ```bash
    python -m src.main init
    ```
@@ -126,7 +131,7 @@ Create a `.env` file in the project root:
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 
 # Database
-DATABASE_URL=sqlite:///jeopardy_benchmark.db
+DATABASE_URL=sqlite:///alex_trebench.db
 
 # Logging
 LOG_LEVEL=INFO
@@ -519,6 +524,7 @@ Options:
 **Problem**: Unable to connect to OpenRouter API
 
 **Solutions**:
+
 1. Verify API key is set in `.env` file
 2. Check internet connection
 3. Verify API key has sufficient credits
@@ -534,6 +540,7 @@ python -m src.main health --check-api
 **Problem**: Database connection errors
 
 **Solutions**:
+
 1. Ensure database file exists and is writable
 2. Check database URL in configuration
 3. Reinitialize database if corrupted
@@ -548,6 +555,7 @@ python -m src.main init --force
 **Problem**: Out of memory errors during large benchmarks
 
 **Solutions**:
+
 1. Reduce concurrent requests
 2. Use smaller batch sizes
 3. Increase system memory
@@ -563,6 +571,7 @@ python -m src.main benchmark run --model openai/gpt-4 --concurrent-limit 2
 **Problem**: Specified model is not available
 
 **Solutions**:
+
 1. Check model name spelling
 2. Verify model is supported by OpenRouter
 3. Update model configuration
@@ -577,11 +586,13 @@ python -m src.main models list
 #### Slow Benchmark Execution
 
 1. **Reduce sample size**:
+
    ```bash
    python -m src.main benchmark run --model openai/gpt-4 --size quick
    ```
 
 2. **Increase concurrency** (if API allows):
+
    ```bash
    python -m src.main benchmark run --model openai/gpt-4 --concurrent-limit 10
    ```
@@ -594,6 +605,7 @@ python -m src.main models list
 #### High Memory Usage
 
 1. **Process in batches**:
+
    ```bash
    python -m src.main benchmark run --model openai/gpt-4 --batch-size 10
    ```
@@ -628,12 +640,14 @@ grep "ERROR" logs/benchmark.log | tail -10
 ### Getting Help
 
 1. **Check command help**:
+
    ```bash
    python -m src.main --help
    python -m src.main benchmark run --help
    ```
 
 2. **View system health**:
+
    ```bash
    python -m src.main health
    ```

@@ -3,7 +3,7 @@
 ## 1. Directory Organization
 
 ```
-jeopardy_bench/
+alex_trebench/
 ├── README.md
 ├── requirements.txt
 ├── setup.py
@@ -102,6 +102,7 @@ jeopardy_bench/
 ### 2.1 Core Modules
 
 #### `src/core/`
+
 - **Purpose**: Foundational components used across the application
 - **Key Components**:
   - `config.py`: Centralized configuration management
@@ -109,6 +110,7 @@ jeopardy_bench/
   - `exceptions.py`: Application-specific exception classes
 
 #### `src/data/`
+
 - **Purpose**: Data ingestion, preprocessing, and sampling
 - **Key Components**:
   - `ingestion.py`: Kaggle dataset loading using kagglehub
@@ -116,6 +118,7 @@ jeopardy_bench/
   - `sampling.py`: Statistical sampling algorithms for question selection
 
 #### `src/models/`
+
 - **Purpose**: Language model abstraction and API clients
 - **Key Components**:
   - `base.py`: Abstract base class for model interfaces
@@ -125,6 +128,7 @@ jeopardy_bench/
 ### 2.2 Processing Modules
 
 #### `src/evaluation/`
+
 - **Purpose**: Answer evaluation and performance measurement
 - **Key Components**:
   - `matcher.py`: Fuzzy string matching for answer validation
@@ -132,6 +136,7 @@ jeopardy_bench/
   - `metrics.py`: Performance metrics calculation and aggregation
 
 #### `src/benchmarks/`
+
 - **Purpose**: Benchmark execution and management
 - **Key Components**:
   - `runner.py`: Main benchmark execution engine
@@ -141,6 +146,7 @@ jeopardy_bench/
 ### 2.3 Data Layer
 
 #### `src/storage/`
+
 - **Purpose**: Data persistence and access
 - **Key Components**:
   - `models.py`: SQLAlchemy ORM model definitions
@@ -150,12 +156,14 @@ jeopardy_bench/
 ### 2.4 Interface Modules
 
 #### `src/cli/`
+
 - **Purpose**: Command-line interface
 - **Key Components**:
   - `commands.py`: Click-based CLI command definitions
   - `formatting.py`: Output formatting and progress display
 
 #### `src/api/` (Future)
+
 - **Purpose**: Web API for future GUI integration
 - **Key Components**:
   - `app.py`: FastAPI application setup
@@ -167,32 +175,38 @@ jeopardy_bench/
 ### 3.1 Core Dependencies
 
 #### Data Processing
+
 - **pandas**: Data manipulation and analysis
 - **numpy**: Numerical computations for statistical sampling
 - **kagglehub**: Kaggle dataset integration
 
 #### Database & ORM
+
 - **SQLAlchemy**: Database ORM and connection management
 - **alembic**: Database migration management
 - **sqlite3**: Built-in SQLite support (Python standard library)
 
 #### API Integration
+
 - **aiohttp**: Async HTTP client for OpenRouter API
 - **asyncio**: Asynchronous programming support
 - **tenacity**: Retry mechanisms and error handling
 
 #### Text Processing & Evaluation
+
 - **fuzzywuzzy**: Fuzzy string matching for answer evaluation
 - **python-Levenshtein**: Fast string similarity calculations
 - **nltk**: Natural language processing utilities
 - **regex**: Advanced regular expression support
 
 #### CLI & Interface
+
 - **click**: Command-line interface framework
 - **rich**: Enhanced terminal output and progress bars
 - **tabulate**: Table formatting for results display
 
 #### Configuration & Utilities
+
 - **pyyaml**: YAML configuration file support
 - **python-dotenv**: Environment variable management
 - **pydantic**: Data validation and settings management
@@ -200,6 +214,7 @@ jeopardy_bench/
 ### 3.2 Development Dependencies
 
 #### Testing
+
 - **pytest**: Testing framework
 - **pytest-asyncio**: Async testing support
 - **pytest-cov**: Code coverage reporting
@@ -207,6 +222,7 @@ jeopardy_bench/
 - **factory-boy**: Test data generation
 
 #### Code Quality
+
 - **black**: Code formatting
 - **isort**: Import sorting
 - **flake8**: Linting and style checking
@@ -214,6 +230,7 @@ jeopardy_bench/
 - **pre-commit**: Git pre-commit hooks
 
 #### Documentation
+
 - **sphinx**: Documentation generation
 - **mkdocs**: Markdown-based documentation
 - **mkdocs-material**: Material theme for documentation
@@ -221,18 +238,21 @@ jeopardy_bench/
 ### 3.3 Future/Optional Dependencies
 
 #### Web Interface (Phase 2)
+
 - **fastapi**: Modern web API framework
 - **uvicorn**: ASGI server
 - **websockets**: Real-time benchmark progress updates
 - **jinja2**: Template rendering
 
 #### Advanced Analytics
+
 - **matplotlib**: Data visualization
 - **plotly**: Interactive charts
 - **jupyter**: Notebook-based analysis
 - **scikit-learn**: Statistical analysis utilities
 
 #### Production Deployment
+
 - **docker**: Containerization
 - **redis**: Caching and task queuing
 - **postgresql**: Production database (if scaling beyond SQLite)
@@ -352,14 +372,14 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="jeopardy-bench",
+    name="alex-trebench",
     version="1.0.0",
     author="Your Name",
     author_email="your.email@example.com",
     description="Language Model Benchmarking System using Jeopardy Questions",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/jeopardy-bench",
+    url="https://github.com/yourusername/alex-trebench",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     classifiers=[
@@ -377,7 +397,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "jeopardy-bench=main:cli",
+            "alex-trebench=main:cli",
         ],
     },
 )
@@ -410,11 +430,11 @@ class BenchmarkRunner:
 class BenchmarkRepository:
     def __init__(self, session: Session):
         self.session = session
-    
+
     def create_benchmark(self, benchmark: Benchmark) -> Benchmark:
         # Implementation
         pass
-    
+
     def get_benchmark(self, benchmark_id: int) -> Optional[Benchmark]:
         # Implementation
         pass
@@ -437,16 +457,19 @@ class OpenRouterAdapter(ModelAdapter):
 ## 7. Testing Strategy Integration
 
 ### 7.1 Test Structure
+
 - **Unit Tests**: Test individual components in isolation
 - **Integration Tests**: Test component interactions
 - **End-to-End Tests**: Test complete benchmark workflows
 
 ### 7.2 Mock Strategy
+
 - Mock external APIs (OpenRouter, Kaggle) for consistent testing
 - Use factory-boy for generating test data
 - Pytest fixtures for common test setup
 
 ### 7.3 Coverage Goals
+
 - Target 90%+ code coverage
 - Focus on critical path coverage (benchmark execution, answer evaluation)
 - Include edge case testing for fuzzy matching algorithms

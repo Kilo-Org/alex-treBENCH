@@ -149,8 +149,8 @@ CMD ["python", "scripts/demo.py"]
 LABEL org.opencontainers.image.title="Jeopardy Benchmarking System" \
       org.opencontainers.image.description="Comprehensive benchmarking tool for language models using Jeopardy questions" \
       org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.authors="Jeopardy Bench Team" \
-      org.opencontainers.image.source="https://github.com/your-org/jeopardy-benchmark" \
+      org.opencontainers.image.authors="alex-treBENCH Team" \
+      org.opencontainers.image.source="https://github.com/your-org/alex-trebench" \
       org.opencontainers.image.licenses="MIT"
 
 # =============================================================================

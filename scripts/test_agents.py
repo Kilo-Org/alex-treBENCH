@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test Agents for JeopardyBench System
+Test Agents for alex-treBENCH System
 
 Comprehensive test agents that verify different aspects of the system:
 - Database initialization
@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.core.config import AppConfig, get_config, set_config
 from src.core.database import init_database, get_db_session, Base
-from src.core.exceptions import JeopardyBenchException
+from src.core.exceptions import AlexTreBenchException
 from src.storage.models import Question, BenchmarkRun, BenchmarkResult
 from src.storage.repositories import BenchmarkRepository
 from src.benchmark.runner import BenchmarkRunner, RunMode
@@ -642,7 +642,7 @@ class TestAgentRunner:
     async def run_all_agents(self) -> List[TestAgentResult]:
         """Run all test agents and return results."""
         console.print(Panel.fit(
-            "[bold blue]🧪 JeopardyBench Test Agents[/bold blue]\n"
+            "[bold blue]🧪 alex-treBENCH Test Agents[/bold blue]\n"
             f"Running {len(self.agents)} comprehensive system tests",
             title="System Testing",
             border_style="blue"
@@ -740,7 +740,7 @@ class TestAgentRunner:
 
 async def main():
     """Main entry point for test agents."""
-    console.print("[blue]Starting JeopardyBench Test Agents...[/blue]\n")
+    console.print("[blue]Starting alex-treBENCH Test Agents...[/blue]\n")
     
     runner = TestAgentRunner()
     results = await runner.run_all_agents()

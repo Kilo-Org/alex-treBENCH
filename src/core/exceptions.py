@@ -8,8 +8,8 @@ and debugging throughout the benchmarking system.
 from typing import Optional, Any, Dict
 
 
-class JeopardyBenchException(Exception):
-    """Base exception class for all Jeopardy Bench errors."""
+class AlexTreBenchException(Exception):
+    """Base exception class for all alex-treBENCH errors."""
     
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(message)
@@ -22,12 +22,12 @@ class JeopardyBenchException(Exception):
         return self.message
 
 
-class ConfigurationError(JeopardyBenchException):
+class ConfigurationError(AlexTreBenchException):
     """Raised when there's an issue with configuration setup or validation."""
     pass
 
 
-class DatabaseError(JeopardyBenchException):
+class DatabaseError(AlexTreBenchException):
     """Raised when database operations fail."""
     
     def __init__(self, message: str, operation: Optional[str] = None, 
@@ -37,7 +37,7 @@ class DatabaseError(JeopardyBenchException):
         self.table = table
 
 
-class ModelAPIError(JeopardyBenchException):
+class ModelAPIError(AlexTreBenchException):
     """Raised when API calls to language model providers fail."""
     
     def __init__(self, message: str, model_name: Optional[str] = None,
@@ -57,7 +57,7 @@ class RateLimitError(ModelAPIError):
         self.retry_after = retry_after
 
 
-class EvaluationError(JeopardyBenchException):
+class EvaluationError(AlexTreBenchException):
     """Raised when answer evaluation fails."""
     
     def __init__(self, message: str, question_id: Optional[str] = None,
@@ -69,7 +69,7 @@ class EvaluationError(JeopardyBenchException):
         self.expected_answer = expected_answer
 
 
-class DataIngestionError(JeopardyBenchException):
+class DataIngestionError(AlexTreBenchException):
     """Raised when data loading or preprocessing fails."""
     
     def __init__(self, message: str, dataset_name: Optional[str] = None,
@@ -79,7 +79,7 @@ class DataIngestionError(JeopardyBenchException):
         self.file_path = file_path
 
 
-class SamplingError(JeopardyBenchException):
+class SamplingError(AlexTreBenchException):
     """Raised when statistical sampling fails."""
     
     def __init__(self, message: str, sample_size: Optional[int] = None,
@@ -89,7 +89,7 @@ class SamplingError(JeopardyBenchException):
         self.population_size = population_size
 
 
-class ValidationError(JeopardyBenchException):
+class ValidationError(AlexTreBenchException):
     """Raised when data validation fails."""
     
     def __init__(self, message: str, field_name: Optional[str] = None,
@@ -99,7 +99,7 @@ class ValidationError(JeopardyBenchException):
         self.invalid_value = invalid_value
 
 
-class BenchmarkExecutionError(JeopardyBenchException):
+class BenchmarkExecutionError(AlexTreBenchException):
     """Raised when benchmark execution encounters critical errors."""
     
     def __init__(self, message: str, benchmark_id: Optional[str] = None,

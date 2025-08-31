@@ -31,8 +31,8 @@ openrouter:
   default_model: "openai/gpt-3.5-turbo"
   streaming: false
   headers:
-    referer: "https://jeopardy-bench.local"
-    title: "Jeopardy Benchmarking System"
+    referer: "https://alex-trebench.local"
+    title: "alex-treBENCH Benchmarking System"
 
 prompts:
   default_template: "jeopardy_style"

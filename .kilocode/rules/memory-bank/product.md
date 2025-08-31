@@ -1,8 +1,8 @@
 # Product Vision
 
-## What is JeopardyBench?
+## What is alex-treBENCH?
 
-JeopardyBench is a comprehensive benchmarking system that evaluates Large Language Models (LLMs) using historical Jeopardy questions. It provides a standardized, entertaining, and statistically rigorous way to measure and compare AI model performance across diverse knowledge domains.
+alex-treBENCH is a comprehensive benchmarking system that evaluates Large Language Models (LLMs) using historical Jeopardy questions. It provides a standardized, entertaining, and statistically rigorous way to measure and compare AI model performance across diverse knowledge domains.
 
 ## Why Does It Exist?
 

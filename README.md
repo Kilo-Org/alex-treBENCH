@@ -71,7 +71,7 @@ graph TB
 ## 📁 Project Structure
 
 ```
-jeopardy_bench/
+alex_trebench/
 ├── config/                    # Configuration files (YAML)
 ├── src/
 │   ├── core/                  # Foundation components
@@ -138,7 +138,7 @@ consistency_score = 1 - std_deviation(response_times) / mean(response_times)
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd jeopardy-benchmark
+cd alex-trebench
 
 # Create virtual environment
 python -m venv venv
@@ -297,122 +297,92 @@ python -m src.main models test --model openai/gpt-3.5-turbo
 python -m src.main models costs --model openai/gpt-4 --questions 1000
 ```
 
-## 🧪 Testing Strategy
+## 🧪 Testing & Verification
 
-### Test Coverage
+### Quick System Verification
 
-- **Unit Tests**: Individual component functionality
-- **Integration Tests**: API interactions and database operations
-- **End-to-End Tests**: Complete benchmark workflows
-- **Performance Tests**: Large dataset handling and concurrent operations
-
-### Quality Assurance
-
-- Type checking with mypy
-- Code formatting with black
-- Import sorting with isort
-- Linting with flake8
-- Pre-commit hooks for code quality
-
-## 🤝 Contributing
-
-### Development Setup
+Verify your alex-treBENCH installation is working correctly:
 
 ```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
+# Quick verification script
+./scripts/quick_test.sh
 
-# Set up pre-commit hooks
-pre-commit install
+# Or run the smoke test directly
+python scripts/smoke_test.py
 
-# Run tests
-pytest tests/ -v --cov=src/
-
-# Format code
-black src/ tests/
-isort src/ tests/
+# Using Make
+make smoke-test
 ```
 
-### Code Standards
+### Smoke Test
 
-- Follow PEP 8 style guidelines
-- Maintain 90%+ test coverage
-- Use type hints for all functions
-- Document complex algorithms and business logic
+The smoke test provides complete end-to-end verification of the alex-treBENCH system:
 
-## 📄 License
+- ✅ **Database initialization** - Creates and verifies database schema
+- ✅ **Sample data loading** - Loads test questions into database
+- ✅ **API connectivity** - Tests OpenRouter integration (real or simulated)
+- ✅ **Benchmark execution** - Runs minimal benchmark with 3 questions
+- ✅ **Report generation** - Creates and validates performance reports
+- ✅ **System health** - Verifies all critical components
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+**Cost**: ~$0.001-0.005 per run with API key, $0.00 in simulation mode
 
-## 🙏 Acknowledgments
-
-- **Kaggle**: For providing the Jeopardy dataset (aravindram11/jeopardy-dataset-updated)
-- **OpenRouter**: For unified language model API access
-- **Jeopardy!**: For creating the foundational question format that makes this benchmarking meaningful
-
-## 📞 Support
-
-For questions, issues, or contributions:
-
-- Create an issue in the GitHub repository
-- Review the technical documentation in [`TECHNICAL_SPEC.md`](TECHNICAL_SPEC.md)
-- Check the implementation roadmap in [`ROADMAP.md`](ROADMAP.md)
-- Refer to project structure details in [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)
-
-## 🧪 Testing
-
-### Running Tests
+### Test Categories
 
 ```bash
-# Run all tests
-pytest tests/ -v
+# Comprehensive test suite
+make test              # All tests
+make test-coverage     # With coverage report
+make test-unit         # Unit tests only
+make test-integration  # Integration tests
+make test-e2e          # End-to-end tests
 
-# Run with coverage
-pytest tests/ --cov=src/ --cov-report=html
-
-# Run specific test categories
-pytest tests/unit/ -v          # Unit tests
-pytest tests/integration/ -v   # Integration tests
-pytest tests/e2e/ -v          # End-to-end tests
-pytest tests/performance/ -v  # Performance tests
+# Component-specific testing
+make test-agents       # Individual component tests
+python scripts/test_agents.py
 ```
 
-### Test Coverage
+### Expected Output (Smoke Test Success)
 
-- **Unit Tests**: 80%+ coverage of individual components
-- **Integration Tests**: Key workflows and API interactions
-- **End-to-End Tests**: Complete user journeys with mock data
-- **Performance Tests**: Scalability and resource usage validation
+```
+🔥 alex-treBENCH Smoke Test
+Running complete end-to-end system verification
 
-## 🤝 Contributing
+✅ Setting up test environment...
+✅ Initializing database...
+✅ Loading sample data...
+✅ Running minimal benchmark...
+✅ Generating report...
+✅ Verifying system health...
 
-### Development Setup
-
-```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Set up pre-commit hooks
-pre-commit install
-
-# Run tests and linting
-pytest tests/ -v --cov=src/
-black src/ tests/
-isort src/ tests/
-flake8 src/ tests/
+🎉 Smoke Test PASSED
+alex-treBENCH system is working correctly!
 ```
 
-### Code Standards
+### Continuous Integration
 
-- Follow PEP 8 style guidelines
-- Maintain 80%+ test coverage
-- Use type hints for all functions
-- Document complex algorithms and business logic
-- Write comprehensive docstrings
+Tests automatically run on:
 
-## 📄 License
+- Pull requests to main/develop branches
+- Pushes to main/develop branches
+- Manual workflow triggers with optional real API testing
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+See [`.github/workflows/smoke-test.yml`](.github/workflows/smoke-test.yml) for CI configuration.
+
+### Full Testing Documentation
+
+For comprehensive testing information, troubleshooting, and advanced test scenarios:
+
+📖 **[Complete Testing Guide](docs/TESTING.md)**
+
+Covers:
+
+- Detailed test agent documentation
+- Troubleshooting common issues
+- Cost management strategies
+- Performance testing
+- Writing new tests
+- CI/CD integration
 
 ## 🙏 Acknowledgments
 
