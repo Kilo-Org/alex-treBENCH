@@ -78,17 +78,23 @@ test-agents: ## Run comprehensive test agents
 
 lint: ## Run linting checks
 	@echo "🔍 Running linters..."
+	@command -v flake8 >/dev/null 2>&1 || { echo "Installing flake8..."; pip install flake8; }
+	@command -v black >/dev/null 2>&1 || { echo "Installing black..."; pip install black; }
+	@command -v isort >/dev/null 2>&1 || { echo "Installing isort..."; pip install isort; }
 	flake8 src/ tests/
 	black --check src/ tests/
 	isort --check-only src/ tests/
 
 format: ## Format code with black and isort
 	@echo "🎨 Formatting code..."
+	@command -v black >/dev/null 2>&1 || { echo "Installing black..."; pip install black; }
+	@command -v isort >/dev/null 2>&1 || { echo "Installing isort..."; pip install isort; }
 	black src/ tests/
 	isort src/ tests/
 
 type-check: ## Run type checking with mypy
 	@echo "🔍 Running type checking..."
+	@command -v mypy >/dev/null 2>&1 || { echo "Installing mypy..."; pip install mypy; }
 	mypy src/
 
 quality: ## Run all code quality checks
@@ -107,20 +113,22 @@ dev: ## Start development environment
 
 run-quick: ## Run a quick benchmark for testing
 	@echo "⚡ Running quick benchmark..."
-	python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
+	python -m src.main benchmark run --size quick
 
-run-standard: ## Run a standard benchmark
+run-standard: ## Run a standard benchmark  
 	@echo "📊 Running standard benchmark..."
-	python -m src.main benchmark run --model openai/gpt-4 --size standard
+	python -m src.main benchmark run --size standard
 
 run-comparison: ## Run model comparison
 	@echo "🔄 Running model comparison..."
-	python -m src.main benchmark compare \
-		--models "openai/gpt-3.5-turbo,openai/gpt-4" \
-		--size quick
+	python -m src.main benchmark compare --size quick
+
+list-models: ## List available models
+	@echo "📋 Listing available models..."
+	python -m src.main models list
 
 # =============================================================================
-# Validation & Simulation
+# Validation & Simulation  
 # =============================================================================
 
 validate: ## Run system validation
@@ -191,7 +199,7 @@ db-reset: ## Reset database (WARNING: destroys all data)
 	@read -p "Are you sure? (y/N): " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		echo "🔄 Resetting database..."; \
-		rm -f data/*.db; \
+		find . -name "*.db" -path "./data/*" -delete 2>/dev/null || true; \
 		make db-init; \
 	else \
 		echo "❌ Database reset cancelled."; \
@@ -201,16 +209,18 @@ db-backup: ## Backup database
 	@echo "💾 Backing up database..."
 	@timestamp=$$(date +%Y%m%d_%H%M%S); \
 	mkdir -p backups; \
-	cp data/*.db backups/jeopardy_backup_$$timestamp.db 2>/dev/null || echo "No database files found"; \
-	echo "✅ Backup created: backups/jeopardy_backup_$$timestamp.db"
+	find . -name "*.db" -path "./data/*" -exec cp {} backups/jeopardy_backup_$$timestamp.db \; 2>/dev/null && \
+		echo "✅ Backup created: backups/jeopardy_backup_$$timestamp.db" || \
+		echo "❌ No database files found to backup"
 
-db-restore: ## Restore database from backup
+db-restore: ## Restore database from backup  
 	@echo "📁 Available backups:"
 	@ls -la backups/ 2>/dev/null || echo "No backups directory found"
 	@echo ""
 	@read -p "Enter backup filename: " backup_file; \
 	if [ -f "backups/$$backup_file" ]; then \
 		echo "🔄 Restoring from $$backup_file..."; \
+		mkdir -p data; \
 		cp backups/$$backup_file data/alex_trebench.db; \
 		echo "✅ Database restored."; \
 	else \
@@ -220,11 +230,6 @@ db-restore: ## Restore database from backup
 # =============================================================================
 # Reporting & Analytics
 # =============================================================================
-
-report: ## Generate benchmark report
-	@echo "📊 Generating benchmark report..."
-	@read -p "Enter benchmark ID: " benchmark_id; \
-	python -m src.main benchmark report --run-id $$benchmark_id --format markdown
 
 reports-list: ## List all benchmark reports
 	@echo "📋 Available benchmark reports:"
@@ -240,27 +245,16 @@ reports-clean: ## Clean up old reports
 # Documentation
 # =============================================================================
 
-docs: ## Generate documentation
-	@echo "📚 Generating documentation..."
-	@echo "User Guide: docs/USER_GUIDE.md"
-	@echo "API Reference: docs/API_REFERENCE.md"
-	@echo "README: README.md"
-
-docs-serve: ## Serve documentation locally (if you have a docs server)
-	@echo "🌐 Serving documentation..."
-	@echo "Documentation available at: http://localhost:8000"
-	# Add your documentation server command here
-	# python -m http.server 8000 -d docs/
+docs: ## Show documentation locations
+	@echo "📚 Documentation available at:"
+	@echo "  User Guide: docs/USER_GUIDE.md"
+	@echo "  API Reference: docs/API_REFERENCE.md"
+	@echo "  README: README.md"
+	@echo "  Technical Spec: TECHNICAL_SPEC.md"
 
 # =============================================================================
 # Deployment
 # =============================================================================
-
-deploy: ## Deploy to production
-	@echo "🚀 Deploying to production..."
-	@echo "⚠️  Production deployment not yet configured"
-	@echo "Please configure your deployment pipeline"
-	# Add your deployment commands here
 
 deploy-check: ## Pre-deployment checks
 	@echo "🔍 Running pre-deployment checks..."
@@ -277,9 +271,8 @@ clean: ## Clean up temporary files
 	@echo "🧹 Cleaning up temporary files..."
 	find . -type f -name "*.pyc" -delete
 	find . -type f -name "*.pyo" -delete
-	find . -type f -name "__pycache__" -delete
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.log" -delete
+	find . -type f -name "*.log" -delete 2>/dev/null || true
 	find . -type f -name ".coverage" -delete
 	rm -rf htmlcov/ .pytest_cache/ .mypy_cache/
 	rm -rf simulation_results/ demo_results/
@@ -306,7 +299,7 @@ info: ## Show system information
 	@echo "=========================================="
 	@echo "Python Version: $$(python --version)"
 	@echo "Working Directory: $$(pwd)"
-	@echo "Database: $$(ls data/*.db 2>/dev/null | wc -l) file(s)"
+	@echo "Database: $$(find data/ -name "*.db" 2>/dev/null | wc -l) file(s)"
 	@echo "Reports: $$(find reports/ -name "*.md" 2>/dev/null | wc -l) markdown, $$(find reports/ -name "*.json" 2>/dev/null | wc -l) json"
 	@echo "Logs: $$(find logs/ -name "*.log" 2>/dev/null | wc -l) file(s)"
 	@echo ""
@@ -328,14 +321,15 @@ except:\
 " 2>/dev/null || echo "  Database not accessible"
 
 version: ## Show version information
-	@echo "Jeopardy Benchmarking System v1.0.0"
+	@echo "alex-treBENCH v1.0.0"
 	@echo "Built with Python 3.8+"
-	@echo "Supports OpenRouter API"
+	@echo "Supports 323+ models via OpenRouter API"
 	@echo ""
 	@echo "Components:"
 	@echo "  • Core Engine: ✅ Active"
 	@echo "  • Database: ✅ SQLite/PostgreSQL"
 	@echo "  • CLI Interface: ✅ Complete"
+	@echo "  • Dynamic Models: ✅ 323+ via OpenRouter"
 	@echo "  • Reporting: ✅ Markdown/JSON"
 	@echo "  • Docker Support: ✅ Multi-stage"
 	@echo "  • Testing: ✅ Comprehensive"

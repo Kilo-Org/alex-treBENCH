@@ -776,6 +776,63 @@ class PerformanceRepository:
                 table="model_performance_summary"
             ) from e
     
+    def save_performance(self, performance: ModelPerformance) -> ModelPerformance:
+        """Save a performance record with Jeopardy scores."""
+        try:
+            self.session.add(performance)
+            self.session.commit()
+            self.session.refresh(performance)
+            return performance
+        except Exception as e:
+            self.session.rollback()
+            raise DatabaseError(
+                f"Failed to save performance record: {str(e)}",
+                operation="create",
+                table="model_performance"
+            ) from e
+    
+    def get_performances_by_benchmark(self, benchmark_id: int) -> List[ModelPerformance]:
+        """Get all performance records for a benchmark."""
+        try:
+            return self.session.query(ModelPerformance).filter(
+                ModelPerformance.benchmark_run_id == benchmark_id
+            ).all()
+        except Exception as e:
+            raise DatabaseError(
+                f"Failed to get performances by benchmark: {str(e)}",
+                operation="get",
+                table="model_performance"
+            ) from e
+    
+    def get_jeopardy_leaderboard(self, limit: int = 20) -> List[ModelPerformance]:
+        """Get Jeopardy leaderboard sorted by total score."""
+        try:
+            return self.session.query(ModelPerformance).filter(
+                ModelPerformance.jeopardy_score.isnot(None)
+            ).order_by(desc(ModelPerformance.jeopardy_score)).limit(limit).all()
+        except Exception as e:
+            raise DatabaseError(
+                f"Failed to get Jeopardy leaderboard: {str(e)}",
+                operation="get",
+                table="model_performance"
+            ) from e
+    
+    def get_performance_by_model_and_benchmark(self, model_name: str, benchmark_id: int) -> Optional[ModelPerformance]:
+        """Get performance record for a specific model and benchmark."""
+        try:
+            return self.session.query(ModelPerformance).filter(
+                and_(
+                    ModelPerformance.model_name == model_name,
+                    ModelPerformance.benchmark_run_id == benchmark_id
+                )
+            ).first()
+        except Exception as e:
+            raise DatabaseError(
+                f"Failed to get performance record: {str(e)}",
+                operation="get",
+                table="model_performance"
+            ) from e
+
     def get_benchmark_performance(self, benchmark_id: int) -> List[ModelPerformanceSummary]:
         """Get performance summaries for all models in a benchmark."""
         try:
@@ -805,12 +862,49 @@ class PerformanceRepository:
                 table="model_performance_summary"
             ) from e
     
-    def get_top_performing_models(self, benchmark_id: int, limit: int = 10) -> List[ModelPerformanceSummary]:
-        """Get top performing models by accuracy."""
+    def get_top_performing_models(self, metric: str = 'accuracy', limit: int = 10) -> List[Dict[str, Any]]:
+        """Get top performing models based on specified metric."""
         try:
-            return self.session.query(ModelPerformanceSummary).filter(
-                ModelPerformanceSummary.benchmark_run_id == benchmark_id
-            ).order_by(desc(ModelPerformanceSummary.accuracy_rate)).limit(limit).all()
+            if metric == 'accuracy':
+                order_column = desc(ModelPerformanceSummary.accuracy_rate)
+            elif metric == 'cost_efficiency':
+                order_column = asc(ModelPerformanceSummary.cost_per_correct_answer)
+            elif metric == 'jeopardy_score':
+                order_column = desc(ModelPerformance.jeopardy_score)
+                # Use ModelPerformance instead of ModelPerformanceSummary for Jeopardy scores
+                results = self.session.query(ModelPerformance).filter(
+                    ModelPerformance.jeopardy_score.isnot(None)
+                ).order_by(order_column).limit(limit).all()
+                
+                return [
+                    {
+                        'model_name': perf.model_name,
+                        'benchmark_run_id': perf.benchmark_run_id,
+                        'jeopardy_score': perf.jeopardy_score,
+                        'accuracy_rate': float(perf.accuracy_rate) if perf.accuracy_rate else 0.0,
+                        'total_questions': perf.total_questions,
+                        'correct_answers': perf.correct_answers
+                    }
+                    for perf in results
+                ]
+            else:
+                order_column = desc(ModelPerformanceSummary.accuracy_rate)  # Default fallback
+            
+            results = self.session.query(ModelPerformanceSummary).order_by(order_column).limit(limit).all()
+            
+            return [
+                {
+                    'model_name': perf.model_name,
+                    'benchmark_run_id': perf.benchmark_run_id,
+                    'accuracy_rate': float(perf.accuracy_rate) if perf.accuracy_rate else 0.0,
+                    'total_cost': float(perf.total_cost_usd) if perf.total_cost_usd else 0.0,
+                    'avg_response_time': float(perf.avg_response_time_ms) if perf.avg_response_time_ms else 0.0,
+                    'total_questions': perf.total_questions,
+                    'correct_answers': perf.correct_answers
+                }
+                for perf in results
+            ]
+            
         except Exception as e:
             raise DatabaseError(
                 f"Failed to get top performing models: {str(e)}",

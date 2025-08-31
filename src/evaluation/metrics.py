@@ -71,6 +71,18 @@ class ConsistencyMetrics:
 
 
 @dataclass
+class JeopardyScoreMetrics:
+    """Jeopardy scoring metrics."""
+    total_jeopardy_score: int
+    positive_scores: int  # Number of correct answers contributing positive points
+    negative_scores: int  # Number of incorrect answers contributing negative points
+    category_scores: Dict[str, int] = field(default_factory=dict)
+    difficulty_scores: Dict[str, int] = field(default_factory=dict)
+    value_range_scores: Dict[str, int] = field(default_factory=dict)
+    score_distribution: Dict[str, int] = field(default_factory=dict)  # Score ranges and counts
+
+
+@dataclass
 class ComprehensiveMetrics:
     """Complete set of benchmark metrics."""
     model_name: str
@@ -81,6 +93,7 @@ class ComprehensiveMetrics:
     performance: PerformanceMetrics
     cost: CostMetrics
     consistency: ConsistencyMetrics
+    jeopardy_score: JeopardyScoreMetrics
     
     # Summary scores
     overall_score: float  # Composite score
@@ -134,6 +147,7 @@ class MetricsCalculator:
         performance = self._calculate_performance_metrics(model_responses)
         cost = self._calculate_cost_metrics(model_responses, graded_responses)
         consistency = self._calculate_consistency_metrics(graded_responses, question_contexts)
+        jeopardy_score = self._calculate_jeopardy_score_metrics(graded_responses, question_contexts)
         
         # Calculate composite scores
         overall_score = self._calculate_overall_score(accuracy, performance, cost, consistency)
@@ -151,12 +165,77 @@ class MetricsCalculator:
             performance=performance,
             cost=cost,
             consistency=consistency,
+            jeopardy_score=jeopardy_score,
             overall_score=overall_score,
             quality_score=quality_score,
             efficiency_score=efficiency_score,
             metadata=metadata
         )
     
+    def _calculate_jeopardy_score_metrics(self,
+                                        graded_responses: List[GradedResponse],
+                                        question_contexts: Optional[List[Dict[str, Any]]]) -> JeopardyScoreMetrics:
+        """Calculate Jeopardy scoring metrics."""
+        if not graded_responses or not question_contexts:
+            return JeopardyScoreMetrics(
+                total_jeopardy_score=0,
+                positive_scores=0,
+                negative_scores=0
+            )
+        
+        total_score = 0
+        positive_scores = 0
+        negative_scores = 0
+        category_scores = defaultdict(int)
+        difficulty_scores = defaultdict(int)
+        value_range_scores = defaultdict(int)
+        score_distribution = defaultdict(int)
+        
+        for response, context in zip(graded_responses, question_contexts):
+            question_value = context.get('value', 0)
+            category = context.get('category', 'Unknown')
+            difficulty = context.get('difficulty_level', 'Unknown')
+            
+            # Calculate Jeopardy score for this question
+            if response.is_correct:
+                question_score = question_value
+                positive_scores += 1
+            else:
+                question_score = -question_value
+                negative_scores += 1
+            
+            # Add to totals
+            total_score += question_score
+            category_scores[category] += question_score
+            difficulty_scores[difficulty] += question_score
+            
+            # Group by value ranges
+            if question_value < 400:
+                value_range = 'Low ($1-399)'
+            elif question_value < 800:
+                value_range = 'Medium ($400-799)'
+            else:
+                value_range = 'High ($800+)'
+            value_range_scores[value_range] += question_score
+            
+            # Score distribution tracking
+            if question_score > 0:
+                score_distribution[f'+${question_score}'] += 1
+            elif question_score < 0:
+                score_distribution[f'-${abs(question_score)}'] += 1
+            else:
+                score_distribution['$0'] += 1
+        
+        return JeopardyScoreMetrics(
+            total_jeopardy_score=total_score,
+            positive_scores=positive_scores,
+            negative_scores=negative_scores,
+            category_scores=dict(category_scores),
+            difficulty_scores=dict(difficulty_scores),
+            value_range_scores=dict(value_range_scores),
+            score_distribution=dict(score_distribution)
+        )
+
     def _calculate_accuracy_metrics(self, 
                                   graded_responses: List[GradedResponse],
                                   question_contexts: Optional[List[Dict[str, Any]]]) -> AccuracyMetrics:
@@ -480,11 +559,13 @@ class MetricsCalculator:
             'accuracy_diff': metrics1.accuracy.overall_accuracy - metrics2.accuracy.overall_accuracy,
             'cost_diff': metrics1.cost.cost_per_correct_answer - metrics2.cost.cost_per_correct_answer,
             'performance_diff': metrics1.performance.mean_response_time - metrics2.performance.mean_response_time,
+            'jeopardy_score_diff': metrics1.jeopardy_score.total_jeopardy_score - metrics2.jeopardy_score.total_jeopardy_score,
             'overall_score_diff': metrics1.overall_score - metrics2.overall_score,
             'winner': {
                 'accuracy': metrics1.model_name if metrics1.accuracy.overall_accuracy > metrics2.accuracy.overall_accuracy else metrics2.model_name,
                 'cost_efficiency': metrics1.model_name if metrics1.cost.cost_per_correct_answer < metrics2.cost.cost_per_correct_answer else metrics2.model_name,
                 'performance': metrics1.model_name if metrics1.performance.mean_response_time < metrics2.performance.mean_response_time else metrics2.model_name,
+                'jeopardy_score': metrics1.model_name if metrics1.jeopardy_score.total_jeopardy_score > metrics2.jeopardy_score.total_jeopardy_score else metrics2.model_name,
                 'overall': metrics1.model_name if metrics1.overall_score > metrics2.overall_score else metrics2.model_name
             },
             'detailed_comparison': {
@@ -499,6 +580,14 @@ class MetricsCalculator:
                 'response_time': {
                     metrics1.model_name: metrics1.performance.mean_response_time,
                     metrics2.model_name: metrics2.performance.mean_response_time
+                },
+                'jeopardy_score': {
+                    metrics1.model_name: metrics1.jeopardy_score.total_jeopardy_score,
+                    metrics2.model_name: metrics2.jeopardy_score.total_jeopardy_score
+                },
+                'overall_score': {
+                    metrics1.model_name: metrics1.overall_score,
+                    metrics2.model_name: metrics2.overall_score
                 }
             }
         }

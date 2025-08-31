@@ -65,7 +65,22 @@ logger = get_logger(__name__)
 @click.option('--debug', is_flag=True, help='Enable debug mode')
 @click.pass_context
 def cli(ctx, config, verbose, debug):
-    """Jeopardy Benchmarking System - Benchmark language models using Jeopardy questions."""
+    """Jeopardy Benchmarking System - Benchmark language models using Jeopardy questions.
+    
+    \b
+    🚀 QUICK START EXAMPLES:
+    
+    alex benchmark run --model anthropic/claude-3-5-sonnet --size quick
+    alex benchmark compare --models "openai/gpt-4,anthropic/claude-3-5-sonnet"
+    alex models list
+    alex benchmark report --run-id 1 --format markdown
+    alex benchmark history --model anthropic/claude-3-5-sonnet
+    
+    \b
+    💡 TIP: Use 'alex COMMAND --help' for detailed options on any command.
+    
+    📚 For complete documentation, see: docs/USER_GUIDE.md
+    """
     
     # Ensure context object exists
     ctx.ensure_object(dict)
@@ -128,10 +143,27 @@ def benchmark():
 @click.option('--save-results/--no-save-results', default=True, help='Save results to database')
 @click.option('--report-format', type=click.Choice(['terminal', 'markdown', 'json']),
               default='terminal', help='Report output format')
+@click.option('--show-jeopardy-scores/--no-jeopardy-scores', default=True, help='Show Jeopardy scores in reports')
 @click.option('--list-models', is_flag=True, help='Show available models and exit')
 @click.pass_context
-def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, save_results, report_format, list_models):
-    """Run a benchmark for a specific model."""
+def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, save_results, report_format, show_jeopardy_scores, list_models):
+    """Run a benchmark for a specific model.
+    
+    \b
+    📋 EXAMPLES:
+    
+    alex benchmark run --size quick
+    alex benchmark run --model openai/gpt-4 --size standard
+    alex benchmark run --model anthropic/claude-3-5-sonnet --size comprehensive --name "Claude Production Test"
+    alex benchmark run --model anthropic/claude-3-haiku --size quick --grading-mode lenient
+    alex benchmark run --model openai/gpt-4 --size standard --show-jeopardy-scores
+    alex benchmark run --model anthropic/claude-3-5-sonnet --size quick --no-jeopardy-scores
+    alex benchmark run --list-models
+    
+    \b
+    💡 SIZES: quick=10 questions, standard=50 questions, comprehensive=200 questions
+    💰 JEOPARDY SCORES: Shows winnings/losses based on question values (enabled by default)
+    """
     
     async def run_benchmark_async():
         try:
@@ -185,7 +217,7 @@ def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, sa
                 console.print(table)
                 console.print(f"\n[dim]Total available models: {len([m for m in models if m.get('available', True)])}[/dim]")
                 console.print(f"[dim]Use --model MODEL_ID to specify a model for benchmarking[/dim]")
-                console.print(f"[dim]Default model: {get_default_model()}[/dim]")
+                console.print(f"[dim]Default model: {get_default_model()}[/dim]");
                 return
             
             # Use default model if none specified
@@ -286,7 +318,9 @@ def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, sa
                 progress.update(task, description="Generating report...")
                 
                 # Generate and display report
-                report_gen = ReportGenerator()
+                from benchmark.reporting import ReportConfig
+                report_config = ReportConfig(show_jeopardy_scores=show_jeopardy_scores)
+                report_gen = ReportGenerator(config=report_config)
                 
                 if report_format == 'terminal':
                     report_gen.display_terminal_report(result)
@@ -305,7 +339,10 @@ def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, sa
                 if result.metrics:
                     console.print(f"[dim]Overall Score: {result.metrics.overall_score:.3f}[/dim]")
                     console.print(f"[dim]Accuracy: {result.metrics.accuracy.overall_accuracy:.1%}[/dim]")
-                    console.print(f"[dim]Total Cost: ${result.metrics.cost.total_cost:.4f}[/dim]")
+                    if hasattr(result.metrics, 'jeopardy_score') and show_jeopardy_scores:
+                        console.print(f"[dim]Jeopardy Score: ${result.metrics.jeopardy_score.total_jeopardy_score:,}[/dim]")
+                    if hasattr(result.metrics, 'cost'):
+                        console.print(f"[dim]Total Cost: ${result.metrics.cost.total_cost:.4f}[/dim]")
             else:
                 console.print(f"\n[red]✗ Benchmark failed: {result.error_message}[/red]")
                 console.print(f"[dim]Execution time: {result.execution_time:.2f}s[/dim]")
@@ -329,7 +366,19 @@ def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, sa
 @click.option('--output', '-o', type=click.Path(), help='Save report to file')
 @click.pass_context
 def benchmark_compare(ctx, models, size, concurrent_limit, report_format, output):
-    """Compare multiple models using benchmarks."""
+    """Compare multiple models using benchmarks.
+    
+    \b
+    📊 EXAMPLES:
+    
+    alex benchmark compare --models "openai/gpt-4,anthropic/claude-3-5-sonnet"
+    alex benchmark compare --models "openai/gpt-3.5-turbo,anthropic/claude-3-haiku" --size quick
+    alex benchmark compare --models "openai/gpt-4,anthropic/claude-3-5-sonnet,google/gemini-pro" --size comprehensive --output comparison.md
+    alex benchmark compare --models "openai/gpt-3.5-turbo,anthropic/claude-3-haiku" --concurrent-limit 4
+    
+    \b
+    💡 TIP: Use quotes around the model list to avoid shell parsing issues.
+    """
     
     async def run_comparison_async():
         try:
@@ -496,7 +545,19 @@ def benchmark_history(ctx, model, limit, detailed):
 @click.option('--detailed', '-d', is_flag=True, help='Include detailed metrics')
 @click.pass_context
 def benchmark_report(ctx, run_id, format, output, detailed):
-    """Generate a report for a specific benchmark run."""
+    """Generate a report for a specific benchmark run.
+    
+    \b
+    📄 EXAMPLES:
+    
+    alex benchmark report --run-id 1
+    alex benchmark report --run-id 1 --format markdown --output report.md
+    alex benchmark report --run-id 1 --format json --detailed --output results.json
+    alex benchmark report --run-id 1 --detailed
+    
+    \b
+    💡 TIP: Use 'alex benchmark list' to find run IDs.
+    """
     
     try:
         from core.database import get_db_session
@@ -625,6 +686,103 @@ def benchmark_list(ctx, limit, status, model):
     except Exception as e:
         console.print(f"[red]Error listing benchmarks: {str(e)}[/red]")
         logger.exception("Benchmark listing failed")
+
+
+@benchmark.command('leaderboard')
+@click.option('--limit', '-l', type=int, default=10, help='Number of models to show in leaderboard')
+@click.option('--report-format', type=click.Choice(['terminal', 'markdown', 'json']),
+              default='terminal', help='Report output format')
+@click.option('--output', '-o', type=click.Path(), help='Save leaderboard to file')
+@click.pass_context
+def benchmark_leaderboard(ctx, limit, report_format, output):
+    """Show Jeopardy leaderboard of model performances.
+    
+    \b
+    🏆 EXAMPLES:
+    
+    alex benchmark leaderboard
+    alex benchmark leaderboard --limit 20
+    alex benchmark leaderboard --report-format markdown --output leaderboard.md
+    alex benchmark leaderboard --report-format json --output leaderboard.json
+    
+    \b
+    📊 Shows models ranked by their total Jeopardy winnings/losses with detailed breakdown.
+    """
+    
+    async def show_leaderboard_async():
+        try:
+            from storage.repositories import BenchmarkRepository, PerformanceRepository
+            from benchmark.reporting import ReportGenerator, ReportConfig, ReportFormat
+            
+            console.print("[blue]Loading benchmark results for leaderboard...[/blue]")
+            
+            with get_db_session() as session:
+                # Get recent benchmark results with Jeopardy scores
+                benchmark_repo = BenchmarkRepository(session)
+                perf_repo = PerformanceRepository(session)
+                
+                # Get all completed benchmarks with performance data
+                recent_benchmarks = benchmark_repo.list_benchmarks(limit=100)
+                completed_benchmarks = [b for b in recent_benchmarks if b.status == 'completed']
+                
+                if not completed_benchmarks:
+                    console.print("[yellow]No completed benchmarks found. Run some benchmarks first![/yellow]")
+                    return
+                
+                # Get performance records with Jeopardy scores
+                leaderboard_data = []
+                for benchmark in completed_benchmarks:
+                    performances = perf_repo.get_performances_by_benchmark(benchmark.id)
+                    for perf in performances:
+                        if hasattr(perf, 'jeopardy_score') and perf.jeopardy_score is not None:
+                            # Create a mock result object for the leaderboard
+                            mock_result = type('MockResult', (), {
+                                'model_name': perf.model_name,
+                                'benchmark_id': benchmark.id,
+                                'metrics': type('MockMetrics', (), {
+                                    'jeopardy_score': type('MockJeopardyScore', (), {
+                                        'total_jeopardy_score': perf.jeopardy_score,
+                                        'positive_scores': perf.correct_answers,
+                                        'negative_scores': perf.total_questions - perf.correct_answers,
+                                        'category_scores': perf.category_jeopardy_scores_dict
+                                    })(),
+                                    'accuracy': type('MockAccuracy', (), {
+                                        'overall_accuracy': float(perf.accuracy_rate) if perf.accuracy_rate else 0
+                                    })()
+                                })()
+                            })()
+                            leaderboard_data.append(mock_result)
+                
+                if not leaderboard_data:
+                    console.print("[yellow]No Jeopardy scores found in benchmarks. Run benchmarks with Jeopardy scoring enabled![/yellow]")
+                    return
+                
+                # Generate leaderboard report
+                report_config = ReportConfig(show_jeopardy_scores=True, show_leaderboard=True)
+                report_gen = ReportGenerator(config=report_config)
+                
+                if report_format == 'terminal':
+                    leaderboard_report = report_gen.generate_leaderboard_report(leaderboard_data[:limit])
+                    console.print(leaderboard_report)
+                else:
+                    format_enum = ReportFormat.MARKDOWN if report_format == 'markdown' else ReportFormat.JSON
+                    leaderboard_report = report_gen.generate_leaderboard_report(leaderboard_data[:limit], format_enum)
+                    
+                    if output:
+                        with open(output, 'w') as f:
+                            f.write(leaderboard_report)
+                        console.print(f"[green]Leaderboard saved to {output}[/green]")
+                    else:
+                        console.print(leaderboard_report)
+                
+                console.print(f"\n[dim]Showing top {min(limit, len(leaderboard_data))} models from {len(completed_benchmarks)} completed benchmarks[/dim]")
+                
+        except Exception as e:
+            console.print(f"[red]Error generating leaderboard: {str(e)}[/red]")
+            logger.exception("Leaderboard generation failed")
+            sys.exit(1)
+    
+    asyncio.run(show_leaderboard_async())
 
 
 # Keep the old run command as an alias to benchmark run for backward compatibility
@@ -786,12 +944,28 @@ def models():
 
 
 @models.command('list')
-@click.option('--provider', help='Filter by provider (e.g., openai, anthropic)')
-@click.option('--refresh', is_flag=True, help='Force refresh from OpenRouter API')
-@click.option('--search', help='Search models by name or capability')
+@click.option('--provider', '-p', help='Filter by provider (e.g., openai, anthropic)')
+@click.option('--refresh', '-r', is_flag=True, help='Refresh model cache from OpenRouter API')
+@click.option('--search', '-s', help='Search models by name or description')
 @click.pass_context
 def models_list(ctx, provider, refresh, search):
-    """List available models from OpenRouter."""
+    """List available models from OpenRouter.
+    
+    \b
+    🔍 EXAMPLES:
+    
+    alex models list
+    alex models list --provider anthropic
+    alex models list --provider openai
+    
+    alex models list --search gpt-4
+    alex models list --search claude
+    
+    alex models list --refresh
+    
+    \b
+    💡 TIP: Models are cached for 24 hours. Use --refresh to get the latest list.
+    """
     
     async def list_models_async():
         try:
@@ -866,7 +1040,7 @@ def models_list(ctx, provider, refresh, search):
             if search:
                 console.print(f"[dim]Filtered by search: '{search}'[/dim]")
             if provider:
-                console.print(f"[dim]Filtered by provider: '{provider}'[/dim]")
+                console.print(f"[dim]Filtered by provider: '{provider}'[/dim)")
             
             # Show cache status
             cache = get_model_cache()
@@ -1347,7 +1521,7 @@ def health(ctx, check_db, check_api):
             all_good = False
     
     # Check API connections  
-    if check_api or not (check_db):
+    if check_API or not (check_db):
         # TODO: Implement API health checks
         console.print("[yellow]⚠️  API health checks not yet implemented[/yellow]")
         console.print("[dim]Would check: OpenRouter API, Kaggle API[/dim]")
@@ -1368,7 +1542,7 @@ def export(ctx, benchmark_id, format, output):
     """Export benchmark results."""
     
     # TODO: Implement result export
-    console.print(f"[yellow]⚠️  Export Exporting benchmark {benchmark_id} to {format} not yet implemented[/yellow]")
+    console.print(f"[yellow]⚠️  Export Export benchmark {benchmark_id} to {format} not yet implemented[/yellow]")
     
     if output:
         console.print(f"[dim]Would export to: {output}[/dim]")

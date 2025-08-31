@@ -170,6 +170,9 @@ class BenchmarkResult(Base):
     response_text = Column(Text)
     is_correct = Column(Boolean)
     confidence_score = Column(DECIMAL(3, 2))  # 0.00 to 1.00
+    
+    # Jeopardy scoring
+    jeopardy_score = Column(Integer, default=0)  # Score for this question (+/- question value)
 
     # Performance metrics
     response_time_ms = Column(Integer)
@@ -196,12 +199,13 @@ class BenchmarkResult(Base):
         Index('idx_result_is_correct', 'is_correct'),
         Index('idx_result_created_at', 'created_at'),
         Index('idx_result_model_benchmark', 'model_name', 'benchmark_run_id'),
+        Index('idx_result_jeopardy_score', 'jeopardy_score'),
         CheckConstraint('confidence_score >= 0 AND confidence_score <= 1', name='check_confidence_range'),
         CheckConstraint('response_time_ms >= 0', name='check_response_time_positive'),
     )
 
     def __repr__(self) -> str:
-        return f"<BenchmarkResult(id={self.id}, model='{self.model_name}', correct={self.is_correct})>"
+        return f"<BenchmarkResult(id={self.id}, model='{self.model_name}', correct={self.is_correct}, jeopardy_score={self.jeopardy_score})>"
 
     @property
     def metadata_dict(self) -> Dict[str, Any]:
@@ -232,6 +236,10 @@ class ModelPerformance(Base):
     total_questions = Column(Integer, nullable=False)
     correct_answers = Column(Integer, nullable=False)
     accuracy_rate = Column(DECIMAL(5, 4))
+    
+    # Jeopardy scoring
+    jeopardy_score = Column(Integer, default=0)  # Total Jeopardy score (can be negative)
+    category_jeopardy_scores = Column(Text)  # JSON object with per-category Jeopardy scores
 
     # Performance metrics
     avg_response_time_ms = Column(DECIMAL(10, 2))
@@ -276,13 +284,14 @@ class ModelPerformance(Base):
         Index('idx_performance_accuracy', 'accuracy_rate'),
         Index('idx_performance_response_time', 'avg_response_time_ms'),
         Index('idx_performance_cost', 'total_cost_usd'),
+        Index('idx_performance_jeopardy_score', 'jeopardy_score'),
         CheckConstraint('total_questions > 0', name='check_total_questions_positive'),
         CheckConstraint('correct_answers >= 0', name='check_correct_answers_non_negative'),
         CheckConstraint('accuracy_rate >= 0 AND accuracy_rate <= 1', name='check_accuracy_range'),
     )
 
     def __repr__(self) -> str:
-        return f"<ModelPerformance(id={self.id}, model='{self.model_name}', accuracy={self.accuracy_rate})>"
+        return f"<ModelPerformance(id={self.id}, model='{self.model_name}', accuracy={self.accuracy_rate}, jeopardy_score={self.jeopardy_score})>"
 
     @property
     def category_performance_dict(self) -> Dict[str, Any]:
@@ -313,6 +322,21 @@ class ModelPerformance(Base):
     def difficulty_performance_dict(self, value: Dict[str, Any]) -> None:
         """Set difficulty performance from a Python dictionary."""
         self.difficulty_performance = json.dumps(value) if value else None
+
+    @property
+    def category_jeopardy_scores_dict(self) -> Dict[str, int]:
+        """Get category Jeopardy scores as a Python dictionary."""
+        if self.category_jeopardy_scores:
+            try:
+                return json.loads(self.category_jeopardy_scores)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    @category_jeopardy_scores_dict.setter
+    def category_jeopardy_scores_dict(self, value: Dict[str, int]) -> None:
+        """Set category Jeopardy scores from a Python dictionary."""
+        self.category_jeopardy_scores = json.dumps(value) if value else None
 
     def calculate_efficiency_score(self) -> float:
         """Calculate efficiency score (accuracy / cost)."""

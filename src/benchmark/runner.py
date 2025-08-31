@@ -561,6 +561,82 @@ class BenchmarkRunner:
         
         return graded_responses
     
+    async def _save_results(self,
+                          benchmark_id: int,
+                          model_responses: List[ModelResponse],
+                          graded_responses: List[Any],
+                          metrics: ComprehensiveMetrics):
+        """Save benchmark results to database."""
+        logger.info("Saving benchmark results")
+        
+        with get_db_session() as session:
+            response_repo = ResponseRepository(session)
+            
+            # Convert model responses to database format
+            db_responses = []
+            for i, (model_resp, graded_resp) in enumerate(zip(model_responses, graded_responses)):
+                # Calculate Jeopardy score for this question
+                question_value = graded_resp.question_context.get('value', 0) if hasattr(graded_resp, 'question_context') else 0
+                jeopardy_score = question_value if graded_resp.is_correct else -question_value
+                
+                db_response = create_benchmark_result(
+                    benchmark_run_id=benchmark_id,
+                    question_id=str(i + 1),  # Assuming sequential IDs as string
+                    model_name=model_resp.model_id,
+                    response_text=model_resp.response,
+                    is_correct=graded_resp.is_correct,
+                    confidence_score=graded_resp.confidence,
+                    response_time_ms=int(model_resp.latency_ms or 0),
+                    tokens_generated=model_resp.tokens_used,
+                    cost_usd=model_resp.cost,
+                    metadata={
+                        'match_type': graded_resp.match_result.match_type.value,
+                        'partial_credit': graded_resp.partial_credit,
+                        'response_type': graded_resp.parsed_response.response_type.value
+                    }
+                )
+                
+                # Set the Jeopardy score
+                db_response.jeopardy_score = jeopardy_score
+                
+                db_responses.append(db_response)
+            
+            # Save responses
+            response_repo.save_responses(db_responses)
+            
+            # Also save model performance with Jeopardy scores
+            from src.storage.repositories import PerformanceRepository
+            perf_repo = PerformanceRepository(session)
+            
+            # Create model performance record
+            perf_record = create_model_performance(
+                benchmark_run_id=benchmark_id,
+                model_name=model_responses[0].model_id if model_responses else metrics.model_name,
+                total_questions=len(graded_responses),
+                correct_answers=metrics.accuracy.correct_count
+            )
+            
+            # Set comprehensive metrics
+            perf_record.accuracy_rate = metrics.accuracy.overall_accuracy
+            perf_record.avg_response_time_ms = metrics.performance.mean_response_time * 1000  # Convert to ms
+            perf_record.total_cost_usd = metrics.cost.total_cost
+            perf_record.avg_cost_per_question = metrics.cost.cost_per_question
+            perf_record.cost_per_correct_answer = metrics.cost.cost_per_correct_answer
+            perf_record.total_tokens = metrics.cost.total_tokens
+            perf_record.avg_confidence = sum(r.confidence for r in graded_responses) / len(graded_responses) if graded_responses else 0
+            
+            # Set Jeopardy scoring
+            perf_record.jeopardy_score = metrics.jeopardy_score.total_jeopardy_score
+            perf_record.category_jeopardy_scores_dict = metrics.jeopardy_score.category_scores
+            perf_record.category_performance_dict = metrics.accuracy.by_category
+            perf_record.difficulty_performance_dict = metrics.accuracy.by_difficulty
+            
+            # Save performance record
+            perf_repo.save_performance(perf_record)
+            
+            logger.info(f"Saved {len(db_responses)} responses and performance metrics to database")
+            logger.info(f"Total Jeopardy Score: ${metrics.jeopardy_score.total_jeopardy_score:,}")
+
     async def _calculate_metrics(self,
                                graded_responses: List[Any],
                                model_responses: List[ModelResponse],
@@ -579,46 +655,14 @@ class BenchmarkRunner:
         )
         
         logger.info(f"Metrics calculated - Overall Score: {metrics.overall_score:.3f}, "
-                   f"Accuracy: {metrics.accuracy.overall_accuracy:.3f}")
+                   f"Accuracy: {metrics.accuracy.overall_accuracy:.3f}, "
+                   f"Jeopardy Score: ${metrics.jeopardy_score.total_jeopardy_score:,}")
+        logger.info(f"Jeopardy Performance: {metrics.jeopardy_score.positive_scores} correct "
+                   f"(+${sum(v for v in metrics.jeopardy_score.category_scores.values() if v > 0):,}), "
+                   f"{metrics.jeopardy_score.negative_scores} incorrect "
+                   f"(${sum(v for v in metrics.jeopardy_score.category_scores.values() if v < 0):,})")
         
         return metrics
-    
-    async def _save_results(self,
-                          benchmark_id: int,
-                          model_responses: List[ModelResponse],
-                          graded_responses: List[Any],
-                          metrics: ComprehensiveMetrics):
-        """Save benchmark results to database."""
-        logger.info("Saving benchmark results")
-        
-        with get_db_session() as session:
-            response_repo = ResponseRepository(session)
-            
-            # Convert model responses to database format
-            db_responses = []
-            for i, (model_resp, graded_resp) in enumerate(zip(model_responses, graded_responses)):
-                db_response = create_benchmark_result(
-                    benchmark_run_id=benchmark_id,
-                    question_id=str(i + 1),  # Assuming sequential IDs as string
-                    model_name=model_resp.model_id,
-                    response_text=model_resp.response,
-                    is_correct=graded_resp.is_correct,
-                    confidence_score=graded_resp.confidence,
-                    response_time_ms=int(model_resp.latency_ms or 0),
-                    tokens_generated=model_resp.tokens_used,
-                    cost_usd=model_resp.cost,
-                    metadata={
-                        'match_type': graded_resp.match_result.match_type.value,
-                        'partial_credit': graded_resp.partial_credit,
-                        'response_type': graded_resp.parsed_response.response_type.value
-                    }
-                )
-                db_responses.append(db_response)
-            
-            # Save responses
-            response_repo.save_responses(db_responses)
-            
-            logger.info(f"Saved {len(db_responses)} responses to database")
     
     async def _finalize_benchmark(self, benchmark_id: int, success: bool, error_message: Optional[str] = None):
         """Finalize the benchmark run."""
