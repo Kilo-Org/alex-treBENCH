@@ -78,7 +78,7 @@ def create_tables() -> None:
         engine = get_engine()
         
         # Import all models to ensure they're registered with Base
-        from storage.models import (
+        from src.storage.models import (
             Benchmark, BenchmarkQuestion, ModelResponse, ModelPerformanceSummary
         )
         

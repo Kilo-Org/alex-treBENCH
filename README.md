@@ -1,4 +1,8 @@
-# Jeopardy Language Model Benchmarking System
+# alex-treBENCH!
+
+Jeopardy Language Model Benchmarking System.
+
+🎮 Benchmark LLMs with Jeopardy! questions. Tournament-style testing for large language models. What is... your model's true performance?
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,6 +13,7 @@ A comprehensive benchmarking application that evaluates language models using Je
 ## 🎯 Project Overview
 
 This system is designed to:
+
 - ✅ Test multiple language models simultaneously using authentic Jeopardy questions
 - ✅ Provide statistically significant benchmarking with proper sampling methodologies
 - ✅ Measure key performance metrics: accuracy, response speed, cost efficiency, and consistency
@@ -18,6 +23,7 @@ This system is designed to:
 ## 📋 Key Features
 
 ### Core Capabilities
+
 - **Statistical Sampling**: Scientifically valid question selection ensuring 95% confidence level
 - **Fuzzy Answer Matching**: Intelligent answer evaluation handling variations and formats
 - **Multi-Model Support**: Concurrent testing of 5-10 language models via OpenRouter API
@@ -26,6 +32,7 @@ This system is designed to:
 - **Reproducible Results**: Deterministic benchmarking with configurable parameters
 
 ### Performance Metrics Tracked
+
 - Response accuracy (correct/incorrect with confidence scoring)
 - Response speed (latency and tokens per second)
 - Cost per query and cost-effectiveness ratios
@@ -45,13 +52,14 @@ graph TB
     D --> E[Metrics Calculation Engine]
     E --> F[Results Storage Layer]
     F --> G[Reporting & Analytics]
-    
+
     H[OpenRouter API] --> C
     I[Kaggle Dataset] --> A
     J[SQLite Database] --> F
 ```
 
 ### Technology Stack
+
 - **Backend**: Python 3.8+ with async/await support
 - **Database**: SQLite with SQLAlchemy ORM
 - **API Integration**: OpenRouter via aiohttp
@@ -82,10 +90,12 @@ jeopardy_bench/
 ## 📖 Documentation
 
 ### User Documentation
+
 - **[User Guide](docs/USER_GUIDE.md)**: Complete user guide with installation, configuration, and usage examples
 - **[API Reference](docs/API_REFERENCE.md)**: Comprehensive API documentation with code examples
 
 ### Technical Documentation
+
 - **[Technical Specification](TECHNICAL_SPEC.md)**: Complete system architecture, database schema, algorithms, and API integration patterns
 - **[Project Structure](PROJECT_STRUCTURE.md)**: Detailed directory organization, module responsibilities, and technology stack
 - **[Implementation Roadmap](ROADMAP.md)**: Development phases, priorities, and delivery timeline
@@ -93,16 +103,19 @@ jeopardy_bench/
 ### Key Specifications
 
 #### Statistical Sampling
+
 - **Sample Size**: 1000 questions for statistical significance (95% confidence, 5% margin of error)
 - **Stratified Sampling**: Proportional representation across categories and difficulty levels
 - **Reproducibility**: Configurable random seed for consistent benchmark runs
 
 #### Answer Evaluation Methodology
+
 - **Multi-level Matching**: Exact match, normalized comparison, and semantic similarity
 - **Fuzzy Scoring**: Weighted combination of similarity metrics with confidence thresholds
 - **Format Flexibility**: Handles Jeopardy answer format variations and common response patterns
 
 #### Performance Metrics
+
 ```python
 # Core metrics calculated
 accuracy_rate = correct_answers / total_questions
@@ -115,11 +128,13 @@ consistency_score = 1 - std_deviation(response_times) / mean(response_times)
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.8 or higher
 - OpenRouter API key (get one at [openrouter.ai](https://openrouter.ai))
 - Internet connection for API access
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -134,6 +149,7 @@ pip install -r requirements.txt
 ```
 
 ### Configuration
+
 ```bash
 # Set up environment variables
 export OPENROUTER_API_KEY="your_api_key_here"
@@ -146,6 +162,7 @@ python -m src.main init
 ```
 
 ### Basic Usage
+
 ```bash
 # Run a quick benchmark (50 questions)
 python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
@@ -166,6 +183,7 @@ python -m src.main benchmark report --run-id 1 --format markdown
 ## 📊 Sample Output
 
 ### Benchmark Results Summary
+
 ```
 ┌─────────────────┬──────────┬─────────────┬──────────────┬─────────────┐
 │ Model           │ Accuracy │ Avg Time    │ Cost/Query   │ Consistency │
@@ -184,6 +202,7 @@ Category Performance:
 ## 📈 Implementation Status
 
 ### ✅ Completed Features
+
 - **Core Infrastructure**: Complete project setup with modular architecture
 - **Data Pipeline**: Kaggle integration, preprocessing, and statistical sampling
 - **Model Integration**: OpenRouter API client with support for 20+ models
@@ -196,6 +215,7 @@ Category Performance:
 - **Documentation**: Complete user guide and API reference
 
 ### 🚧 Current Development
+
 - **Performance Optimization**: Memory usage and concurrent processing improvements
 - **Web Interface**: Optional FastAPI-based REST API (future enhancement)
 - **Advanced Analytics**: Trend analysis and model comparison tools
@@ -203,6 +223,7 @@ Category Performance:
 ### 📋 Usage Examples
 
 #### Single Model Benchmark
+
 ```bash
 # Quick test with GPT-3.5-turbo
 python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
@@ -217,6 +238,7 @@ python -m src.main benchmark run \
 ```
 
 #### Model Comparison
+
 ```bash
 # Compare popular models
 python -m src.main benchmark compare \
@@ -233,6 +255,7 @@ python -m src.main benchmark compare \
 ```
 
 #### Advanced Configuration
+
 ```bash
 # Custom benchmark with specific settings
 python -m src.main benchmark run \
@@ -246,6 +269,7 @@ python -m src.main benchmark run \
 ```
 
 #### Data Management
+
 ```bash
 # Initialize dataset
 python -m src.main data init
@@ -261,6 +285,7 @@ python -m src.main data stats
 ```
 
 #### Model Management
+
 ```bash
 # List all available models
 python -m src.main models list
@@ -275,12 +300,14 @@ python -m src.main models costs --model openai/gpt-4 --questions 1000
 ## 🧪 Testing Strategy
 
 ### Test Coverage
+
 - **Unit Tests**: Individual component functionality
 - **Integration Tests**: API interactions and database operations
 - **End-to-End Tests**: Complete benchmark workflows
 - **Performance Tests**: Large dataset handling and concurrent operations
 
 ### Quality Assurance
+
 - Type checking with mypy
 - Code formatting with black
 - Import sorting with isort
@@ -290,6 +317,7 @@ python -m src.main models costs --model openai/gpt-4 --questions 1000
 ## 🤝 Contributing
 
 ### Development Setup
+
 ```bash
 # Install development dependencies
 pip install -r requirements-dev.txt
@@ -306,6 +334,7 @@ isort src/ tests/
 ```
 
 ### Code Standards
+
 - Follow PEP 8 style guidelines
 - Maintain 90%+ test coverage
 - Use type hints for all functions
@@ -324,6 +353,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📞 Support
 
 For questions, issues, or contributions:
+
 - Create an issue in the GitHub repository
 - Review the technical documentation in [`TECHNICAL_SPEC.md`](TECHNICAL_SPEC.md)
 - Check the implementation roadmap in [`ROADMAP.md`](ROADMAP.md)
@@ -332,6 +362,7 @@ For questions, issues, or contributions:
 ## 🧪 Testing
 
 ### Running Tests
+
 ```bash
 # Run all tests
 pytest tests/ -v
@@ -347,6 +378,7 @@ pytest tests/performance/ -v  # Performance tests
 ```
 
 ### Test Coverage
+
 - **Unit Tests**: 80%+ coverage of individual components
 - **Integration Tests**: Key workflows and API interactions
 - **End-to-End Tests**: Complete user journeys with mock data
@@ -355,6 +387,7 @@ pytest tests/performance/ -v  # Performance tests
 ## 🤝 Contributing
 
 ### Development Setup
+
 ```bash
 # Install development dependencies
 pip install -r requirements-dev.txt
@@ -370,6 +403,7 @@ flake8 src/ tests/
 ```
 
 ### Code Standards
+
 - Follow PEP 8 style guidelines
 - Maintain 80%+ test coverage
 - Use type hints for all functions
@@ -389,6 +423,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📞 Support
 
 For questions, issues, or contributions:
+
 - 📖 Read the [User Guide](docs/USER_GUIDE.md) for detailed usage instructions
 - 🔧 Check the [API Reference](docs/API_REFERENCE.md) for technical details
 - 🐛 Create an issue in the GitHub repository

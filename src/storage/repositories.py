@@ -6,16 +6,20 @@ between business logic and database operations.
 """
 
 import uuid
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, func, desc, text
+from sqlalchemy import and_, or_, func, desc, asc
 import pandas as pd
+from datetime import datetime, timedelta
+import json
 
 from .models import (
     Benchmark, BenchmarkQuestion, ModelResponse, ModelPerformanceSummary,
     Question, BenchmarkResult, BenchmarkRun, ModelPerformance
 )
-from src.core.exceptions import DatabaseError
+from src.core.database import get_session
+from src.core.exceptions import DatabaseError, ValidationError
+from src.storage.models import Question, BenchmarkRun, BenchmarkResult, ModelPerformanceSummary, create_benchmark_run
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -119,10 +123,10 @@ class BenchmarkRepository:
     def save_benchmark_run(self, run_data: Dict[str, Any]) -> Benchmark:
         """Save a benchmark run with comprehensive metadata."""
         try:
-            benchmark = create_benchmark(
+            benchmark = create_benchmark_run(
                 name=run_data.get('name', 'Unnamed Benchmark'),
                 description=run_data.get('description', ''),
-                question_count=run_data.get('question_count', 0)
+                sample_size=run_data.get('sample_size', 1000)
             )
             
             # Set additional fields

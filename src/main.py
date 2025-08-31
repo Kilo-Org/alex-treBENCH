@@ -336,7 +336,7 @@ def benchmark_history(ctx, model, limit, detailed):
                     str(benchmark.id),
                     benchmark.name,
                     status_text,
-                    str(benchmark.question_count),
+                    str(benchmark.sample_size),
                     benchmark.created_at.strftime('%Y-%m-%d %H:%M') if benchmark.created_at else 'N/A'
                 ]
                 
@@ -482,7 +482,7 @@ def benchmark_list(ctx, limit, status, model):
                     benchmark.name,
                     status_text,
                     models_text,
-                    str(benchmark.question_count),
+                    str(benchmark.sample_size),
                     benchmark.created_at.strftime('%Y-%m-%d %H:%M') if benchmark.created_at else 'N/A'
                 )
             

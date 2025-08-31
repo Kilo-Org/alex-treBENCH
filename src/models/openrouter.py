@@ -251,7 +251,7 @@ class OpenRouterClient(ModelAdapter):
         logger.info(f"Starting batch query with {len(prompts)} prompts")
         
         responses = []
-        semaphore = asyncio.Semaphore(self.app_config.benchmarks.max_concurrent_requests)
+        semaphore = asyncio.Semaphore(self.app_config.benchmark.max_concurrent_requests)
         
         async def query_single(prompt: str) -> ModelResponse:
             async with semaphore:

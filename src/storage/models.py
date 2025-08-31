@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
 
-from core.database import Base
+from src.core.database import Base
 
 
 class Question(Base):
