@@ -1,0 +1,1 @@
+This project is designed to use historical Jeopardy questions as kind of a "fun" benchmark for AI Large Language Models. It provides the ability to download and store a large number of historical questions from Kaggle, sample those questions, and then use OpenRouter to prompt and evaluate a given model's ability to answer those questions
