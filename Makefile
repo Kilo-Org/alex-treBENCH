@@ -311,20 +311,20 @@ info: ## Show system information
 	@echo "Logs: $$(find logs/ -name "*.log" 2>/dev/null | wc -l) file(s)"
 	@echo ""
 	@echo "Recent Benchmarks:"
-	@python -c "
-try:
-    from src.core.database import get_session
-    from src.storage.repositories import BenchmarkRepository
-    with get_session() as session:
-        repo = BenchmarkRepository(session)
-        benchmarks = repo.list_benchmarks(limit=3)
-        if benchmarks:
-            for b in benchmarks:
-                print(f'  • {b.name} (ID: {b.id}, Status: {b.status})')
-        else:
-            print('  No benchmarks found')
-except:
-    print('  Database not initialized')
+	@python -c "\
+try:\
+    from src.core.database import get_db_session;\
+    from src.storage.repositories import BenchmarkRepository;\
+    with get_db_session() as session:\
+        repo = BenchmarkRepository(session);\
+        benchmarks = repo.list_benchmarks(limit=3);\
+        if benchmarks:\
+            for b in benchmarks:\
+                print(f'  • {b.name} (ID: {b.id}, Status: {b.status})');\
+        else:\
+            print('  No benchmarks found');\
+except:\
+    print('  Database not initialized');\
 " 2>/dev/null || echo "  Database not accessible"
 
 version: ## Show version information

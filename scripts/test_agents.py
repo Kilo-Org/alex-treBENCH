@@ -25,7 +25,7 @@ import subprocess
 import sqlite3
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.core.config import AppConfig, get_config, set_config
 from src.core.database import init_database, get_db_session, Base

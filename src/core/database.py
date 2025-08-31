@@ -121,6 +121,9 @@ def get_db_session() -> Generator[Session, None, None]:
 def init_database() -> None:
     """Initialize the database with tables and basic setup."""
     try:
+        # Import models to register them with Base
+        from src.storage import models  # This registers all models with Base
+        
         # Create tables
         create_tables()
         
