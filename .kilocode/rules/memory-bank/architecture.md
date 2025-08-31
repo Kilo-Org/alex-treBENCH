@@ -34,8 +34,9 @@
 ### 2. Model Integration (`src/models/`)
 
 - **base.py**: Abstract ModelAdapter interface
-- **openrouter.py**: OpenRouter API client with rate limiting
-- **model_registry.py**: Registry of 20+ supported models
+- **openrouter.py**: Enhanced OpenRouter API client with rate limiting and improved error handling
+- **model_registry.py**: Dynamic registry supporting 323+ models with real-time fetching from OpenRouter API
+- **model_cache.py**: Intelligent caching system for model metadata with TTL and fallback mechanisms
 - **prompt_formatter.py**: Multiple prompt templates (Jeopardy, CoT, Few-shot)
 - **response_parser.py**: Response parsing and extraction
 - **cost_calculator.py**: Real-time cost tracking
@@ -62,7 +63,11 @@
 
 ### 6. CLI Interface (`src/cli/`)
 
-- **commands.py**: Click-based command definitions
+- **commands.py**: Click-based command definitions with enhanced model management commands:
+  - `models refresh`: Update model cache from OpenRouter API
+  - `models search <pattern>`: Search available models by name/provider
+  - `models info <model_id>`: Display detailed model information
+  - `models cache`: Manage model cache (status, clear, etc.)
 - **formatting.py**: Rich terminal output formatting
 
 ### 7. Core Infrastructure (`src/core/`)
@@ -135,15 +140,24 @@ The system maintains backward compatibility through aliases in `src/storage/mode
 - State persistence and recovery
 - Signal handling for graceful shutdown
 
+### Dynamic Model System Pattern
+
+- Three-tier fallback system: OpenRouter API → Local Cache → Static Backup
+- Real-time model fetching with intelligent caching (24-hour TTL)
+- Graceful degradation when API is unavailable
+- Cache invalidation and refresh mechanisms
+
 ## External Integrations
 
 ### OpenRouter API
 
-- Unified access to 20+ language models
+- Unified access to 323+ language models
 - Rate limiting: 60 requests/minute default
 - Retry logic with exponential backoff
 - Cost tracking per request
 - Support for streaming responses
+- Dynamic model discovery and metadata fetching
+- Three-tier fallback system for reliability
 
 ### Kaggle Dataset
 
@@ -169,6 +183,7 @@ The system maintains backward compatibility through aliases in `src/storage/mode
 - Grading and evaluation settings
 - Logging and monitoring
 - Session management settings
+- Model cache settings (TTL, storage location)
 
 ## Performance Considerations
 
@@ -180,6 +195,7 @@ The system maintains backward compatibility through aliases in `src/storage/mode
 - Response caching to avoid duplicate calls
 - Efficient sampling algorithms
 - Session-based checkpointing
+- Model metadata caching with intelligent fallbacks
 
 ### Scalability
 
@@ -188,6 +204,7 @@ The system maintains backward compatibility through aliases in `src/storage/mode
 - Docker deployment for containerization
 - Horizontal scaling possible with queue system
 - Pause/resume for handling long-running benchmarks
+- Dynamic model support scales with OpenRouter's model catalog
 
 ## Security Considerations
 
@@ -213,6 +230,7 @@ The system maintains backward compatibility through aliases in `src/storage/mode
 - **Smoke Tests**: Quick system verification with simulation mode
 - **Test Agents**: Specialized testing for different components
 - **Performance Tests**: Load and stress testing
+- **Dynamic Model Tests**: Validation of model fetching and caching
 
 ### Test Utilities
 
@@ -220,3 +238,4 @@ The system maintains backward compatibility through aliases in `src/storage/mode
 - API simulation mode for testing without costs
 - Temporary database creation for isolated tests
 - Comprehensive test coverage reporting
+- Model cache testing with fallback scenarios

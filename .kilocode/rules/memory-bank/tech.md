@@ -192,7 +192,9 @@ make demo          # Run interactive demo
 - **Endpoint**: https://openrouter.ai/api/v1
 - **Authentication**: Bearer token
 - **Rate Limits**: 60 requests/minute (configurable)
-- **Supported Models**: 20+ including GPT-4, Claude, Llama
+- **Supported Models**: 323+ including GPT-4, Claude, Llama
+- **Dynamic Model Discovery**: Real-time model fetching with metadata
+- **Three-tier Fallback System**: API → Cache → Static backup
 
 ### Kaggle Dataset API
 
@@ -211,9 +213,12 @@ make demo          # Run interactive demo
 
 ### Caching Strategy
 
-- Response caching to avoid duplicates
-- Dataset caching after download
-- Configuration caching
+- **Response Caching**: Avoid duplicate API calls for identical requests
+- **Dataset Caching**: Local storage after Kaggle download
+- **Model Metadata Caching**: JSON-based cache with TTL (24-hour expiration)
+- **Three-tier Fallback**: Dynamic fetching → Local cache → Static backup
+- **Cache Invalidation**: Manual refresh commands and automatic TTL expiration
+- **Graceful Degradation**: Fallback to cached/static data when API unavailable
 
 ### Database Optimizations
 
