@@ -103,7 +103,7 @@ def benchmark():
 
 
 @benchmark.command('run')
-@click.option('--model', '-m', required=True, help='Model to benchmark (e.g., openai/gpt-4)')
+@click.option('--model', '-m', default=None, help='Model to benchmark (e.g., openai/gpt-4). Uses anthropic/claude-3.5-sonnet if not specified')
 @click.option('--size', type=click.Choice(['small', 'medium', 'large', 'quick', 'standard', 'comprehensive']),
               default='standard', help='Benchmark size')
 @click.option('--name', '-n', help='Custom benchmark name')
@@ -114,8 +114,9 @@ def benchmark():
 @click.option('--save-results/--no-save-results', default=True, help='Save results to database')
 @click.option('--report-format', type=click.Choice(['terminal', 'markdown', 'json']),
               default='terminal', help='Report output format')
+@click.option('--list-models', is_flag=True, help='Show available models and exit')
 @click.pass_context
-def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, save_results, report_format):
+def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, save_results, report_format, list_models):
     """Run a benchmark for a specific model."""
     
     async def run_benchmark_async():
@@ -123,6 +124,95 @@ def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, sa
             from benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig
             from benchmark.reporting import ReportGenerator, ReportFormat
             from evaluation.grader import GradingMode
+            from models.model_registry import model_registry, get_default_model
+            
+            # Handle --list-models option
+            if list_models:
+                console.print("[blue]Loading available models...[/blue]")
+                models = await model_registry.get_available_models()
+                
+                # Create table of available models
+                table = Table(title="Available Models for Benchmarking")
+                table.add_column("Provider", style="cyan")
+                table.add_column("Model ID", style="magenta") 
+                table.add_column("Display Name", style="blue")
+                table.add_column("Context", justify="right", style="green")
+                table.add_column("Cost", style="yellow")
+                table.add_column("Recommended", justify="center", style="dim")
+                
+                # Sort models by provider, then name
+                sorted_models = sorted(models, key=lambda x: (x.get('provider', ''), x.get('name', '')))
+                
+                for m in sorted_models:
+                    # Skip models that aren't available
+                    if not m.get('available', True):
+                        continue
+                        
+                    pricing = m.get('pricing', {})
+                    input_cost = pricing.get('input_cost_per_1m_tokens', 0)
+                    output_cost = pricing.get('output_cost_per_1m_tokens', 0)
+                    
+                    # Mark recommended models
+                    recommended = ""
+                    if m.get('id') == get_default_model():
+                        recommended = "⭐ Default"
+                    elif 'claude-3' in m.get('id', '').lower() or 'gpt-4' in m.get('id', '').lower():
+                        recommended = "✓ Popular"
+                    
+                    table.add_row(
+                        (m.get('provider', 'Unknown')).title(),
+                        m.get('id', 'N/A'),
+                        m.get('name', 'N/A'),
+                        f"{m.get('context_length', 0):,}",
+                        f"${input_cost:.2f}/${output_cost:.2f}",
+                        recommended
+                    )
+                
+                console.print(table)
+                console.print(f"\n[dim]Total available models: {len([m for m in models if m.get('available', True)])}[/dim]")
+                console.print(f"[dim]Use --model MODEL_ID to specify a model for benchmarking[/dim]")
+                console.print(f"[dim]Default model: {get_default_model()}[/dim]")
+                return
+            
+            # Use default model if none specified
+            actual_model = model
+            if not actual_model:
+                actual_model = get_default_model()
+                console.print(f"[blue]No model specified, using default: {actual_model}[/blue]")
+            
+            # Validate model using dynamic system
+            console.print("[dim]Validating model availability...[/dim]")
+            models = await model_registry.get_available_models()
+            model_info = None
+            
+            for m in models:
+                if m.get('id', '').lower() == actual_model.lower():
+                    model_info = m
+                    break
+            
+            if not model_info:
+                console.print(f"[red]Model not found: {actual_model}[/red]")
+                console.print("[dim]Use 'benchmark run --list-models' to see available models[/dim]")
+                
+                # Show similar models as suggestions
+                similar_models = model_registry.search_models(actual_model.split('/')[-1], models)[:5]
+                if similar_models:
+                    console.print(f"\n[yellow]Similar models you might want to try:[/yellow]")
+                    for sim in similar_models:
+                        if sim.get('available', True):
+                            console.print(f"  • [cyan]{sim.get('id', 'N/A')}[/cyan] - {sim.get('name', 'N/A')}")
+                else:
+                    console.print(f"\n[yellow]💡 Popular models to try:[/yellow]")
+                    console.print(f"  • [cyan]anthropic/claude-3.5-sonnet[/cyan] (Default)")
+                    console.print(f"  • [cyan]openai/gpt-4-turbo[/cyan]")
+                    console.print(f"  • [cyan]anthropic/claude-3-haiku[/cyan] (Fast & cheap)")
+                return
+            
+            # Check if model is available
+            if not model_info.get('available', True):
+                console.print(f"[red]Model is currently unavailable: {actual_model}[/red]")
+                console.print("[dim]Try a different model or check OpenRouter status[/dim]")
+                return
             
             # Map size to run mode
             size_map = {
@@ -150,8 +240,18 @@ def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, sa
             config.grading_mode = grading_mode_enum
             config.save_results = save_results
             
-            console.print(f"[blue]Starting {run_mode.value} benchmark for {model}[/blue]")
-            console.print(f"[dim]Sample size: {config.sample_size}, Grading: {grading_mode}[/dim]\n")
+            # Display benchmark info with model details
+            console.print(f"[blue]Starting {run_mode.value} benchmark[/blue]")
+            console.print(f"[dim]Model: {model_info.get('name', actual_model)} ({model_info.get('provider', 'Unknown')})[/dim]")
+            console.print(f"[dim]Sample size: {config.sample_size}, Grading: {grading_mode}[/dim]")
+            
+            # Show cost estimate if available
+            pricing = model_info.get('pricing', {})
+            if pricing.get('input_cost_per_1m_tokens', 0) > 0:
+                estimated_cost = ((100 * config.sample_size) / 1_000_000) * (pricing.get('input_cost_per_1m_tokens', 0) + pricing.get('output_cost_per_1m_tokens', 0))
+                console.print(f"[dim]Estimated cost: ~${estimated_cost:.4f}[/dim]")
+            
+            console.print()
             
             # Show progress
             with Progress(
@@ -163,7 +263,7 @@ def benchmark_run(ctx, model, size, name, description, timeout, grading_mode, sa
                 
                 # Run the benchmark
                 result = await runner.run_benchmark(
-                    model_name=model,
+                    model_name=actual_model,
                     mode=run_mode,
                     custom_config=config,
                     benchmark_name=name
@@ -673,59 +773,368 @@ def models():
 
 @models.command('list')
 @click.option('--provider', help='Filter by provider (e.g., openai, anthropic)')
+@click.option('--refresh', is_flag=True, help='Force refresh from OpenRouter API')
+@click.option('--search', help='Search models by name or capability')
 @click.pass_context
-def models_list(ctx, provider):
-    """List available models."""
-    try:
-        from models.model_registry import ModelRegistry
-        from models.model_registry import ModelProvider
-        
-        # Get models from registry
-        all_models = list(ModelRegistry.MODELS.values())
-        
-        # Filter by provider if specified
-        if provider:
-            provider_enum = None
-            for p in ModelProvider:
-                if p.value.lower() == provider.lower():
-                    provider_enum = p
+def models_list(ctx, provider, refresh, search):
+    """List available models from OpenRouter."""
+    
+    async def list_models_async():
+        try:
+            from models.model_registry import model_registry
+            from models.model_cache import get_model_cache
+            
+            console.print("[blue]Loading available models...[/blue]")
+            
+            # Get models using dynamic system
+            if refresh:
+                # Force refresh from API
+                models = await model_registry.fetch_models()
+                if not models:
+                    console.print("[red]Failed to fetch models from API[/red]")
+                    return
+                console.print("[green]✓ Models refreshed from OpenRouter API[/green]")
+            else:
+                models = await model_registry.get_available_models()
+            
+            if not models:
+                console.print("[yellow]No models available[/yellow]")
+                return
+            
+            # Apply search filter
+            if search:
+                models = model_registry.search_models(search, models)
+                if not models:
+                    console.print(f"[yellow]No models found matching '{search}'[/yellow]")
+                    return
+            
+            # Apply provider filter
+            if provider:
+                models = [m for m in models if m.get('provider', '').lower() == provider.lower()]
+                if not models:
+                    available_providers = sorted(set(m.get('provider', '') for m in models if m.get('provider')))
+                    console.print(f"[red]No models found for provider: {provider}[/red]")
+                    console.print(f"Available providers: {', '.join(available_providers)}")
+                    return
+            
+            # Create table
+            table = Table(title="Available Models")
+            table.add_column("Provider", style="cyan")
+            table.add_column("Model ID", style="magenta") 
+            table.add_column("Display Name", style="blue")
+            table.add_column("Context", justify="right", style="green")
+            table.add_column("Cost (Input/Output per 1M)", style="yellow")
+            table.add_column("Available", justify="center", style="dim")
+            
+            # Sort models by provider, then name
+            sorted_models = sorted(models, key=lambda x: (x.get('provider', ''), x.get('name', '')))
+            
+            for model in sorted_models:
+                # Extract pricing info
+                pricing = model.get('pricing', {})
+                input_cost = pricing.get('input_cost_per_1m_tokens', 0)
+                output_cost = pricing.get('output_cost_per_1m_tokens', 0)
+                
+                table.add_row(
+                    (model.get('provider', 'Unknown')).title(),
+                    model.get('id', 'N/A'),
+                    model.get('name', 'N/A'),
+                    f"{model.get('context_length', 0):,}",
+                    f"${input_cost:.2f}/${output_cost:.2f}",
+                    "✓" if model.get('available', True) else "✗"
+                )
+            
+            console.print(table)
+            
+            # Show summary and cache status
+            console.print(f"\n[dim]Total models: {len(models)}[/dim]")
+            
+            if search:
+                console.print(f"[dim]Filtered by search: '{search}'[/dim]")
+            if provider:
+                console.print(f"[dim]Filtered by provider: '{provider}'[/dim]")
+            
+            # Show cache status
+            cache = get_model_cache()
+            cache_info = cache.get_cache_info()
+            if cache_info['exists']:
+                status = "valid" if cache_info['valid'] else "expired"
+                age_mins = cache_info['age_seconds'] / 60 if cache_info['age_seconds'] else 0
+                console.print(f"[dim]Cache: {cache_info['model_count']} models, {status} (age: {age_mins:.1f} mins)[/dim]")
+            else:
+                console.print("[dim]Cache: No cached data[/dim]")
+                
+        except Exception as e:
+            console.print(f"[red]Error listing models: {str(e)}[/red]")
+            logger.exception("Model listing failed")
+    
+    asyncio.run(list_models_async())
+
+
+@models.command('search')
+@click.argument('query', required=True)
+@click.option('--limit', '-l', type=int, default=20, help='Maximum number of results to show')
+@click.pass_context
+def models_search(ctx, query, limit):
+    """Search for models by name, provider, or capabilities."""
+    
+    async def search_models_async():
+        try:
+            from models.model_registry import model_registry
+            
+            console.print(f"[blue]Searching for models matching '{query}'...[/blue]")
+            
+            # Get all available models and search
+            models = await model_registry.get_available_models()
+            matching_models = model_registry.search_models(query, models)
+            
+            if not matching_models:
+                console.print(f"[yellow]No models found matching '{query}'[/yellow]")
+                console.print("[dim]Try searching by provider (e.g., 'anthropic'), model family (e.g., 'gpt'), or capability[/dim]")
+                return
+            
+            # Limit results
+            if len(matching_models) > limit:
+                matching_models = matching_models[:limit]
+                console.print(f"[dim]Showing first {limit} results (use --limit to see more)[/dim]\n")
+            
+            # Create results table
+            table = Table(title=f"Search Results: '{query}'")
+            table.add_column("Provider", style="cyan")
+            table.add_column("Model ID", style="magenta")
+            table.add_column("Display Name", style="blue") 
+            table.add_column("Context", justify="right", style="green")
+            table.add_column("Cost", style="yellow")
+            
+            for model in matching_models:
+                pricing = model.get('pricing', {})
+                input_cost = pricing.get('input_cost_per_1m_tokens', 0)
+                output_cost = pricing.get('output_cost_per_1m_tokens', 0)
+                
+                table.add_row(
+                    (model.get('provider', 'Unknown')).title(),
+                    model.get('id', 'N/A'),
+                    model.get('name', 'N/A'),
+                    f"{model.get('context_length', 0):,}",
+                    f"${input_cost:.2f}/${output_cost:.2f}"
+                )
+            
+            console.print(table)
+            console.print(f"\n[green]Found {len(matching_models)} models matching '{query}'[/green]")
+            
+        except Exception as e:
+            console.print(f"[red]Error searching models: {str(e)}[/red]")
+            logger.exception("Model search failed")
+    
+    asyncio.run(search_models_async())
+
+
+@models.command('info')
+@click.argument('model_id', required=True)
+@click.pass_context
+def models_info(ctx, model_id):
+    """Show detailed information about a specific model."""
+    
+    async def show_model_info_async():
+        try:
+            from models.model_registry import model_registry
+            
+            console.print(f"[blue]Getting information for model: {model_id}[/blue]")
+            
+            # Get all models and find the specific one
+            models = await model_registry.get_available_models()
+            model_info = None
+            
+            for model in models:
+                if model.get('id', '').lower() == model_id.lower():
+                    model_info = model
                     break
             
-            if provider_enum:
-                all_models = [m for m in all_models if m.provider == provider_enum]
-            else:
-                console.print(f"[red]Unknown provider: {provider}[/red]")
-                console.print(f"Available providers: {', '.join([p.value for p in ModelProvider])}")
+            if not model_info:
+                console.print(f"[red]Model not found: {model_id}[/red]")
+                console.print("[dim]Use 'models list' or 'models search' to find available models[/dim]")
+                
+                # Show similar models
+                similar = model_registry.search_models(model_id.split('/')[-1], models)[:5]
+                if similar:
+                    console.print(f"\n[yellow]Similar models:[/yellow]")
+                    for sim in similar:
+                        console.print(f"  • {sim.get('id', 'N/A')}")
                 return
+            
+            # Display detailed information
+            console.print(Panel.fit(
+                f"[bold blue]{model_info.get('name', 'N/A')}[/bold blue]\n"
+                f"[dim]{model_info.get('description', 'No description available')}[/dim]",
+                title="Model Information",
+                border_style="blue"
+            ))
+            
+            # Basic details table
+            details_table = Table(title="Model Details")
+            details_table.add_column("Property", style="cyan")
+            details_table.add_column("Value", style="green")
+            
+            details_table.add_row("Model ID", model_info.get('id', 'N/A'))
+            details_table.add_row("Provider", (model_info.get('provider', 'Unknown')).title())
+            details_table.add_row("Context Length", f"{model_info.get('context_length', 0):,} tokens")
+            details_table.add_row("Available", "✓ Yes" if model_info.get('available', True) else "✗ No")
+            details_table.add_row("Modality", (model_info.get('modality', 'text')).title())
+            
+            # Add architecture info if available
+            architecture = model_info.get('architecture', {})
+            if architecture:
+                if 'tokenizer' in architecture:
+                    details_table.add_row("Tokenizer", architecture['tokenizer'])
+                if 'instruct_type' in architecture:
+                    details_table.add_row("Instruction Type", architecture['instruct_type'])
+            
+            console.print(details_table)
+            
+            # Pricing table
+            pricing = model_info.get('pricing', {})
+            if pricing:
+                pricing_table = Table(title="Pricing Information")
+                pricing_table.add_column("Type", style="cyan")
+                pricing_table.add_column("Cost per 1M tokens", style="yellow")
+                
+                input_cost = pricing.get('input_cost_per_1m_tokens', 0)
+                output_cost = pricing.get('output_cost_per_1m_tokens', 0)
+                
+                # Format costs properly, handling scientific notation
+                def format_cost(cost):
+                    price_per_million = cost * 1_000_000
+                    if cost == 0:
+                        return "$0.0000"
+                    else:
+                        return f"${price_per_million:,.0f}"
+                
+                pricing_table.add_row("Input", format_cost(input_cost))
+                pricing_table.add_row("Output", format_cost(output_cost))
+                pricing_table.add_row("Combined", format_cost(input_cost + output_cost))
+                
+                console.print(pricing_table)
+            
+            # Top provider info
+            top_provider = model_info.get('top_provider', {})
+            if top_provider:
+                console.print(f"\n[bold]Top Provider:[/bold]")
+                console.print(f"• Max completion tokens: {top_provider.get('max_completion_tokens', 'N/A')}")
+                console.print(f"• Max throughput: {top_provider.get('max_throughput_tokens_per_minute', 'N/A')} tokens/min")
+            
+            # Per-request limits
+            limits = model_info.get('per_request_limits', {})
+            if limits:
+                console.print(f"\n[bold]Request Limits:[/bold]")
+                if 'prompt_tokens' in limits:
+                    console.print(f"• Max prompt tokens: {limits['prompt_tokens']:,}")
+                if 'completion_tokens' in limits:
+                    console.print(f"• Max completion tokens: {limits['completion_tokens']:,}")
+            
+        except Exception as e:
+            console.print(f"[red]Error getting model info: {str(e)}[/red]")
+            logger.exception("Model info retrieval failed")
+    
+    asyncio.run(show_model_info_async())
+
+
+@models.command('refresh')
+@click.pass_context  
+def models_refresh(ctx):
+    """Force refresh the model cache from OpenRouter API."""
+    
+    async def refresh_models_async():
+        try:
+            from models.model_registry import model_registry
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console
+            ) as progress:
+                task = progress.add_task("Fetching models from OpenRouter API...", total=None)
+                
+                models = await model_registry.fetch_models()
+                
+                if models:
+                    progress.update(task, description="Complete!")
+                    progress.stop()
+                    
+                    console.print(f"[green]✓ Successfully refreshed {len(models)} models from OpenRouter API[/green]")
+                    console.print("[dim]Use 'models list' to see the updated model list[/dim]")
+                else:
+                    progress.update(task, description="Failed!")
+                    progress.stop()
+                    console.print("[red]✗ Failed to fetch models from OpenRouter API[/red]")
+                    console.print("[dim]Check your API key and network connection[/dim]")
+                    
+        except Exception as e:
+            console.print(f"[red]Error refreshing models: {str(e)}[/red]")
+            logger.exception("Model refresh failed")
+    
+    asyncio.run(refresh_models_async())
+
+
+@models.command('cache')
+@click.option('--clear', is_flag=True, help='Clear the model cache')
+@click.option('--info', is_flag=True, help='Show detailed cache information', default=True)
+@click.pass_context
+def models_cache(ctx, clear, info):
+    """Manage model cache."""
+    try:
+        from models.model_cache import get_model_cache
         
-        if not all_models:
-            console.print("[yellow]No models found matching the criteria[/yellow]")
+        cache = get_model_cache()
+        
+        if clear:
+            if cache.clear_cache():
+                console.print("[green]✓ Model cache cleared[/green]")
+            else:
+                console.print("[red]✗ Failed to clear cache[/red]")
             return
         
-        # Create table
-        table = Table(title="Available Models")
-        table.add_column("Provider", style="cyan")
-        table.add_column("Model", style="magenta")
-        table.add_column("Display Name", style="blue")
-        table.add_column("Context", justify="right", style="green")
-        table.add_column("Cost (Input/Output per 1M)", style="yellow")
-        table.add_column("Streaming", justify="center", style="dim")
-        
-        for model_config in sorted(all_models, key=lambda x: (x.provider.value, x.display_name)):
-            table.add_row(
-                model_config.provider.value.title(),
-                model_config.model_id,
-                model_config.display_name,
-                f"{model_config.context_window:,}",
-                f"${model_config.input_cost_per_1m_tokens:.2f}/${model_config.output_cost_per_1m_tokens:.2f}",
-                "✓" if model_config.supports_streaming else "✗"
-            )
-        
-        console.print(table)
-        console.print(f"\n[dim]Total models: {len(all_models)}[/dim]")
-        
+        if info:
+            cache_info = cache.get_cache_info()
+            
+            # Cache status table
+            status_table = Table(title="Model Cache Status")
+            status_table.add_column("Property", style="cyan")
+            status_table.add_column("Value", style="green")
+            
+            status_table.add_row("Cache Path", cache_info['cache_path'])
+            status_table.add_row("Exists", "✓ Yes" if cache_info['exists'] else "✗ No")
+            status_table.add_row("Valid", "✓ Yes" if cache_info['valid'] else "✗ No")
+            status_table.add_row("TTL", f"{cache_info['ttl_seconds']} seconds")
+            
+            if cache_info['exists']:
+                status_table.add_row("Size", f"{cache_info['size_bytes']:,} bytes")
+                status_table.add_row("Model Count", str(cache_info['model_count']))
+                
+                if cache_info['cached_at']:
+                    status_table.add_row("Cached At", cache_info['cached_at'])
+                
+                if cache_info['age_seconds'] is not None:
+                    age_mins = cache_info['age_seconds'] / 60
+                    age_hours = age_mins / 60
+                    if age_hours > 1:
+                        age_str = f"{age_hours:.1f} hours"
+                    else:
+                        age_str = f"{age_mins:.1f} minutes"
+                    status_table.add_row("Age", age_str)
+            
+            console.print(status_table)
+            
+            # Cache recommendations
+            if not cache_info['exists']:
+                console.print("\n[yellow]💡 Run 'models refresh' to populate the cache[/yellow]")
+            elif not cache_info['valid']:
+                console.print("\n[yellow]💡 Cache has expired. Run 'models refresh' to update[/yellow]")
+            else:
+                console.print("\n[green]💡 Cache is up to date[/green]")
+            
     except Exception as e:
-        console.print(f"[red]Error listing models: {str(e)}[/red]")
+        console.print(f"[red]Error managing cache: {str(e)}[/red]")
+        logger.exception("Cache management failed")
 
 
 @models.command('test')
@@ -734,26 +1143,40 @@ def models_list(ctx, provider):
 @click.pass_context
 def models_test(ctx, model, prompt):
     """Test a specific model with a prompt."""
+    
     async def run_test():
         try:
-            from models.model_registry import ModelRegistry
+            from models.model_registry import model_registry
             from models.openrouter import OpenRouterClient
             from models.base import ModelConfig
             
-            # Validate model
-            if not ModelRegistry.validate_model_availability(model):
-                console.print(f"[red]Unknown model: {model}[/red]")
-                console.print("Use 'models list' to see available models")
+            # Validate model using dynamic system
+            models = await model_registry.get_available_models()
+            model_info = None
+            
+            for m in models:
+                if m.get('id', '').lower() == model.lower():
+                    model_info = m
+                    break
+            
+            if not model_info:
+                console.print(f"[red]Model not found: {model}[/red]")
+                console.print("[dim]Use 'models list' or 'models search' to find available models[/dim]")
+                
+                # Show source of models being used
+                cache_info = model_registry._get_cache().get_cache_info()
+                if cache_info['valid']:
+                    console.print("[dim]Using cached models from API[/dim]")
+                else:
+                    console.print("[dim]Using static fallback models[/dim]")
                 return
             
-            model_config = ModelRegistry.get_model_config(model)
-            console.print(f"[blue]Testing model: {model_config.display_name}[/blue]")
-            console.print(f"[dim]Provider: {model_config.provider.value}[/dim]")
+            console.print(f"[blue]Testing model: {model_info.get('name', model)}[/blue]")
+            console.print(f"[dim]Provider: {model_info.get('provider', 'Unknown')}[/dim]")
+            console.print(f"[dim]Source: {'API/Cache' if model_info.get('available', True) else 'Static Fallback'}[/dim]")
             console.print(f"[dim]Prompt: {prompt}[/dim]\n")
             
-            # Create client
-            config = ModelConfig(model_name=model)
-            
+            # Create client and test
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -761,26 +1184,35 @@ def models_test(ctx, model, prompt):
             ) as progress:
                 task = progress.add_task("Querying model...", total=None)
                 
-                async with OpenRouterClient(config=config) as client:
-                    response = await client.query(prompt)
-                    
-                    progress.update(task, description="Complete!")
-                    progress.stop()
-                    
-                    # Display results
-                    result_table = Table(title="Test Results")
-                    result_table.add_column("Metric", style="cyan")
-                    result_table.add_column("Value", style="green")
-                    
-                    result_table.add_row("Response", response.response)
-                    result_table.add_row("Latency", f"{response.latency_ms:.0f} ms")
-                    result_table.add_row("Tokens Used", str(response.tokens_used))
-                    result_table.add_row("Cost", f"${response.cost:.6f}")
-                    
-                    console.print(result_table)
-                    
+                # Create client with proper model configuration
+                model_config = ModelConfig(model_name=model)
+                client = OpenRouterClient(config=model_config)
+                
+                # Use the correct method name 'query'
+                response = await client.query(prompt)
+                
+                progress.update(task, description="Complete!")
+                progress.stop()
+                
+                # Display results  
+                result_table = Table(title="Test Results")
+                result_table.add_column("Metric", style="cyan")
+                result_table.add_column("Value", style="green")
+                
+                result_table.add_row("Response", response.response)
+                result_table.add_row("Latency", f"{response.latency_ms:.0f} ms")
+                result_table.add_row("Tokens Used", str(response.tokens_used))
+                result_table.add_row("Cost", f"${response.cost:.6f}")
+                result_table.add_row("Model", response.model_id)
+                
+                console.print(result_table)
+                
+                # Clean up
+                await client.close()
+                
         except Exception as e:
             console.print(f"[red]Test failed: {str(e)}[/red]")
+            logger.exception("Model test failed")
     
     asyncio.run(run_test())
 
@@ -793,51 +1225,89 @@ def models_test(ctx, model, prompt):
 @click.pass_context
 def models_costs(ctx, model, questions, input_tokens, output_tokens):
     """Estimate costs for running benchmarks with a model."""
-    try:
-        from models.model_registry import ModelRegistry
-        from models.cost_calculator import CostCalculator
-        
-        # Validate model
-        if not ModelRegistry.validate_model_availability(model):
-            console.print(f"[red]Unknown model: {model}[/red]")
-            console.print("Use 'models list' to see available models")
-            return
-        
-        # Use defaults if not specified
-        config = ctx.obj['config']
-        input_tokens = input_tokens or config.costs.estimation.default_input_tokens_per_question
-        output_tokens = output_tokens or config.costs.estimation.default_output_tokens_per_question
-        
-        # Calculate costs
-        calculator = CostCalculator()
-        estimate = calculator.estimate_batch_cost(
-            model,
-            ["dummy"] * questions,  # Just for count
-            input_tokens,
-            output_tokens
-        )
-        
-        # Display estimate
-        table = Table(title=f"Cost Estimate: {estimate['model_name']}")
-        table.add_column("Parameter", style="cyan")
-        table.add_column("Value", style="green")
-        
-        table.add_row("Model", estimate['model_name'])
-        table.add_row("Questions", f"{questions:,}")
-        table.add_row("Est. Input Tokens", f"{estimate['estimated_input_tokens']:,}")
-        table.add_row("Est. Output Tokens", f"{estimate['estimated_output_tokens']:,}")
-        table.add_row("Total Tokens", f"{estimate['total_tokens']:,}")
-        table.add_row("Total Cost", f"${estimate['estimated_total_cost']:.4f}")
-        table.add_row("Cost per Question", f"${estimate['cost_per_question']:.6f}")
-        table.add_row("Billing Tier", estimate['billing_tier'].title())
-        
-        if estimate['tier_discount'] > 0:
-            table.add_row("Discount", f"{estimate['tier_discount']:.1f}%")
-        
-        console.print(table)
-        
-    except Exception as e:
-        console.print(f"[red]Error calculating costs: {str(e)}[/red]")
+    
+    async def calculate_costs_async():
+        try:
+            from models.model_registry import model_registry
+            from models.cost_calculator import CostCalculator
+            
+            # Validate model using dynamic system
+            models = await model_registry.get_available_models()
+            model_info = None
+            
+            for m in models:
+                if m.get('id', '').lower() == model.lower():
+                    model_info = m
+                    break
+            
+            if not model_info:
+                console.print(f"[red]Model not found: {model}[/red]")
+                console.print("[dim]Use 'models list' or 'models search' to find available models[/dim]")
+                return
+            
+            # Use defaults if not specified - fix variable scoping
+            default_input_tokens = 100
+            default_output_tokens = 50
+            
+            config = ctx.obj.get('config')
+            if config and hasattr(config, 'costs') and hasattr(config.costs, 'estimation'):
+                try:
+                    default_input_tokens = getattr(config.costs.estimation, 'default_input_tokens_per_question', 100)
+                    default_output_tokens = getattr(config.costs.estimation, 'default_output_tokens_per_question', 50)
+                except AttributeError:
+                    pass  # Use defaults
+            
+            # Apply the values - use different variable names to avoid shadowing
+            actual_input_tokens = input_tokens if input_tokens is not None else default_input_tokens
+            actual_output_tokens = output_tokens if output_tokens is not None else default_output_tokens
+            
+            # Get pricing from model info
+            pricing = model_info.get('pricing', {})
+            input_cost_per_1m = pricing.get('input_cost_per_1m_tokens', 0)
+            output_cost_per_1m = pricing.get('output_cost_per_1m_tokens', 0)
+            
+            # Calculate costs
+            total_input_tokens = questions * actual_input_tokens
+            total_output_tokens = questions * actual_output_tokens
+            total_tokens = total_input_tokens + total_output_tokens
+            
+            input_cost = (total_input_tokens / 1_000_000) * input_cost_per_1m
+            output_cost = (total_output_tokens / 1_000_000) * output_cost_per_1m
+            total_cost = input_cost + output_cost
+            cost_per_question = total_cost / questions if questions > 0 else 0
+            
+            # Display estimate
+            table = Table(title=f"Cost Estimate: {model_info.get('name', model)}")
+            table.add_column("Parameter", style="cyan")
+            table.add_column("Value", style="green")
+            
+            table.add_row("Model ID", model)
+            table.add_row("Model Name", model_info.get('name', 'N/A'))
+            table.add_row("Provider", (model_info.get('provider', 'Unknown')).title())
+            table.add_row("Questions", f"{questions:,}")
+            table.add_row("Input Tokens per Question", f"{actual_input_tokens:,}")
+            table.add_row("Output Tokens per Question", f"{actual_output_tokens:,}")
+            table.add_row("Total Input Tokens", f"{total_input_tokens:,}")
+            table.add_row("Total Output Tokens", f"{total_output_tokens:,}")
+            table.add_row("Total Tokens", f"{total_tokens:,}")
+            table.add_row("Input Cost", f"${input_cost:.6f}")
+            table.add_row("Output Cost", f"${output_cost:.6f}")
+            table.add_row("Total Cost", f"${total_cost:.4f}")
+            table.add_row("Cost per Question", f"${cost_per_question:.6f}")
+            
+            console.print(table)
+            
+            # Add context about pricing
+            if input_cost_per_1m == 0 and output_cost_per_1m == 0:
+                console.print("\n[yellow]⚠️  No pricing information available for this model[/yellow]")
+            else:
+                console.print(f"\n[dim]Based on: ${input_cost_per_1m:.2f}/${output_cost_per_1m:.2f} per 1M input/output tokens[/dim]")
+            
+        except Exception as e:
+            console.print(f"[red]Error calculating costs: {str(e)}[/red]")
+            logger.exception("Cost calculation failed")
+    
+    asyncio.run(calculate_costs_async())
 
 
 @cli.command()
@@ -955,7 +1425,7 @@ def data_stats(ctx, benchmark_id, detailed):
             if stats['value_range']:
                 table.add_row("Value Range", f"${stats['value_range']['min']} - ${stats['value_range']['max']}")
                 table.add_row("Average Value", f"${stats['value_range']['average']}")
-                table.add_row("Questions with Values", f"{stats['value_range']['count']:,}")
+                table.add_row("Questions with Values", f"{stats['value_range']['count']:,}");
             
             console.print(table)
             

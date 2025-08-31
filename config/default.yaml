@@ -20,6 +20,14 @@ cache:
   ttl: 3600
   max_size: 1000
 
+# Model cache configuration
+model_cache:
+  enabled: true
+  path: "data/cache/models.json"
+  ttl_seconds: 3600  # 1 hour
+  auto_refresh: true
+  fallback_to_static: true
+
 openrouter:
   base_url: "https://openrouter.ai/api/v1"
   timeout: 30
@@ -28,11 +36,62 @@ openrouter:
     requests_per_minute: 60
     backoff_factor: 2.0
     max_backoff: 60.0
-  default_model: "openai/gpt-3.5-turbo"
+  default_model: "anthropic/claude-3.5-sonnet"
   streaming: false
   headers:
     referer: "https://alex-trebench.local"
     title: "alex-treBENCH Benchmarking System"
+
+# Model configuration
+models:
+  # Default model (Claude Sonnet 3.5)
+  default: "anthropic/claude-3.5-sonnet"
+  
+  # Preferred models for different use cases
+  preferred:
+    quick_benchmark:
+      - "openai/gpt-3.5-turbo"
+      - "anthropic/claude-3-haiku" 
+      - "mistralai/mixtral-8x7b-instruct"
+    
+    standard_benchmark:
+      - "anthropic/claude-3.5-sonnet"
+      - "openai/gpt-4-turbo"
+      - "anthropic/claude-3-sonnet"
+    
+    comprehensive_benchmark:
+      - "anthropic/claude-3-opus"
+      - "openai/gpt-4"
+      - "anthropic/claude-3.5-sonnet"
+      - "openai/gpt-4-turbo"
+    
+    cost_optimized:
+      - "openai/gpt-3.5-turbo"
+      - "anthropic/claude-3-haiku"
+      - "mistralai/mixtral-8x7b-instruct"
+    
+    high_performance:
+      - "anthropic/claude-3-opus"
+      - "openai/gpt-4"
+      - "anthropic/claude-3.5-sonnet"
+
+  # Default parameters for all models
+  defaults:
+    temperature: 0.7
+    max_tokens: 150
+    top_p: 0.9
+
+  # Model-specific overrides
+  overrides:
+    "openai/gpt-4":
+      temperature: 0.5
+      max_tokens: 200
+    "anthropic/claude-3":
+      temperature: 0.6
+      max_tokens: 250
+    "anthropic/claude-3.5-sonnet":
+      temperature: 0.6
+      max_tokens: 200
 
 prompts:
   default_template: "jeopardy_style"
@@ -102,20 +161,6 @@ benchmark:
   margin_of_error: 0.05
   answer_similarity_threshold: 0.7
   max_concurrent_requests: 5
-
-models:
-  defaults:
-    temperature: 0.7
-    max_tokens: 150
-    top_p: 0.9
-
-  overrides:
-    "openai/gpt-4":
-      temperature: 0.5
-      max_tokens: 200
-    "anthropic/claude-3":
-      temperature: 0.6
-      max_tokens: 250
 
 reporting:
   default_format: "terminal"

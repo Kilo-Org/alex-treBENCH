@@ -143,10 +143,22 @@ class ModelDefaultsConfig:
 
 
 @dataclass
+class ModelCacheConfig:
+    """Model cache configuration."""
+    enabled: bool = True
+    path: str = "data/cache/models.json"
+    ttl_seconds: int = 3600  # 1 hour
+    auto_refresh: bool = True
+    fallback_to_static: bool = True
+
+
+@dataclass
 class ModelsConfig:
-    """Model configuration with defaults and overrides."""
+    """Model configuration with defaults, overrides, and dynamic settings."""
+    default: str = "anthropic/claude-3.5-sonnet"
     defaults: ModelDefaultsConfig = field(default_factory=ModelDefaultsConfig)
     overrides: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    preferred: Optional[Dict[str, List[str]]] = None
 
 
 @dataclass
@@ -212,6 +224,7 @@ class AppConfig:
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     openrouter: OpenRouterConfig = field(default_factory=OpenRouterConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
+    model_cache: ModelCacheConfig = field(default_factory=ModelCacheConfig)
     prompts: PromptsConfig = field(default_factory=PromptsConfig)
     costs: CostsConfig = field(default_factory=CostsConfig)
     benchmark: BenchmarkConfig = field(default_factory=BenchmarkConfig)
@@ -247,6 +260,9 @@ class AppConfig:
 
         if 'cache' in config_data and isinstance(config_data['cache'], dict):
             config_data['cache'] = CacheConfig(**config_data['cache'])
+
+        if 'model_cache' in config_data and isinstance(config_data['model_cache'], dict):
+            config_data['model_cache'] = ModelCacheConfig(**config_data['model_cache'])
 
         if 'prompts' in config_data and isinstance(config_data['prompts'], dict):
             prompts_data = config_data['prompts']
@@ -297,6 +313,7 @@ class AppConfig:
             models_data = config_data['models']
             if 'defaults' in models_data and isinstance(models_data['defaults'], dict):
                 models_data['defaults'] = ModelDefaultsConfig(**models_data['defaults'])
+            # Keep preferred as-is (it's already a dict of lists)
             config_data['models'] = ModelsConfig(**models_data)
 
         if 'reporting' in config_data and isinstance(config_data['reporting'], dict):

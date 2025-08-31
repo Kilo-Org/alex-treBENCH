@@ -310,22 +310,156 @@ class OpenRouterClient(ModelAdapter):
         return self.MODEL_PRICING.get(self.config.model_name, {'input': 0.0, 'output': 0.0})
     
     async def list_available_models(self) -> List[Dict[str, Any]]:
-        """List all available models on OpenRouter."""
+        """
+        List all available models on OpenRouter with detailed information.
+        
+        Returns:
+            List of model dictionaries with keys:
+            - id: Model ID (e.g., "anthropic/claude-3.5-sonnet")
+            - name: Display name
+            - pricing: Dict with input_cost and output_cost per 1M tokens
+            - context_length: Maximum context window
+            - capabilities: List of model capabilities
+            - provider: Model provider
+            - description: Model description
+        """
         try:
+            await self._check_rate_limit()
             session = await self._ensure_session()
-            headers = {"Authorization": f"Bearer {self.api_key}"}
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://alex-trebench.local",
+                "X-Title": "alex-treBENCH Benchmarking System"
+            }
+            
+            logger.info("Fetching available models from OpenRouter API")
             
             async with session.get(f"{self.base_url}/models", headers=headers) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get('data', [])
-                else:
-                    logger.error(f"Failed to list models: HTTP {response.status}")
+                if response.status != 200:
+                    logger.error(f"Failed to fetch models: HTTP {response.status}")
+                    response_text = await response.text()
+                    raise ModelAPIError(
+                        f"Failed to fetch models from OpenRouter API: HTTP {response.status}",
+                        status_code=response.status,
+                        response_body=response_text
+                    )
+                
+                data = await response.json()
+                raw_models = data.get('data', [])
+                
+                if not raw_models:
+                    logger.warning("No models returned from OpenRouter API")
                     return []
-                    
+                
+                # Parse and extract model information
+                parsed_models = []
+                for model_data in raw_models:
+                    try:
+                        parsed_model = self._parse_model_data(model_data)
+                        if parsed_model:
+                            parsed_models.append(parsed_model)
+                    except Exception as e:
+                        logger.warning(f"Failed to parse model data for {model_data.get('id', 'unknown')}: {e}")
+                        continue
+                
+                logger.info(f"Successfully fetched and parsed {len(parsed_models)} models from OpenRouter")
+                return parsed_models
+                
+        except ModelAPIError:
+            # Re-raise API errors
+            raise
         except Exception as e:
-            logger.error(f"Error listing models: {str(e)}")
-            return []
+            logger.error(f"Unexpected error fetching models from OpenRouter: {str(e)}")
+            raise ModelAPIError(
+                f"Failed to fetch models from OpenRouter: {str(e)}"
+            ) from e
+    
+    def _parse_model_data(self, model_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Parse raw model data from OpenRouter API into standardized format.
+        
+        Args:
+            model_data: Raw model data from API
+            
+        Returns:
+            Parsed model dictionary or None if parsing fails
+        """
+        try:
+            model_id = model_data.get('id')
+            if not model_id:
+                logger.warning("Model data missing ID, skipping")
+                return None
+            
+            # Extract basic model info
+            name = model_data.get('name', model_id)
+            description = model_data.get('description', '')
+            context_length = model_data.get('context_length', 0)
+            
+            # Extract provider from model ID (e.g., "openai/gpt-4" -> "openai")
+            provider = model_id.split('/')[0] if '/' in model_id else 'unknown'
+            
+            # Extract pricing information
+            pricing_info = model_data.get('pricing', {})
+            input_cost = 0.0
+            output_cost = 0.0
+            
+            if pricing_info:
+                # OpenRouter pricing is typically in the format per 1M tokens
+                input_cost = float(pricing_info.get('prompt', 0))
+                output_cost = float(pricing_info.get('completion', 0))
+            
+            # Extract capabilities and features
+            capabilities = []
+            
+            # Check for streaming support
+            if model_data.get('supports_streaming', True):
+                capabilities.append('streaming')
+            
+            # Check for function calling
+            if model_data.get('supports_function_calling', False):
+                capabilities.append('function_calling')
+            
+            # Check for vision capabilities
+            if model_data.get('supports_vision', False):
+                capabilities.append('vision')
+            
+            # Add context-based capabilities
+            if context_length >= 100000:
+                capabilities.append('long_context')
+            
+            # Add reasoning capability for most models
+            capabilities.append('chat')
+            capabilities.append('reasoning')
+            
+            # Check if model is currently available
+            is_available = not model_data.get('disabled', False)
+            
+            parsed_model = {
+                'id': model_id,
+                'name': name,
+                'description': description,
+                'provider': provider,
+                'context_length': context_length,
+                'pricing': {
+                    'input_cost_per_1m_tokens': input_cost,
+                    'output_cost_per_1m_tokens': output_cost
+                },
+                'capabilities': capabilities,
+                'available': is_available,
+                'per_request_limits': model_data.get('per_request_limits', {}),
+                'top_provider': model_data.get('top_provider', {}),
+                'architecture': model_data.get('architecture', {}),
+                'modality': model_data.get('modality', 'text'),
+                'updated_at': model_data.get('updated', None)
+            }
+            
+            return parsed_model
+            
+        except Exception as e:
+            logger.error(f"Error parsing model data: {e}")
+            return None
     
     async def close(self) -> None:
         """Close the HTTP session."""
