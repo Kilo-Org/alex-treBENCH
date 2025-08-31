@@ -5,8 +5,27 @@ Main command-line interface for the Jeopardy Benchmarking System
 using Click framework with rich output formatting.
 """
 
-import asyncio
+import warnings
 import sys
+import os
+
+# Suppress GIL-related warnings from pandas and other libraries
+# These warnings occur in Python 3.13+ with free-threading when libraries
+# haven't declared GIL-safety yet. This is harmless for our use case.
+warnings.filterwarnings("ignore", 
+                       message=".*has been enabled to load module.*which has not declared that it can run safely without the GIL.*",
+                       category=RuntimeWarning)
+
+# Also suppress any pandas-specific warnings that might be related
+warnings.filterwarnings("ignore", 
+                       message=".*pandas.*GIL.*",
+                       category=RuntimeWarning)
+
+# Alternative approach: Set environment variable programmatically if not already set
+if 'PYTHONWARNINGS' not in os.environ:
+    os.environ['PYTHONWARNINGS'] = 'ignore::RuntimeWarning:importlib._bootstrap'
+
+import asyncio
 from pathlib import Path
 from typing import Optional, List
 import click
@@ -536,8 +555,8 @@ def list_benchmarks(ctx, limit, status):
     table.add_column("Created", style="dim")
     
     # Mock entries
-    table.add_row("1", "test-benchmark", "[green]completed[/green]", "gpt-3.5-turbo", "1000", "2024-01-15")
-    table.add_row("2", "comparison-test", "[yellow]running[/yellow]", "claude-3-haiku, gpt-4", "500", "2024-01-16")
+    table.add_row("1", "test-benchmark", "[green]Completed[/green]", "gpt-3.5-turbo", "1000", "2024-01-15")
+    table.add_row("2", "comparison-test", "[yellow]Running[/yellow]", "claude-3-haiku, gpt-4", "500", "2024-01-16")
     
     console.print(table)
     console.print(f"\n[dim]Showing mock data - implement database queries to show real benchmarks[/dim]")
@@ -1021,7 +1040,7 @@ def data_sample(ctx, size, category, difficulty, min_value, max_value, method, s
             data = []
             for q in questions:
                 data.append({
-                    'question_id': q.question_id,
+                    'question_id': q.id,
                     'question': q.question_text,
                     'answer': q.correct_answer,
                     'category': q.category,

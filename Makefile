@@ -64,6 +64,14 @@ test-performance: ## Run only performance tests
 	@echo "🧪 Running performance tests..."
 	pytest tests/performance/ -v
 
+smoke-test: ## Run complete end-to-end smoke test
+	@echo "🔥 Running smoke test..."
+	python scripts/smoke_test.py
+
+test-agents: ## Run comprehensive test agents
+	@echo "🤖 Running test agents..."
+	python scripts/test_agents.py
+
 # =============================================================================
 # Code Quality
 # =============================================================================

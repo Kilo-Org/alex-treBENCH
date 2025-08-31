@@ -77,11 +77,8 @@ def create_tables() -> None:
     try:
         engine = get_engine()
         
-        # Import all models to ensure they're registered with Base
-        from src.storage.models import (
-            Benchmark, BenchmarkQuestion, ModelResponse, ModelPerformanceSummary
-        )
-        
+        # Models are automatically registered with Base when imported elsewhere
+        # No need to import them here as it causes duplicate table definitions
         Base.metadata.create_all(engine)
     except Exception as e:
         raise DatabaseError(

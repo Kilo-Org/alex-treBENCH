@@ -12,7 +12,7 @@ from sqlalchemy import (
     Column, Integer, String, Text, DateTime, Boolean,
     DECIMAL, ForeignKey, JSON, Index, CheckConstraint
 )
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from src.core.database import Base

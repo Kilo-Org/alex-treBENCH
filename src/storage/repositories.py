@@ -15,11 +15,9 @@ import json
 
 from .models import (
     Benchmark, BenchmarkQuestion, ModelResponse, ModelPerformanceSummary,
-    Question, BenchmarkResult, BenchmarkRun, ModelPerformance
+    Question, BenchmarkResult, BenchmarkRun, ModelPerformance, create_benchmark_run
 )
-from src.core.database import get_session
 from src.core.exceptions import DatabaseError, ValidationError
-from src.storage.models import Question, BenchmarkRun, BenchmarkResult, ModelPerformanceSummary, create_benchmark_run
 from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -332,9 +330,17 @@ class QuestionRepository:
     def get_benchmark_questions(self, benchmark_id: int) -> List[BenchmarkQuestion]:
         """Get all questions for a benchmark."""
         try:
-            return self.session.query(BenchmarkQuestion).filter(
-                BenchmarkQuestion.benchmark_id == benchmark_id
-            ).all()
+            # Join through BenchmarkResult since Question is a global cache
+            # and doesn't have benchmark_id directly
+            from .models import BenchmarkResult
+            
+            results = self.session.query(BenchmarkQuestion).join(
+                BenchmarkResult, BenchmarkResult.question_id == BenchmarkQuestion.id
+            ).filter(
+                BenchmarkResult.benchmark_run_id == benchmark_id
+            ).distinct().all()
+            
+            return results
         except Exception as e:
             raise DatabaseError(
                 f"Failed to get benchmark questions: {str(e)}",
@@ -345,12 +351,16 @@ class QuestionRepository:
     def get_questions_by_category(self, benchmark_id: int, category: str) -> List[BenchmarkQuestion]:
         """Get questions by category."""
         try:
-            return self.session.query(BenchmarkQuestion).filter(
+            from .models import BenchmarkResult
+            
+            return self.session.query(BenchmarkQuestion).join(
+                BenchmarkResult, BenchmarkResult.question_id == BenchmarkQuestion.id
+            ).filter(
                 and_(
-                    BenchmarkQuestion.benchmark_id == benchmark_id,
+                    BenchmarkResult.benchmark_run_id == benchmark_id,
                     BenchmarkQuestion.category == category
                 )
-            ).all()
+            ).distinct().all()
         except Exception as e:
             raise DatabaseError(
                 f"Failed to get questions by category: {str(e)}",
@@ -361,12 +371,16 @@ class QuestionRepository:
     def get_questions_by_difficulty(self, benchmark_id: int, difficulty: str) -> List[BenchmarkQuestion]:
         """Get questions by difficulty level."""
         try:
-            return self.session.query(BenchmarkQuestion).filter(
+            from .models import BenchmarkResult
+            
+            return self.session.query(BenchmarkQuestion).join(
+                BenchmarkResult, BenchmarkResult.question_id == BenchmarkQuestion.id
+            ).filter(
                 and_(
-                    BenchmarkQuestion.benchmark_id == benchmark_id,
+                    BenchmarkResult.benchmark_run_id == benchmark_id,
                     BenchmarkQuestion.difficulty_level == difficulty
                 )
-            ).all()
+            ).distinct().all()
         except Exception as e:
             raise DatabaseError(
                 f"Failed to get questions by difficulty: {str(e)}",
@@ -457,7 +471,11 @@ class QuestionRepository:
             
             if filters:
                 if filters.get('benchmark_id'):
-                    query = query.filter(BenchmarkQuestion.benchmark_id == filters['benchmark_id'])
+                    # Join through BenchmarkResult since Question doesn't have benchmark_id directly
+                    from .models import BenchmarkResult
+                    query = query.join(BenchmarkResult, BenchmarkResult.question_id == BenchmarkQuestion.id).filter(
+                        BenchmarkResult.benchmark_run_id == filters['benchmark_id']
+                    ).distinct()
                 
                 if filters.get('categories'):
                     query = query.filter(BenchmarkQuestion.category.in_(filters['categories']))
@@ -504,21 +522,20 @@ class QuestionRepository:
             DatabaseError: If query fails
         """
         try:
-            query = self.session.query(BenchmarkQuestion)
+            query = self.session.query(BenchmarkQuestion).order_by(func.random())
             
             # Apply filters
             if benchmark_id:
-                query = query.filter(BenchmarkQuestion.benchmark_id == benchmark_id)
+                from .models import BenchmarkResult
+                query = query.join(BenchmarkResult, BenchmarkResult.question_id == BenchmarkQuestion.id).filter(
+                    BenchmarkResult.benchmark_run_id == benchmark_id
+                ).distinct()
             if category:
                 query = query.filter(BenchmarkQuestion.category == category)
             if difficulty:
                 query = query.filter(BenchmarkQuestion.difficulty_level == difficulty)
             
-            # Order randomly and limit
-            query = query.order_by(func.random()).limit(n)
-            
-            return query.all()
-            
+            return query.limit(n).all()
         except Exception as e:
             raise DatabaseError(
                 f"Failed to get random questions: {str(e)}",
@@ -660,7 +677,7 @@ class ResponseRepository:
         """Get all responses for a benchmark, optionally filtered by model."""
         try:
             query = self.session.query(ModelResponse).filter(
-                ModelResponse.benchmark_id == benchmark_id
+                ModelResponse.benchmark_run_id == benchmark_id
             )
             
             if model_name:
@@ -677,9 +694,10 @@ class ResponseRepository:
     def get_model_accuracy(self, benchmark_id: int, model_name: str) -> float:
         """Get accuracy rate for a specific model in a benchmark."""
         try:
+            # Get total responses
             total_responses = self.session.query(ModelResponse).filter(
                 and_(
-                    ModelResponse.benchmark_id == benchmark_id,
+                    ModelResponse.benchmark_run_id == benchmark_id,
                     ModelResponse.model_name == model_name
                 )
             ).count()
@@ -687,16 +705,16 @@ class ResponseRepository:
             if total_responses == 0:
                 return 0.0
             
+            # Get correct responses
             correct_responses = self.session.query(ModelResponse).filter(
                 and_(
-                    ModelResponse.benchmark_id == benchmark_id,
+                    ModelResponse.benchmark_run_id == benchmark_id,
                     ModelResponse.model_name == model_name,
                     ModelResponse.is_correct == True
                 )
             ).count()
             
             return correct_responses / total_responses
-            
         except Exception as e:
             raise DatabaseError(
                 f"Failed to get model accuracy: {str(e)}",
@@ -762,7 +780,7 @@ class PerformanceRepository:
         """Get performance summaries for all models in a benchmark."""
         try:
             return self.session.query(ModelPerformanceSummary).filter(
-                ModelPerformanceSummary.benchmark_id == benchmark_id
+                ModelPerformanceSummary.benchmark_run_id == benchmark_id
             ).all()
         except Exception as e:
             raise DatabaseError(
@@ -776,7 +794,7 @@ class PerformanceRepository:
         try:
             return self.session.query(ModelPerformanceSummary).filter(
                 and_(
-                    ModelPerformanceSummary.benchmark_id == benchmark_id,
+                    ModelPerformanceSummary.benchmark_run_id == benchmark_id,
                     ModelPerformanceSummary.model_name == model_name
                 )
             ).first()
@@ -791,7 +809,7 @@ class PerformanceRepository:
         """Get top performing models by accuracy."""
         try:
             return self.session.query(ModelPerformanceSummary).filter(
-                ModelPerformanceSummary.benchmark_id == benchmark_id
+                ModelPerformanceSummary.benchmark_run_id == benchmark_id
             ).order_by(desc(ModelPerformanceSummary.accuracy_rate)).limit(limit).all()
         except Exception as e:
             raise DatabaseError(

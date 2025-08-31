@@ -185,22 +185,25 @@ class DataInitializer:
                     )
                     benchmark = benchmark_repo.create_benchmark(benchmark)
                     
+                    # Capture ID within session scope
+                    benchmark_id = benchmark.id
+                    
                     # Step 2: Save questions
                     progress.update(task, advance=1, description="Saving questions...")
                     question_repo = QuestionRepository(session)
-                    questions = question_repo.save_questions(df, benchmark.id)
+                    questions = question_repo.save_questions(df, benchmark_id)
                     
                     # Step 3: Generate statistics
                     progress.update(task, advance=1, description="Generating statistics...")
-                    stats = question_repo.get_question_statistics(benchmark.id)
+                    stats = question_repo.get_question_statistics(benchmark_id)
                     
                     # Update benchmark status
-                    benchmark_repo.update_benchmark_status(benchmark.id, 'completed')
+                    benchmark_repo.update_benchmark_status(benchmark_id, 'completed')
             
-            console.print(f"[green]✓ Data saved to database: {len(questions)} questions in benchmark {benchmark.id}[/green]")
+            console.print(f"[green]✓ Data saved to database: {len(questions)} questions in benchmark {benchmark_id}[/green]")
             
             return {
-                'benchmark_id': benchmark.id,
+                'benchmark_id': benchmark_id,
                 'questions_saved': len(questions),
                 'statistics': stats
             }
