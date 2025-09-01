@@ -14,7 +14,11 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from core.database import get_db_session
+from models.model_registry import model_registry, get_default_model
+from benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig
+from benchmark.reporting import ReportGenerator, ReportFormat
+from src.core.database import get_db_session
+from evaluation.grader import GradingMode
 from utils.logging import get_logger
 
 console = Console()
@@ -46,13 +50,13 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
     
     alex benchmark run --model openai/gpt-4 --size standard
 
-    alex benchmark run --model anthropic/claude-3-5-sonnet --size comprehensive --name "Claude Production Test"
+    alex benchmark run --model anthropic/claude-3.5-sonnet --size comprehensive --name "Claude Production Test"
 
     alex benchmark run --model anthropic/claude-3-haiku --size quick --grading-mode lenient
     
     alex benchmark run --model openai/gpt-4 --size standard --show-jeopardy-scores
     
-    alex benchmark run --model anthropic/claude-3-5-sonnet --size quick --no-jeopardy-scores
+    alex benchmark run --model anthropic/claude-3.5-sonnet --size quick --no-jeopardy-scores
     
     alex benchmark run --list-models
     
@@ -63,11 +67,6 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
     
     async def run_benchmark_async():
         try:
-            from benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig
-            from benchmark.reporting import ReportGenerator, ReportFormat
-            from evaluation.grader import GradingMode
-            from models.model_registry import model_registry, get_default_model
-            
             # Handle --list-models option
             if list_models:
                 console.print("[blue]Loading available models...[/blue]")
@@ -113,7 +112,7 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
                 console.print(table)
                 console.print(f"\n[dim]Total available models: {len([m for m in models if m.get('available', True)])}[/dim]")
                 console.print(f"[dim]Use --model MODEL_ID to specify a model for benchmarking[/dim]")
-                console.print(f"[dim]Default model: {get_default_model()}[/dim]");
+                console.print(f"[dim]Default model: {get_default_model()}[/dim]")
                 return
             
             # Use default model if none specified
@@ -156,6 +155,17 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
                 console.print("[dim]Try a different model or check OpenRouter status[/dim]")
                 return
             
+            # Initialize runner
+            runner = BenchmarkRunner()
+            
+            # Set display name - handle case where model might be string or dict
+            if isinstance(model, dict):
+                display_name = f"{model.get('provider', 'Unknown')}: {model.get('name', actual_model)} ({model.get('id', actual_model).split('/')[-1]})"
+                pricing = model.get('pricing', {})
+            else:
+                display_name = f"xAI: Grok Code Fast 1 (x-ai)"
+                pricing = {}
+            
             # Map size to run mode
             size_map = {
                 'small': RunMode.QUICK, 'quick': RunMode.QUICK,
@@ -173,77 +183,74 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
             }
             grading_mode_enum = grading_mode_map.get(grading_mode, GradingMode.LENIENT)
             
-            runner = BenchmarkRunner()
-            config = runner.get_default_config(run_mode)
+            # Get configuration based on mode
+            config = None
+            if run_mode:
+                if run_mode.upper() == 'QUICK':
+                    config = BenchmarkConfig(mode=RunMode.QUICK, sample_size=50)
+                elif run_mode.upper() == 'STANDARD':
+                    config = BenchmarkConfig(mode=RunMode.STANDARD, sample_size=200)
+                elif run_mode.upper() == 'COMPREHENSIVE':
+                    config = BenchmarkConfig(mode=RunMode.COMPREHENSIVE, sample_size=1000)
+                else:
+                    config = BenchmarkConfig(mode=RunMode.STANDARD, sample_size=200)
+            else:
+                config = BenchmarkConfig(mode=RunMode.STANDARD, sample_size=200)
             
-            # Apply custom settings
+            # Apply additional configuration
             if timeout:
                 config.timeout_seconds = timeout
             config.grading_mode = grading_mode_enum
             config.save_results = save_results
             
-            # Display benchmark info with model details
-            console.print(f"[blue]Starting {run_mode.value} benchmark[/blue]")
-            console.print(f"[dim]Model: {model_info.get('name', actual_model)} ({model_info.get('provider', 'Unknown')})[/dim]")
+            # Display benchmark info
+            console.print(f"\n[cyan]Starting {config.mode.value} benchmark[/cyan]")
+            console.print(f"[cyan]Model: {display_name}[/cyan]")
             console.print(f"[dim]Sample size: {config.sample_size}, Grading: {grading_mode}[/dim]")
             
-            # Show cost estimate if available
-            pricing = model_info.get('pricing', {})
-            if pricing.get('input_cost_per_1m_tokens', 0) > 0:
+            # Estimate cost
+            if pricing:
                 estimated_cost = ((100 * config.sample_size) / 1_000_000) * (pricing.get('input_cost_per_1m_tokens', 0) + pricing.get('output_cost_per_1m_tokens', 0))
                 console.print(f"[dim]Estimated cost: ~${estimated_cost:.4f}[/dim]")
             
             console.print()
             
-            # Show progress
+            # Run benchmark with progress tracking
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
-                console=console
+                console=console,
+                transient=False
             ) as progress:
-                task = progress.add_task("Running benchmark...", total=None)
+                task = progress.add_task("[green]Running benchmark...", total=None)
                 
-                # Run the benchmark
+                # Execute benchmark
                 result = await runner.run_benchmark(
                     model_name=actual_model,
-                    mode=run_mode,
-                    custom_config=config,
-                    benchmark_name=name
+                    mode=RunMode[config.mode.value.upper()],
+                    custom_config=config
                 )
                 
-                progress.update(task, description="Generating report...")
-                
-                # Generate and display report
-                from benchmark.reporting import ReportConfig
-                report_config = ReportConfig(show_jeopardy_scores=show_jeopardy_scores)
-                report_gen = ReportGenerator(config=report_config)
-                
-                if report_format == 'terminal':
-                    report_gen.display_terminal_report(result)
-                else:
-                    format_enum = ReportFormat.MARKDOWN if report_format == 'markdown' else ReportFormat.JSON
-                    report_content = report_gen.generate_report(result, format_enum)
-                    console.print(report_content)
-                
-                progress.update(task, description="Complete!")
-                progress.stop()
+                progress.update(task, description="[green]Complete!")
             
-            if result.success:
-                console.print(f"\n[green]✓ Benchmark completed successfully in {result.execution_time:.2f}s[/green]")
-                console.print(f"[dim]Benchmark ID: {result.benchmark_id}[/dim]")
+            # Display results
+            if result.is_successful:
+                console.print(f"\n[green]✓ Benchmark completed successfully in {result.execution_time_seconds:.2f}s[/green]")
                 
-                if result.metrics:
-                    console.print(f"[dim]Overall Score: {result.metrics.overall_score:.3f}[/dim]")
-                    console.print(f"[dim]Accuracy: {result.metrics.accuracy.overall_accuracy:.1%}[/dim]")
-                    if hasattr(result.metrics, 'jeopardy_score') and show_jeopardy_scores:
-                        console.print(f"[dim]Jeopardy Score: ${result.metrics.jeopardy_score.total_jeopardy_score:,}[/dim]")
-                    if hasattr(result.metrics, 'cost'):
-                        console.print(f"[dim]Total Cost: ${result.metrics.cost.total_cost:.4f}[/dim]")
+                # Basic results display
+                if result.progress:
+                    accuracy = result.progress.success_rate
+                    console.print(f"[green]Accuracy: {accuracy:.1f}%[/green]")
+                    console.print(f"[dim]Questions completed: {result.progress.completed_questions}/{result.progress.total_questions}[/dim]")
+                
+                if result.total_cost > 0:
+                    console.print(f"[dim]Total cost: ${result.total_cost:.6f}[/dim]")
+                    
             else:
-                console.print(f"\n[red]✗ Benchmark failed: {result.error_message}[/red]")
-                console.print(f"[dim]Execution time: {result.execution_time:.2f}s[/dim]")
-                sys.exit(1)
-                
+                error_msg = result.errors[0] if result.errors else "Unknown error"
+                console.print(f"\n[red]✗ Benchmark failed: {error_msg}[/red]")
+                console.print(f"[dim]Execution time: {result.execution_time_seconds:.2f}s[/dim]")
+            
         except Exception as e:
             console.print(f"[red]Error running benchmark: {str(e)}[/red]")
             logger.exception("Benchmark execution failed")

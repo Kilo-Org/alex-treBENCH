@@ -14,9 +14,9 @@ from dataclasses import dataclass, field
 import logging
 import hashlib
 
-from core.config import get_config
-from core.exceptions import StateError
-from storage.models import BenchmarkRun, BenchmarkResult, ModelPerformance
+from src.core.config import get_config
+from src.core.exceptions import StateError
+from src.storage.models import BenchmarkRun, BenchmarkResult, ModelPerformance
 
 logger = logging.getLogger(__name__)
 

@@ -63,13 +63,13 @@ def get_engine() -> Engine:
 
 def get_session_factory() -> sessionmaker:
     """Get or create the SQLAlchemy session factory."""
-    global _SessionFactory
+    global SessionFactory
     
-    if _SessionFactory is None:
+    if SessionFactory is None:
         engine = get_engine()
-        _SessionFactory = sessionmaker(bind=engine)
+        SessionFactory = sessionmaker(bind=engine)
     
-    return _SessionFactory
+    return SessionFactory
 
 
 def create_tables() -> None:
@@ -121,8 +121,8 @@ def get_db_session() -> Generator[Session, None, None]:
 def init_database() -> None:
     """Initialize the database with tables and basic setup."""
     try:
-        # Import models to register them with Base
-        from src.storage import models  # This registers all models with Base
+        # Models are already imported elsewhere and registered with Base
+        # No need to import them here as it causes duplicate table definitions
         
         # Create tables
         create_tables()
@@ -156,7 +156,8 @@ def check_database_connection() -> bool:
         with engine.connect() as conn:
             # Simple query to test connection
             result = conn.execute(text("SELECT 1"))
-            return result.fetchone()[0] == 1
+            row = result.fetchone()
+            return row is not None and row[0] == 1
     except Exception as e:
         raise DatabaseError(
             f"Database connection check failed: {str(e)}",
@@ -166,10 +167,10 @@ def check_database_connection() -> bool:
 
 def close_connections() -> None:
     """Close all database connections (useful for testing and cleanup)."""
-    global _engine, _SessionFactory
+    global _engine, SessionFactory
     
     if _engine:
         _engine.dispose()
         _engine = None
     
-    _SessionFactory = None
+    SessionFactory = None

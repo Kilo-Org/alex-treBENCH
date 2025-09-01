@@ -76,7 +76,7 @@ class ReportGenerator:
     def generate_report(self, result, format_type: ReportFormat, output_path: Optional[Path] = None) -> str:
         """Generate a report in the specified format."""
         # Use local import to avoid circular dependency
-        from .runner import BenchmarkResult
+        from .runner import BenchmarkRunResult
         
         if format_type == ReportFormat.TERMINAL:
             return self._generate_terminal_report(result)

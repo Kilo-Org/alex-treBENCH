@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 import threading
 
-from .runner import BenchmarkRunner, BenchmarkConfig, BenchmarkResult, RunMode
+from .runner import BenchmarkRunner, BenchmarkConfig, BenchmarkRunResult, RunMode
 from src.core.config import get_config
 from src.utils.logging import get_logger
 
@@ -101,7 +101,7 @@ class BenchmarkScheduler:
         # Task management
         self.pending_queue: List[ScheduledBenchmark] = []
         self.running_tasks: Dict[str, asyncio.Task] = {}  # model_name -> task
-        self.completed_results: Dict[str, BenchmarkResult] = {}
+        self.completed_results: Dict[str, Any] = {}  # Will actually be BenchmarkRunResult
         self.failed_tasks: Dict[str, Exception] = {}
         
         # Progress tracking
@@ -115,9 +115,9 @@ class BenchmarkScheduler:
         
         # Event callbacks
         self.on_benchmark_started: Optional[Callable[[str], None]] = None
-        self.on_benchmark_completed: Optional[Callable[[str, BenchmarkResult], None]] = None
+        self.on_benchmark_completed: Optional[Callable[[str, Any], None]] = None  # Will be BenchmarkRunResult
         self.on_benchmark_failed: Optional[Callable[[str, Exception], None]] = None
-        self.on_all_completed: Optional[Callable[[Dict[str, BenchmarkResult]], None]] = None
+        self.on_all_completed: Optional[Callable[[Dict[str, Any]], None]] = None
         
         # Internal components
         self._runner_pool: Dict[str, BenchmarkRunner] = {}
@@ -212,12 +212,12 @@ class BenchmarkScheduler:
         logger.info(f"Scheduled {len(models)} benchmarks with mode {mode.value}")
         return scheduled_ids
     
-    async def run_scheduled_benchmarks(self) -> Dict[str, BenchmarkResult]:
+    async def run_scheduled_benchmarks(self) -> Dict[str, Any]:
         """
         Execute all scheduled benchmarks.
         
         Returns:
-            Dictionary of model_name -> BenchmarkResult
+            Dictionary of model_name -> BenchmarkRunResult
         """
         with self.lock:
             if self.state != SchedulerState.IDLE:
