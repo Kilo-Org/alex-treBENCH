@@ -22,7 +22,7 @@ from src.models.response_parser import ResponseParser
 from src.evaluation.grader import AnswerGrader, GradingCriteria, GradingMode
 from src.evaluation.metrics import MetricsCalculator, ComprehensiveMetrics
 from src.storage.repositories import BenchmarkRepository, QuestionRepository, ResponseRepository
-from src.storage.models import BenchmarkRun, Question, BenchmarkResult as DBBenchmarkResult
+from src.storage.models import BenchmarkRun, Question, BenchmarkResult
 from src.utils.logging import get_logger
 
 from .config import BenchmarkConfig, RunMode

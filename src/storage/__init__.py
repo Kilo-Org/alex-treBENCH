@@ -1,21 +1,14 @@
 """
-Storage Module
+Storage Package
 
-Data persistence and access layer with SQLAlchemy ORM model definitions,
-repository pattern for data access, and database migration management.
+Database models, repositories, and storage utilities for the Jeopardy benchmarking system.
 """
 
-# Import from new modular structure
 from .models import (
     Question,
     BenchmarkRun,
     BenchmarkResult,
     ModelPerformance,
-    # Backward compatibility aliases
-    Benchmark,
-    BenchmarkQuestion,
-    ModelResponse,
-    ModelPerformanceSummary,
 )
 
 from .repositories import (
@@ -25,20 +18,23 @@ from .repositories import (
     PerformanceRepository,
 )
 
+from .cache import CacheManager
+from .backup import DatabaseBackup
+from .state_manager import StateManager
+
 __all__ = [
     # Models
     "Question",
-    "BenchmarkRun", 
+    "BenchmarkRun",
     "BenchmarkResult",
     "ModelPerformance",
-    # Backward compatibility
-    "Benchmark",
-    "BenchmarkQuestion",
-    "ModelResponse", 
-    "ModelPerformanceSummary",
     # Repositories
+    "QuestionRepository", 
     "BenchmarkRepository",
-    "QuestionRepository",
     "ResponseRepository",
     "PerformanceRepository",
+    # Utilities
+    "CacheManager",
+    "DatabaseBackup",
+    "StateManager",
 ]

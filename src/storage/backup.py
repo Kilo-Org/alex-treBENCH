@@ -21,7 +21,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from .models import BenchmarkRun, BenchmarkResult, ModelPerformance, Question
-from src.core.database import get_db_url, get_db_session
+from src.core.database import get_db_session
 from src.core.config import get_config
 from src.core.exceptions import DatabaseError
 
@@ -252,22 +252,23 @@ class DatabaseBackup:
                 questions = session.query(Question).all()
                 data["questions"] = [self._model_to_dict(q) for q in questions]
 
-            # Export benchmark runs
-            runs = session.query(BenchmarkRun).all()
-            data["benchmark_runs"] = [self._model_to_dict(r) for r in runs]
+                # Export benchmark runs
+                runs = session.query(BenchmarkRun).all()
+                data["benchmark_runs"] = [self._model_to_dict(r) for r in runs]
 
-            # Export results
-            results = session.query(BenchmarkResult).all()
-            data["benchmark_results"] = [self._model_to_dict(r) for r in results]
+                # Export results
+                results = session.query(BenchmarkResult).all()
+                data["benchmark_results"] = [self._model_to_dict(r) for r in results]
 
-            # Export performances
-            performances = session.query(ModelPerformance).all()
-            data["model_performance"] = [self._model_to_dict(p) for p in performances]
+                # Export performances
+                performances = session.query(ModelPerformance).all()
+                data["model_performance"] = [self._model_to_dict(p) for p in performances]
 
-            return data
+                return data
 
-        finally:
-            session.close()
+            except Exception as e:
+                logger.error(f"Failed to export database tables: {e}")
+                raise DatabaseError(f"Database export failed: {str(e)}")
 
     def _model_to_dict(self, model) -> Dict[str, Any]:
         """Convert SQLAlchemy model to dictionary."""
@@ -348,22 +349,21 @@ class DatabaseBackup:
                 if "questions" in data:
                     self._restore_questions(session, data["questions"])
 
-            if "benchmark_runs" in data:
-                self._restore_benchmark_runs(session, data["benchmark_runs"])
+                if "benchmark_runs" in data:
+                    self._restore_benchmark_runs(session, data["benchmark_runs"])
 
-            if "benchmark_results" in data:
-                self._restore_results(session, data["benchmark_results"])
+                if "benchmark_results" in data:
+                    self._restore_results(session, data["benchmark_results"])
 
-            if "model_performance" in data:
-                self._restore_performances(session, data["model_performance"])
+                if "model_performance" in data:
+                    self._restore_performances(session, data["model_performance"])
 
-            session.commit()
+                session.commit()
 
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Failed to restore database backup: {e}")
+                raise DatabaseError(f"Database restore failed: {str(e)}")
 
     def _clear_all_tables(self, session: Session) -> None:
         """Clear all tables."""

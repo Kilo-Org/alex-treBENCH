@@ -37,6 +37,22 @@ class DatabaseError(AlexTreBenchException):
         self.table = table
 
 
+class CacheError(AlexTreBenchException):
+    """Raised when cache operations fail."""
+    
+    def __init__(self, message: str, cache_key: Optional[str] = None, **kwargs):
+        super().__init__(message, kwargs)
+        self.cache_key = cache_key
+
+
+class StateError(AlexTreBenchException):
+    """Raised when state management operations fail."""
+    
+    def __init__(self, message: str, state_id: Optional[str] = None, **kwargs):
+        super().__init__(message, kwargs)
+        self.state_id = state_id
+
+
 class ModelAPIError(AlexTreBenchException):
     """Raised when API calls to language model providers fail."""
     

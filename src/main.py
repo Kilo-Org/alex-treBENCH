@@ -41,9 +41,6 @@ if 'src' not in sys.modules:
     sys.modules['src'] = src_module
     src_module.__path__ = [str(Path(__file__).parent)]
 
-# Import storage to populate src namespace
-import storage
-
 from core.config import get_config, reload_config
 from core.exceptions import AlexTreBenchException
 from utils.logging import setup_logging, get_logger
@@ -72,7 +69,7 @@ def cli(ctx, config, verbose, debug):
     \b
     🚀 QUICK START EXAMPLES:
     
-    alex benchmark run --model anthropic/claude-3.5-sonnet --size quick
+    alex benchmark run --model anthropic/claude-3-5-sonnet --size quick
     alex benchmark compare --models "openai/gpt-4,anthropic/claude-3-5-sonnet"
     alex models list
     alex benchmark report --run-id 1 --format markdown

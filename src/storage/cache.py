@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 import logging
 from functools import wraps
 
-from core.config import get_config
-from core.exceptions import CacheError
+from src.core.config import get_config
+from src.core.exceptions import CacheError
 
 logger = logging.getLogger(__name__)
 
