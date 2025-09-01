@@ -10,7 +10,7 @@ alex-treBENCH is a comprehensive benchmarking system that evaluates Large Langua
 
 1. **Lack of Standardized LLM Benchmarking**: Most benchmarks are either too academic or too narrow. Jeopardy questions provide a balanced mix of general knowledge, wordplay, and reasoning challenges.
 
-2. **Difficulty Comparing Models**: With dozens of LLMs available through OpenRouter, users need a systematic way to compare their capabilities, costs, and performance characteristics.
+2. **Difficulty Comparing Models**: With hundreds of LLMs available through OpenRouter, users need a systematic way to compare their capabilities, costs, and performance characteristics.
 
 3. **Cost-Performance Analysis**: Users need to understand the trade-offs between model accuracy, response time, and API costs to make informed decisions.
 
@@ -29,12 +29,13 @@ alex-treBENCH is a comprehensive benchmarking system that evaluates Large Langua
 
 ### Key Features
 
-- **Multi-Model Support**: Test 20+ models simultaneously through OpenRouter
+- **Multi-Model Support**: Test 323+ models simultaneously through OpenRouter with dynamic discovery
 - **Flexible Grading**: Supports strict, lenient, and Jeopardy-style answer formats
 - **Statistical Rigor**: 95% confidence level with proper sampling methodology
 - **Cost Tracking**: Real-time cost calculation and efficiency scoring
 - **Category Analysis**: Performance breakdown by topic and difficulty
 - **Reproducible Results**: Deterministic benchmarking with configurable seeds
+- **Dynamic Model System**: Automatic discovery of new models with three-tier fallback (API → Cache → Static)
 
 ## User Experience Goals
 
@@ -59,7 +60,7 @@ alex-treBENCH is a comprehensive benchmarking system that evaluates Large Langua
 ## Success Metrics
 
 - Benchmark 1000+ questions in under 2 hours
-- Support for 5+ concurrent model evaluations
+- Support for 10+ concurrent model evaluations
 - 90%+ accuracy in answer grading
 - Generate comprehensive reports in multiple formats
 - Maintain <5% error rate in API interactions

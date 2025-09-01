@@ -327,15 +327,15 @@ class QuestionRepository:
                 table="benchmark_questions"
             ) from e
     
-    def get_benchmark_questions(self, benchmark_id: int) -> List[BenchmarkQuestion]:
+    def get_benchmark_questions(self, benchmark_id: int) -> List[Question]:
         """Get all questions for a benchmark."""
         try:
             # Join through BenchmarkResult since Question is a global cache
             # and doesn't have benchmark_id directly
             from .models import BenchmarkResult
             
-            results = self.session.query(BenchmarkQuestion).join(
-                BenchmarkResult, BenchmarkResult.question_id == BenchmarkQuestion.id
+            results = self.session.query(Question).join(
+                BenchmarkResult, BenchmarkResult.question_id == Question.id
             ).filter(
                 BenchmarkResult.benchmark_run_id == benchmark_id
             ).distinct().all()
