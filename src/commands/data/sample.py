@@ -42,8 +42,8 @@ def sample(ctx, benchmark_id, size, method, seed, output):
     Stratified sampling ensures representative category distribution.
     """
     try:
-        from storage.repositories import QuestionRepository
-        from data.sampling import StatisticalSampler
+        from src.storage.repositories import QuestionRepository
+        from src.data.sampling import StatisticalSampler
         
         # Get questions from database
         with get_db_session() as session:

@@ -20,7 +20,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from .models import BenchmarkRun, BenchmarkResult, ModelPerformance, Question
+from src.storage.models import BenchmarkRun, BenchmarkResult, ModelPerformance, Question
 from src.core.database import get_db_session
 from src.core.config import get_config
 from src.core.exceptions import DatabaseError

@@ -36,8 +36,8 @@ def list_benchmarks(ctx, limit, status, model):
     💡 Shows recent benchmark runs with their status and key metrics.
     """
     try:
-        from storage.repositories import BenchmarkRepository
-        from storage.models import BenchmarkRun
+        from src.storage.repositories import BenchmarkRepository
+        from src.storage.models import BenchmarkRun
         
         with get_db_session() as session:
             benchmark_repo = BenchmarkRepository(session)

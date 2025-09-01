@@ -11,7 +11,7 @@ from sqlalchemy import func, desc, and_
 
 from src.core.database import get_db_session
 from src.core.exceptions import DatabaseError
-from ..models import Question
+from src.storage.models import Question
 
 
 class QuestionRepository:

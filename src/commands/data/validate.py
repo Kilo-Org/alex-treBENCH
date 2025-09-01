@@ -41,8 +41,8 @@ def validate(ctx, benchmark_id, strict, fix):
     - Duplicate detection
     """
     try:
-        from storage.repositories import QuestionRepository
-        from data.validation import DataValidator
+        from src.storage.repositories import QuestionRepository
+        from src.data.validation import DataValidator
         
         console.print("[blue]Starting data validation...[/blue]")
         

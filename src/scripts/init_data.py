@@ -20,9 +20,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from data.ingestion import KaggleDatasetLoader
 from data.preprocessing import DataPreprocessor
 from data.validation import DataValidator
-from storage.repositories import QuestionRepository, BenchmarkRepository
-from storage.models import create_benchmark_run
-from core.database import get_db_session, init_database
+# Use the clean database system to avoid registry conflicts
+from storage.clean_db_system import (
+    Question, BenchmarkRun,
+    get_clean_db_session, init_clean_database
+)
 from core.config import get_config
 from core.exceptions import DataIngestionError, ValidationError, DatabaseError
 from utils.logging import get_logger
@@ -55,7 +57,7 @@ class DataInitializer:
         """Initialize the database schema."""
         try:
             console.print("[yellow]Initializing database schema...[/yellow]")
-            init_database()
+            init_clean_database()
             console.print("[green]✓ Database schema initialized[/green]")
         except Exception as e:
             console.print(f"[red]✗ Database initialization failed: {str(e)}[/red]")
@@ -173,38 +175,86 @@ class DataInitializer:
                 # Create benchmark record
                 task = progress.add_task("Saving to database...", total=3)
                 
-                with get_db_session() as session:
+                with get_clean_db_session() as session:
                     # Step 1: Create benchmark
                     progress.update(task, advance=1, description="Creating benchmark record...")
-                    benchmark_repo = BenchmarkRepository(session)
                     
-                    benchmark = create_benchmark_run(
+                    benchmark = BenchmarkRun(
                         name=f"jeopardy_dataset_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}",
                         description="Complete Jeopardy dataset from Kaggle",
-                        sample_size=len(df)
+                        benchmark_mode="data_ingestion",
+                        sample_size=len(df),
+                        status="running"
                     )
-                    benchmark = benchmark_repo.create_benchmark(benchmark)
+                    session.add(benchmark)
+                    session.flush()  # Get ID
                     
-                    # Capture ID within session scope
+                    # Capture ID within session scope - get the actual value
                     benchmark_id = benchmark.id
                     
-                    # Step 2: Save questions
+                    # Step 2: Convert DataFrame to Question objects and save
                     progress.update(task, advance=1, description="Saving questions...")
-                    question_repo = QuestionRepository(session)
-                    questions = question_repo.save_questions(df, benchmark_id)
                     
-                    # Step 3: Generate statistics
+                    # Convert DataFrame rows to Question objects
+                    questions = []
+                    for _, row in df.iterrows():
+                        # Handle air_date conversion safely
+                        air_date_str = None
+                        air_date_value = row.get('air_date')
+                        if pd.notna(air_date_value) and air_date_value is not None:
+                            try:
+                                air_date_parsed = pd.to_datetime(air_date_value)
+                                air_date_str = str(air_date_parsed.date())
+                            except (ValueError, TypeError):
+                                air_date_str = str(air_date_value)
+                        
+                        question = Question(
+                            id=str(row.get('id', hash(f"{row.get('question', '')}{row.get('answer', '')}"))),
+                            question_text=row.get('question', ''),
+                            correct_answer=row.get('answer', ''),
+                            category=row.get('category', ''),
+                            value=int(row.get('value', 0)) if pd.notna(row.get('value')) else 0,
+                            air_date=air_date_str,
+                            show_number=int(row.get('show_number', 0)) if pd.notna(row.get('show_number')) else None,
+                            round=row.get('round', ''),
+                            difficulty_level=row.get('difficulty_level', 'Medium')
+                        )
+                        questions.append(question)
+                    
+                    # Save questions in batch using SQLAlchemy directly
+                    session.add_all(questions)
+                    session.flush()
+                    saved_questions = questions
+                    
+                    # Step 3: Generate basic statistics
                     progress.update(task, advance=1, description="Generating statistics...")
-                    stats = question_repo.get_question_statistics(benchmark_id)
                     
-                    # Update benchmark status
-                    benchmark_repo.update_benchmark_status(benchmark_id, 'completed')
+                    # Create basic statistics using direct SQLAlchemy queries
+                    total_questions = session.query(Question).count()
+                    unique_categories = session.query(Question.category).distinct().count()
+                    
+                    stats = {
+                        'total_questions': total_questions,
+                        'unique_categories': unique_categories,
+                        'saved_questions': len(saved_questions),
+                        'value_range': {
+                            'min': df['value'].min() if 'value' in df.columns else 0,
+                            'max': df['value'].max() if 'value' in df.columns else 0,
+                            'average': df['value'].mean() if 'value' in df.columns else 0
+                        }
+                    }
+                    
+                    # Update benchmark - use direct update approach
+                    benchmark.status = 'completed'  # type: ignore
+                    benchmark.total_questions = len(saved_questions)  # type: ignore
+                    benchmark.completed_questions = len(saved_questions)  # type: ignore
+                    session.commit()
             
-            console.print(f"[green]✓ Data saved to database: {len(questions)} questions in benchmark {benchmark_id}[/green]")
+            console.print(f"[green]✓ Data saved to database: {len(saved_questions)} questions in benchmark {benchmark.id}[/green]")
             
             return {
-                'benchmark_id': benchmark_id,
-                'questions_saved': len(questions),
+                'benchmark_id': benchmark.id,
+                'questions_saved': len(saved_questions),
                 'statistics': stats
             }
             

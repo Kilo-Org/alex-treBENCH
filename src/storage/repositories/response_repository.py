@@ -8,7 +8,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from src.core.exceptions import DatabaseError
-from ..models import BenchmarkResult
+from src.storage.models import BenchmarkResult
 
 
 class ResponseRepository:

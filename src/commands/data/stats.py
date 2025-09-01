@@ -35,7 +35,7 @@ def stats(ctx, benchmark_id, detailed):
     question counts, categories, difficulty distribution, and value ranges.
     """
     try:
-        from storage.repositories import QuestionRepository
+        from src.storage.repositories import QuestionRepository
         
         with get_db_session() as session:
             repo = QuestionRepository(session)

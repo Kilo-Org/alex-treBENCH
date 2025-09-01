@@ -57,7 +57,7 @@ def status(ctx, benchmark_id):
             BenchmarkResultRepository, 
             ModelPerformanceRepository
         )
-        from storage.models import BenchmarkRun
+        from src.storage.models import BenchmarkRun
         
         with get_db_session() as session:
             # Get benchmark details
