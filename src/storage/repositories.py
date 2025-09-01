@@ -862,6 +862,19 @@ class PerformanceRepository:
                 table="model_performance_summary"
             ) from e
     
+    def get_all_model_performance(self, benchmark_id: int) -> List[ModelPerformanceSummary]:
+        """Get all performance records for a benchmark."""
+        try:
+            return self.session.query(ModelPerformanceSummary).filter(
+                ModelPerformanceSummary.benchmark_run_id == benchmark_id
+            ).all()
+        except Exception as e:
+            raise DatabaseError(
+                f"Failed to get all model performance records: {str(e)}",
+                operation="get",
+                table="model_performance_summary"
+            ) from e
+    
     def get_top_performing_models(self, metric: str = 'accuracy', limit: int = 10) -> List[Dict[str, Any]]:
         """Get top performing models based on specified metric."""
         try:

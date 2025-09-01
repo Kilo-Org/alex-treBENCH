@@ -51,7 +51,7 @@ from utils.logging import setup_logging, get_logger
 # Import all command modules
 from commands.health import health
 from commands.models import models
-from commands.benchmarks import run, compare, history, report, status, leaderboard, list_benchmarks
+from commands.benchmarks import run, compare, history, report, status, leaderboard, list_benchmarks, export as benchmark_export
 from commands.data import init as data_init, stats, sample, validate
 from commands.config import show as config_show, validate as config_validate, export as config_export
 from commands.session import session
@@ -144,6 +144,7 @@ benchmark.add_command(report)
 benchmark.add_command(status)
 benchmark.add_command(leaderboard)
 benchmark.add_command(list_benchmarks, name='list')
+benchmark.add_command(benchmark_export, name='export')
 
 
 # ===== DATA COMMANDS =====
@@ -190,26 +191,6 @@ def database():
 
 # Register database subcommands
 database.add_command(database_init)
-
-
-@cli.command()
-@click.option('--benchmark-id', '-b', type=int, help='Export specific benchmark results')
-@click.option('--format', type=click.Choice(['json', 'csv', 'html']), default='json', help='Export format')
-@click.option('--output', '-o', type=click.Path(), help='Output file path')
-@click.pass_context
-def export(ctx, benchmark_id, format, output):
-    """Export benchmark results.
-    
-    \b
-    📤 EXAMPLES:
-    
-    alex export --benchmark-id 1
-    alex export --benchmark-id 1 --format csv --output results.csv
-    alex export --benchmark-id 1 --format html --output report.html
-    
-    \b
-    💡 Exports benchmark data in various formats for analysis or reporting.
-    """
 
 
 def main():
