@@ -6,6 +6,7 @@ This package contains all benchmark-related CLI commands organized into focused 
 - report.py - Report generation commands
 - compare.py - Model comparison commands
 - history.py - Benchmark history commands
+- list.py - Benchmark listing commands
 """
 
 from .run import run
@@ -14,6 +15,7 @@ from .history import history
 from .report import report
 from .status import status
 from .leaderboard import leaderboard
+from .list import list_benchmarks
 
 __all__ = [
     'run',
@@ -21,5 +23,6 @@ __all__ = [
     'history',
     'report',
     'status',
-    'leaderboard'
+    'leaderboard',
+    'list_benchmarks'
 ]
