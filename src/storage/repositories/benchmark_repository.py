@@ -35,3 +35,15 @@ class BenchmarkRepository:
         except Exception as e:
             self.session.rollback()
             raise DatabaseError(f"Failed to save benchmark: {str(e)}")
+    
+    def list_benchmarks(self, limit: Optional[int] = None) -> List[BenchmarkRun]:
+        """List benchmark runs ordered by most recent first."""
+        try:
+            query = self.session.query(BenchmarkRun).order_by(BenchmarkRun.created_at.desc())
+            
+            if limit:
+                query = query.limit(limit)
+            
+            return query.all()
+        except Exception as e:
+            raise DatabaseError(f"Failed to list benchmarks: {str(e)}")

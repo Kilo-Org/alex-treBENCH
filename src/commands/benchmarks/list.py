@@ -9,8 +9,8 @@ import json
 from rich.console import Console
 from rich.table import Table
 
-from core.database import get_db_session
-from utils.logging import get_logger
+from src.core.database import get_db_session
+from src.utils.logging import get_logger
 
 console = Console()
 logger = get_logger(__name__)
@@ -103,7 +103,16 @@ def list_benchmarks(ctx, limit, status, model):
                     models_text = str(models_tested)[:30]
                 
                 created_at = getattr(benchmark, 'created_at', None)
-                created_text = created_at.strftime('%Y-%m-%d %H:%M') if created_at else 'N/A'
+                # Handle both datetime objects and string timestamps
+                if created_at:
+                    if hasattr(created_at, 'strftime'):
+                        # It's a datetime object
+                        created_text = created_at.strftime('%Y-%m-%d %H:%M')
+                    else:
+                        # It's already a string (from database default)
+                        created_text = str(created_at)[:16] if len(str(created_at)) > 16 else str(created_at)
+                else:
+                    created_text = 'N/A'
                 
                 table.add_row(
                     str(getattr(benchmark, 'id', 'N/A')),
