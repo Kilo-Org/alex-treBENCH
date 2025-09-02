@@ -189,15 +189,12 @@ class DataInitializer:
                     session.add(benchmark)
                     session.flush()  # Get ID
                     
-                    # Capture ID within session scope - get the actual value
-                    benchmark_id = benchmark.id
-                    
                     # Step 2: Convert DataFrame to Question objects and save
                     progress.update(task, advance=1, description="Saving questions...")
                     
                     # Convert DataFrame rows to Question objects
                     questions = []
-                    for _, row in df.iterrows():
+                    for idx, row in df.iterrows():
                         # Handle air_date conversion safely
                         air_date_str = None
                         air_date_value = row.get('air_date')
@@ -208,8 +205,10 @@ class DataInitializer:
                             except (ValueError, TypeError):
                                 air_date_str = str(air_date_value)
                         
+                        # Generate unique ID using row index and hash for uniqueness
+                        unique_id = row.get('id', f"q_{idx}_{hash(f"{row.get('question', '')}{row.get('answer', '')}")}")
                         question = Question(
-                            id=str(row.get('id', hash(f"{row.get('question', '')}{row.get('answer', '')}"))),
+                            id=str(unique_id),
                             question_text=row.get('question', ''),
                             correct_answer=row.get('answer', ''),
                             category=row.get('category', ''),
@@ -248,13 +247,17 @@ class DataInitializer:
                     benchmark.status = 'completed'  # type: ignore
                     benchmark.total_questions = len(saved_questions)  # type: ignore
                     benchmark.completed_questions = len(saved_questions)  # type: ignore
+                    
+                    # Capture ID and other values while session is active
+                    benchmark_id = benchmark.id
+                    questions_count = len(saved_questions)
                     session.commit()
             
-            console.print(f"[green]✓ Data saved to database: {len(saved_questions)} questions in benchmark {benchmark.id}[/green]")
+            console.print(f"[green]✓ Data saved to database: {questions_count} questions in benchmark {benchmark_id}[/green]")
             
             return {
-                'benchmark_id': benchmark.id,
-                'questions_saved': len(saved_questions),
+                'benchmark_id': benchmark_id,
+                'questions_saved': questions_count,
                 'statistics': stats
             }
             
@@ -279,7 +282,7 @@ class DataInitializer:
         console.print(Panel(main_stats, title="📊 Dataset Statistics", border_style="green"))
         
         # Category distribution table
-        if stats['category_distribution']:
+        if stats.get('category_distribution'):
             table = Table(title="Top 10 Categories")
             table.add_column("Category", style="cyan")
             table.add_column("Count", justify="right", style="green")
@@ -287,8 +290,8 @@ class DataInitializer:
             
             total_questions = stats['total_questions']
             sorted_categories = sorted(
-                stats['category_distribution'].items(), 
-                key=lambda x: x[1], 
+                stats['category_distribution'].items(),
+                key=lambda x: x[1],
                 reverse=True
             )
             
@@ -299,7 +302,7 @@ class DataInitializer:
             console.print(table)
         
         # Difficulty distribution table
-        if stats['difficulty_distribution']:
+        if stats.get('difficulty_distribution'):
             table = Table(title="Difficulty Distribution")
             table.add_column("Difficulty", style="cyan")
             table.add_column("Count", justify="right", style="green")
@@ -313,7 +316,7 @@ class DataInitializer:
             console.print(table)
         
         # Value distribution table
-        if stats['value_distribution']:
+        if stats.get('value_distribution'):
             table = Table(title="Value Range Distribution")
             table.add_column("Value Range", style="cyan")
             table.add_column("Count", justify="right", style="green")

@@ -245,8 +245,14 @@ class DataPreprocessor:
         logger.info("Adding metadata columns")
         
         # Add unique question ID if not present
+        if 'id' not in df.columns:
+            # Generate unique IDs using index and hash to avoid collisions
+            df = df.reset_index(drop=True)
+            df['id'] = df.apply(lambda row: f"q_{row.name}_{hash(f"{row.get('question', '')}{row.get('answer', '')}")}", axis=1)
+        
+        # Keep legacy question_id for backward compatibility
         if 'question_id' not in df.columns:
-            df['question_id'] = df.reset_index().index.astype(str)
+            df['question_id'] = df.index.astype(str)
         
         # Add processing timestamp
         df['processed_at'] = datetime.now()

@@ -69,9 +69,11 @@ class DataValidator:
         if len(question) > 500:
             issues.append(f"Question too long ({len(question)} chars, maximum 500)")
         
-        # Check for proper sentence structure
-        if not question.endswith(('.', '?', '!')):
-            issues.append("Question should end with proper punctuation")
+        # Check for proper sentence structure - allow Jeopardy format with quotes
+        if not (question.endswith(('.', '?', '!')) or
+                (question.startswith("'") and question.endswith("'")) or
+                (question.startswith('"') and question.endswith('"'))):
+            issues.append("Question should end with proper punctuation or be properly quoted")
         
         # Check for HTML tags (should be cleaned)
         if re.search(r'<[^>]+>', question):
