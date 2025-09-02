@@ -103,13 +103,16 @@ def list_benchmarks(ctx, limit, status, model):
                     models_text = str(models_tested)[:30]
                 
                 created_at = getattr(benchmark, 'created_at', None)
-                # Handle both datetime objects and string timestamps
+                # Handle both datetime objects and legacy string timestamps
                 if created_at:
                     if hasattr(created_at, 'strftime'):
                         # It's a datetime object
                         created_text = created_at.strftime('%Y-%m-%d %H:%M')
+                    elif str(created_at) == "CURRENT_TIMESTAMP":
+                        # Legacy string timestamp that wasn't properly converted
+                        created_text = 'Legacy'
                     else:
-                        # It's already a string (from database default)
+                        # It's a string timestamp
                         created_text = str(created_at)[:16] if len(str(created_at)) > 16 else str(created_at)
                 else:
                     created_text = 'N/A'

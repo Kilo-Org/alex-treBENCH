@@ -5,7 +5,8 @@ SQLAlchemy ORM model for benchmark runs.
 """
 
 from typing import List
-from sqlalchemy import String, Integer, Text, DECIMAL
+from datetime import datetime
+from sqlalchemy import String, Integer, Text, DECIMAL, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
@@ -14,8 +15,8 @@ from src.core.database import Base
 class TimestampMixin:
     """Mixin for models that need created/updated timestamps."""
     
-    created_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
-    updated_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class BenchmarkRun(Base, TimestampMixin):
