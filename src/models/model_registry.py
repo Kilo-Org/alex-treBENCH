@@ -389,12 +389,12 @@ class ModelRegistry:
         # First try to get pricing from cached dynamic models
         pricing_info = cls._get_model_pricing(model_id)
         if pricing_info:
-            # OpenRouter API returns cost per token, not per million tokens
-            input_cost_per_token = pricing_info.get('input_cost_per_1m_tokens', 0.0)
-            output_cost_per_token = pricing_info.get('output_cost_per_1m_tokens', 0.0)
+            # OpenRouter API pricing is per million tokens (despite field names)
+            input_cost_per_1m_tokens = pricing_info.get('input_cost_per_1m_tokens', 0.0)
+            output_cost_per_1m_tokens = pricing_info.get('output_cost_per_1m_tokens', 0.0)
             
-            input_cost = input_tokens * input_cost_per_token
-            output_cost = output_tokens * output_cost_per_token
+            input_cost = (input_tokens / 1_000_000) * input_cost_per_1m_tokens
+            output_cost = (output_tokens / 1_000_000) * output_cost_per_1m_tokens
             
             return input_cost + output_cost
         
