@@ -133,6 +133,10 @@ class BenchmarkRunner:
             self.progress.current_phase = "Querying model"
             responses = await self._query_model_batch(model_name, questions, config)
             
+            # Phase 3.5: Save individual response results to database
+            self.progress.current_phase = "Saving results"
+            await self._save_benchmark_results(benchmark_id, model_name, responses)
+            
             # Phase 4: Calculate metrics
             self.progress.current_phase = "Calculating metrics"
             metrics = await self._calculate_metrics(benchmark_id, model_name, responses)
@@ -275,6 +279,7 @@ class BenchmarkRunner:
     
     async def _query_model_batch(self, model_name: str, questions: List[Dict[str, Any]], config: BenchmarkConfig) -> List[Dict[str, Any]]:
         """Query the model with all questions."""
+        openrouter_client = None
         try:
             logger.info(f"Querying model {model_name} with {len(questions)} questions")
             
@@ -399,6 +404,14 @@ class BenchmarkRunner:
         except Exception as e:
             logger.error(f"Failed to query model batch: {str(e)}")
             raise ModelAPIError(f"Failed to query model batch: {str(e)}")
+        finally:
+            # Ensure proper session cleanup
+            if openrouter_client:
+                try:
+                    await openrouter_client.close()
+                    logger.debug("OpenRouter client session closed successfully")
+                except Exception as e:
+                    logger.warning(f"Error closing OpenRouter client session: {str(e)}")
     
     async def _calculate_metrics(self, benchmark_id: int, model_name: str, responses: List[Dict[str, Any]]) -> Optional[ComprehensiveMetrics]:
         """Calculate comprehensive metrics for the benchmark."""
@@ -500,6 +513,44 @@ class BenchmarkRunner:
             logger.error(f"Failed to calculate metrics: {str(e)}")
             # Don't raise exception, return None to allow benchmark to complete
             return None
+    
+    async def _save_benchmark_results(self, benchmark_id: int, model_name: str, responses: List[Dict[str, Any]]) -> None:
+        """Save individual benchmark results to database."""
+        try:
+            logger.info(f"Saving {len(responses)} benchmark results to database")
+            
+            with get_db_session() as session:
+                response_repo = ResponseRepository(session)
+                
+                saved_count = 0
+                for response_data in responses:
+                    try:
+                        # Create BenchmarkResult object
+                        result = BenchmarkResult(
+                            benchmark_run_id=benchmark_id,
+                            question_id=response_data.get('question_id'),
+                            model_name=model_name,
+                            response_text=response_data.get('model_response', ''),
+                            is_correct=response_data.get('is_correct', False),
+                            confidence_score=response_data.get('confidence_score', 0.0),
+                            response_time_ms=response_data.get('response_time_ms', 0.0),
+                            tokens_generated=response_data.get('tokens_generated', 0),
+                            cost_usd=response_data.get('cost', 0.0)
+                        )
+                        
+                        # Save to database
+                        response_repo.save_response(result)
+                        saved_count += 1
+                        
+                    except Exception as e:
+                        logger.error(f"Failed to save result for question {response_data.get('question_id')}: {str(e)}")
+                        continue
+                
+                logger.info(f"Successfully saved {saved_count}/{len(responses)} benchmark results")
+                
+        except Exception as e:
+            logger.error(f"Failed to save benchmark results: {str(e)}")
+            # Don't raise - allow benchmark to continue with other phases
     
     async def _finalize_benchmark(self, benchmark_id: int, success: bool, error_message: Optional[str]):
         """Finalize the benchmark run."""

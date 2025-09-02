@@ -30,11 +30,18 @@ class OpenRouterClient(ModelAdapter):
         'anthropic/claude-3-haiku': {'input': 0.25, 'output': 1.25},
         'anthropic/claude-3-sonnet': {'input': 3.0, 'output': 15.0},
         'anthropic/claude-3-opus': {'input': 15.0, 'output': 75.0},
+        'anthropic/claude-3.5-sonnet': {'input': 3.0, 'output': 15.0},
+        'anthropic/claude-sonnet-4': {'input': 3.0, 'output': 15.0},  # Added missing model
         'openai/gpt-3.5-turbo': {'input': 0.5, 'output': 1.5},
         'openai/gpt-4': {'input': 30.0, 'output': 60.0},
         'openai/gpt-4-turbo': {'input': 10.0, 'output': 30.0},
+        'openai/gpt-4o': {'input': 5.0, 'output': 15.0},
+        'openai/gpt-4o-mini': {'input': 0.15, 'output': 0.6},
         'meta-llama/llama-2-70b-chat': {'input': 0.7, 'output': 0.8},
+        'meta-llama/llama-3.1-405b-instruct': {'input': 3.0, 'output': 3.0},
         'mistralai/mixtral-8x7b-instruct': {'input': 0.24, 'output': 0.24},
+        'google/gemini-pro': {'input': 0.5, 'output': 1.5},
+        'google/gemini-pro-1.5': {'input': 3.5, 'output': 10.5},
     }
     
     def __init__(self, api_key: Optional[str] = None, config: Optional[ModelConfig] = None):
