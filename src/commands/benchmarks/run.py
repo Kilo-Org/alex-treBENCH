@@ -158,12 +158,16 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
             # Initialize runner
             runner = BenchmarkRunner()
             
-            # Set display name - handle case where model might be string or dict
-            if isinstance(model, dict):
-                display_name = f"{model.get('provider', 'Unknown')}: {model.get('name', actual_model)} ({model.get('id', actual_model).split('/')[-1]})"
-                pricing = model.get('pricing', {})
+            # Set display name using validated model_info
+            if model_info:
+                # Use the name directly as it already includes provider prefix
+                model_name = model_info.get('name', actual_model)
+                model_id_short = model_info.get('id', actual_model).split('/')[-1]
+                
+                display_name = f"{model_name} ({model_id_short})"
+                pricing = model_info.get('pricing', {})
             else:
-                display_name = f"xAI: Grok Code Fast 1 (x-ai)"
+                display_name = f"Unknown Model: {actual_model}"
                 pricing = {}
             
             # Map size to run mode
