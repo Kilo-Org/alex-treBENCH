@@ -203,3 +203,28 @@ class QuestionRepository:
                 operation="delete",
                 table="questions"
             ) from e
+    
+    def clear_all_questions(self) -> int:
+        """Delete all questions from the database.
+        
+        Returns:
+            Number of questions deleted
+        """
+        try:
+            # Get count before deletion
+            count = self.session.query(func.count(Question.id)).scalar()
+            
+            if count > 0:
+                # Delete all questions
+                self.session.query(Question).delete()
+                self.session.commit()
+                
+            return count
+            
+        except Exception as e:
+            self.session.rollback()
+            raise DatabaseError(
+                f"Failed to clear all questions: {str(e)}",
+                operation="delete_all",
+                table="questions"
+            ) from e

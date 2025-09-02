@@ -170,11 +170,22 @@ class DataInitializer:
                 console=console
             ) as progress:
                 
-                # Create benchmark record
-                task = progress.add_task("Saving to database...", total=3)
+                # Create benchmark record - adjust total steps for force mode
+                total_steps = 4 if self.force_download else 3
+                task = progress.add_task("Saving to database...", total=total_steps)
                 
                 with get_db_session() as session:
-                    # Step 1: Create benchmark
+                    # Step 1: Clear existing questions if force mode
+                    if self.force_download:
+                        progress.update(task, advance=1, description="Clearing existing questions...")
+                        existing_count = session.query(Question).count()
+                        if existing_count > 0:
+                            session.query(Question).delete()
+                            console.print(f"[yellow]Cleared {existing_count} existing questions[/yellow]")
+                        else:
+                            console.print("[dim]No existing questions to clear[/dim]")
+                    
+                    # Step 2: Create benchmark
                     progress.update(task, advance=1, description="Creating benchmark record...")
                     
                     benchmark = BenchmarkRun(
@@ -187,7 +198,7 @@ class DataInitializer:
                     session.add(benchmark)
                     session.flush()  # Get ID
                     
-                    # Step 2: Convert DataFrame to Question objects and save
+                    # Step 3: Convert DataFrame to Question objects and save
                     progress.update(task, advance=1, description="Saving questions...")
                     
                     # Convert DataFrame rows to Question objects
@@ -223,7 +234,7 @@ class DataInitializer:
                     session.flush()
                     saved_questions = questions
                     
-                    # Step 3: Generate basic statistics
+                    # Step 4: Generate basic statistics
                     progress.update(task, advance=1, description="Generating statistics...")
                     
                     # Create basic statistics using direct SQLAlchemy queries

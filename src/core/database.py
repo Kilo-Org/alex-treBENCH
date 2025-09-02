@@ -77,8 +77,10 @@ def create_tables() -> None:
     try:
         engine = get_engine()
         
-        # Models are automatically registered with Base when imported elsewhere
-        # No need to import them here as it causes duplicate table definitions
+        # Import models to register them with Base metadata
+        # This ensures all models are available for table creation
+        from src.storage.models import Question, BenchmarkRun, BenchmarkResult, ModelPerformance
+        
         Base.metadata.create_all(engine)
     except Exception as e:
         raise DatabaseError(
@@ -121,8 +123,8 @@ def get_db_session() -> Generator[Session, None, None]:
 def init_database() -> None:
     """Initialize the database with tables and basic setup."""
     try:
-        # Models are already imported elsewhere and registered with Base
-        # No need to import them here as it causes duplicate table definitions
+        # Import models to ensure they are registered with Base metadata
+        from src.storage.models import Question, BenchmarkRun, BenchmarkResult, ModelPerformance
         
         # Create tables
         create_tables()
@@ -140,6 +142,9 @@ def init_database() -> None:
 def reset_database() -> None:
     """Reset the database by dropping and recreating all tables."""
     try:
+        # Import models to ensure they are registered with Base metadata
+        from src.storage.models import Question, BenchmarkRun, BenchmarkResult, ModelPerformance
+        
         drop_tables()
         create_tables()
     except Exception as e:

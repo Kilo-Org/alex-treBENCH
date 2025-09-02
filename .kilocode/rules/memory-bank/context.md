@@ -28,6 +28,7 @@
 
 ### Recently Completed
 
+- **Data Init Force Flag Bug Fix** (September 2, 2025): Fixed critical bug where `alex data init --force` was duplicating questions instead of replacing them. Added proper database clearing logic to `DataInitializer.save_to_database()` method.
 - **Full System Implementation**: All 7 core components are now production-ready
 - **Dynamic Model System**: Complete with 323+ model support
 - **Statistical Sampling**: 95% confidence intervals with stratified sampling
