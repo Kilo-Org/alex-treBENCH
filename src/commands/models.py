@@ -101,15 +101,32 @@ def models_list(ctx, provider, refresh, search):
             for model in sorted_models:
                 # Extract pricing info
                 pricing = model.get('pricing', {})
-                input_cost = pricing.get('input_cost_per_1m_tokens', 0)
-                output_cost = pricing.get('output_cost_per_1m_tokens', 0)
+                input_cost_per_token = pricing.get('input_cost_per_1m_tokens', 0)
+                output_cost_per_token = pricing.get('output_cost_per_1m_tokens', 0)
+                
+                # Convert from per-token to per-million-tokens for display
+                input_cost_per_million = input_cost_per_token * 1_000_000
+                output_cost_per_million = output_cost_per_token * 1_000_000
+                
+                # Format costs
+                def format_list_cost(cost):
+                    if cost == 0:
+                        return "$0"
+                    elif cost < 0.01:
+                        return f"${cost:.4f}"
+                    elif cost < 1:
+                        return f"${cost:.2f}"
+                    else:
+                        return f"${cost:.0f}"
+                
+                cost_display = f"{format_list_cost(input_cost_per_million)}/{format_list_cost(output_cost_per_million)}"
                 
                 table.add_row(
                     (model.get('provider', 'Unknown')).title(),
                     model.get('id', 'N/A'),
                     model.get('name', 'N/A'),
                     f"{model.get('context_length', 0):,}",
-                    f"${input_cost:.2f}/${output_cost:.2f}",
+                    cost_display,
                     "✓" if model.get('available', True) else "✗"
                 )
             
@@ -272,11 +289,17 @@ def models_info(ctx, model_id):
                 
                 # Format costs properly, handling scientific notation
                 def format_cost(cost):
+                    # OpenRouter API returns cost per token, so multiply by 1M to get cost per 1M tokens
                     price_per_million = cost * 1_000_000
                     if cost == 0:
-                        return "$0.0000"
+                        return "$0"
+                    elif price_per_million < 0.01:
+                        # For very small values, show more decimal places
+                        return f"${price_per_million:.4f}"
+                    elif price_per_million < 1:
+                        return f"${price_per_million:.2f}"
                     else:
-                        return f"${price_per_million:,.0f}"
+                        return f"${price_per_million:.0f}"
                 
                 pricing_table.add_row("Input", format_cost(input_cost))
                 pricing_table.add_row("Output", format_cost(output_cost))

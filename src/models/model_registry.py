@@ -386,6 +386,19 @@ class ModelRegistry:
     @classmethod
     def estimate_cost(cls, model_id: str, input_tokens: int, output_tokens: int) -> float:
         """Estimate cost for a model given token counts."""
+        # First try to get pricing from cached dynamic models
+        pricing_info = cls._get_model_pricing(model_id)
+        if pricing_info:
+            # OpenRouter API returns cost per token, not per million tokens
+            input_cost_per_token = pricing_info.get('input_cost_per_1m_tokens', 0.0)
+            output_cost_per_token = pricing_info.get('output_cost_per_1m_tokens', 0.0)
+            
+            input_cost = input_tokens * input_cost_per_token
+            output_cost = output_tokens * output_cost_per_token
+            
+            return input_cost + output_cost
+        
+        # Fall back to static models
         config = cls.get_model_config(model_id)
         if not config:
             return 0.0
@@ -395,6 +408,40 @@ class ModelRegistry:
         
         return input_cost + output_cost
     
+    @classmethod
+    def _get_model_pricing(cls, model_id: str) -> Optional[Dict[str, float]]:
+        """
+        Get pricing information for a model from cached dynamic models.
+        
+        Args:
+            model_id: The model ID to get pricing for
+            
+        Returns:
+            Dictionary with pricing info, or None if not found
+        """
+        try:
+            # Create a temporary registry instance to access cache
+            registry = cls()
+            cache = registry._get_cache()
+            
+            # Try to load cached models
+            cached_models = cache.load_cache()
+            if not cached_models:
+                return None
+            
+            # Find the specific model by ID
+            for model in cached_models:
+                if model.get('id') == model_id:
+                    pricing = model.get('pricing', {})
+                    if pricing and isinstance(pricing, dict):
+                        return pricing
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Failed to get pricing for model {model_id}: {e}")
+            return None
+
     @classmethod
     def get_model_summary(cls) -> Dict[str, Any]:
         """Get summary statistics about available static models."""
