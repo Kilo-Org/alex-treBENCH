@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch, AsyncMock
 from typing import Dict, Any, List
 import json
 
-from src.benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig, BenchmarkResult
+from src.benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig, BenchmarkRunResult
 from src.benchmark.reporting import ReportGenerator, ReportFormat
 from src.core.config import AppConfig
 from src.core.database import init_database, get_session
@@ -162,7 +162,7 @@ class TestCompleteWorkflow:
             )
 
             # Verify result structure
-            assert isinstance(result, BenchmarkResult)
+            assert isinstance(result, BenchmarkRunResult)
             assert result.success is True
             assert result.benchmark_id > 0
             assert result.model_name == "openai/gpt-3.5-turbo"
@@ -243,8 +243,8 @@ class TestCompleteWorkflow:
             )
 
             # Verify the benchmark completed despite initial failure
-            assert isinstance(result, BenchmarkResult)
-            assert result.success is True  # Should succeed on retry
+            assert isinstance(result, BenchmarkRunResult)
+            assert result.is_successful is True  # Should succeed on retry
             assert result.benchmark_id > 0
             assert len(result.responses) == 3
 
@@ -337,7 +337,7 @@ class TestCompleteWorkflow:
                 response_repo = ResponseRepository(session)
 
                 # Check benchmark record
-                benchmark = benchmark_repo.get_benchmark(result.benchmark_id)
+                benchmark = benchmark_repo.get_benchmark_by_id(result.benchmark_id)
                 assert benchmark is not None
                 assert benchmark.name == "persistence_test"
                 assert benchmark.status == "completed"

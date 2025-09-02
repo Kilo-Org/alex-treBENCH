@@ -20,7 +20,7 @@ import statistics
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig, BenchmarkResult
+from benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig, BenchmarkRunResult
 from benchmark.reporting import ReportGenerator, ReportFormat
 from evaluation.metrics import MetricsCalculator, ComprehensiveMetrics
 from models.base import ModelResponse
@@ -248,7 +248,7 @@ class BenchmarkSimulator:
 
         return graded_responses
 
-    async def simulate_single_model_benchmark(self, model_config: Dict[str, Any]) -> BenchmarkResult:
+    async def simulate_single_model_benchmark(self, model_config: Dict[str, Any]) -> BenchmarkRunResult:
         """Simulate a benchmark for a single model."""
         print(f"🎯 Simulating benchmark for {model_config['name']}...")
 
@@ -270,7 +270,7 @@ class BenchmarkSimulator:
         )
 
         # Create benchmark result
-        result = BenchmarkResult(
+        result = BenchmarkRunResult(
             benchmark_id=9999,
             model_name=model_config["name"],
             config=BenchmarkConfig(
@@ -299,7 +299,7 @@ class BenchmarkSimulator:
 
         return result
 
-    async def simulate_model_comparison(self) -> List[BenchmarkResult]:
+    async def simulate_model_comparison(self) -> List[BenchmarkRunResult]:
         """Simulate benchmark comparison across multiple models."""
         print(f"🔄 Simulating comparison of {self.config.num_models} models...")
 
@@ -313,7 +313,7 @@ class BenchmarkSimulator:
 
         return results
 
-    def generate_simulation_report(self, results: List[BenchmarkResult]) -> Dict[str, Any]:
+    def generate_simulation_report(self, results: List[BenchmarkRunResult]) -> Dict[str, Any]:
         """Generate a comprehensive simulation report."""
         report = {
             "simulation_metadata": {
@@ -402,7 +402,7 @@ class BenchmarkSimulator:
 
         return report
 
-    def save_simulation_results(self, results: List[BenchmarkResult], report: Dict[str, Any]):
+    def save_simulation_results(self, results: List[BenchmarkRunResult], report: Dict[str, Any]):
         """Save simulation results to files."""
         # Create output directory
         output_dir = Path(self.config.output_dir)
@@ -436,7 +436,7 @@ class BenchmarkSimulator:
 
         print(f"\n📁 Simulation results saved to: {output_dir.absolute()}")
 
-    def display_simulation_summary(self, results: List[BenchmarkResult], report: Dict[str, Any]):
+    def display_simulation_summary(self, results: List[BenchmarkRunResult], report: Dict[str, Any]):
         """Display a summary of the simulation results."""
         print("\n" + "="*70)
         print("📊 BENCHMARK SIMULATION SUMMARY")

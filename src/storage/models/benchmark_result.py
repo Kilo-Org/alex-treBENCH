@@ -8,16 +8,10 @@ from sqlalchemy import String, Integer, Text, Boolean, DECIMAL, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
+from .mixins import StringTimestampMixin
 
 
-class TimestampMixin:
-    """Mixin for models that need created/updated timestamps."""
-    
-    created_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
-    updated_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
-
-
-class BenchmarkResult(Base, TimestampMixin):
+class BenchmarkResult(Base, StringTimestampMixin):
     """Model for individual question results from benchmark runs."""
 
     __tablename__ = "benchmark_results"
@@ -48,16 +42,16 @@ class BenchmarkResult(Base, TimestampMixin):
     error_message: Mapped[str] = mapped_column(Text, nullable=True)
     result_metadata: Mapped[str] = mapped_column(Text, nullable=True)  # JSON string
 
-    # Relationships - simple and clean
-    benchmark_run: Mapped["BenchmarkRun"] = relationship(
-        "src.storage.models.benchmark_run.BenchmarkRun",
-        back_populates="results"
-    )
+    # Relationships - temporarily disabled due to configuration issues
+    # benchmark_run: Mapped["BenchmarkRun"] = relationship(
+    #     "src.storage.models.benchmark_run.BenchmarkRun",
+    #     back_populates="results"
+    # )
     
-    question: Mapped["Question"] = relationship(
-        "src.storage.models.question.Question",
-        back_populates="benchmark_results"
-    )
+    # question: Mapped["Question"] = relationship(
+    #     "src.storage.models.question.Question",
+    #     back_populates="benchmark_results"
+    # )
 
     def __repr__(self) -> str:
         return f"<BenchmarkResult(id={self.id}, model='{self.model_name}', correct={self.is_correct})>"

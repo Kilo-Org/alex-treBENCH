@@ -252,7 +252,7 @@ class TestBenchmarkFlow:
         """Test report generation with realistic data."""
         
         # Create a mock benchmark result
-        from src.benchmark.runner import BenchmarkResult, BenchmarkProgress
+        from src.benchmark.runner import BenchmarkRunResult, BenchmarkProgress
         from src.evaluation.metrics import ComprehensiveMetrics, AccuracyMetrics, PerformanceMetrics, CostMetrics, ConsistencyMetrics
         
         # Create comprehensive metrics
@@ -319,7 +319,7 @@ class TestBenchmarkFlow:
             start_time=datetime.now()
         )
         
-        result = BenchmarkResult(
+        result = BenchmarkRunResult(
             benchmark_id=123,
             model_name="test/model",
             config=BenchmarkConfig(mode=RunMode.QUICK, sample_size=5),

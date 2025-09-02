@@ -10,13 +10,7 @@ from sqlalchemy import String, Integer, Text, DECIMAL, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
-
-
-class TimestampMixin:
-    """Mixin for models that need created/updated timestamps."""
-    
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+from .mixins import TimestampMixin
 
 
 class BenchmarkRun(Base, TimestampMixin):
@@ -44,18 +38,18 @@ class BenchmarkRun(Base, TimestampMixin):
     error_count: Mapped[int] = mapped_column(Integer, default=0)
     error_details: Mapped[str] = mapped_column(Text, nullable=True)  # JSON string
 
-    # Relationships - simple and clean
-    results: Mapped[List["BenchmarkResult"]] = relationship(
-        "src.storage.models.benchmark_result.BenchmarkResult",
-        back_populates="benchmark_run",
-        cascade="all, delete-orphan"
-    )
+    # Relationships - temporarily disabled due to configuration issues
+    # results: Mapped[List["BenchmarkResult"]] = relationship(
+    #     "src.storage.models.benchmark_result.BenchmarkResult",
+    #     back_populates="benchmark_run",
+    #     cascade="all, delete-orphan"
+    # )
     
-    performances: Mapped[List["ModelPerformance"]] = relationship(
-        "src.storage.models.model_performance.ModelPerformance",
-        back_populates="benchmark_run",
-        cascade="all, delete-orphan"
-    )
+    # performances: Mapped[List["ModelPerformance"]] = relationship(
+    #     "src.storage.models.model_performance.ModelPerformance",
+    #     back_populates="benchmark_run",
+    #     cascade="all, delete-orphan"
+    # )
 
     def __repr__(self) -> str:
         return f"<BenchmarkRun(id={self.id}, name='{self.name}', status='{self.status}')>"

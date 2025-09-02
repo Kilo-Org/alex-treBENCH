@@ -16,7 +16,7 @@ import json
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig, BenchmarkResult
+from benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig, BenchmarkRunResult
 from benchmark.reporting import ReportGenerator, ReportFormat
 from evaluation.metrics import MetricsCalculator, ComprehensiveMetrics
 from models.base import ModelResponse
@@ -469,7 +469,7 @@ class DemoSystem:
                                     sample_size: int,
                                     execution_time: float,
                                     accuracy: float = 0.782,
-                                    cost_per_question: float = 0.0047) -> BenchmarkResult:
+                                    cost_per_question: float = 0.0047) -> BenchmarkRunResult:
         """Create a mock benchmark result for demonstration."""
         from datetime import datetime
         from storage.models import BenchmarkQuestion, create_benchmark_question
@@ -518,7 +518,7 @@ class DemoSystem:
         metrics.cost.cost_per_question = cost_per_question
         metrics.cost.total_cost = cost_per_question * sample_size
 
-        return BenchmarkResult(
+        return BenchmarkRunResult(
             benchmark_id=999,
             model_name=model_name,
             config=BenchmarkConfig(mode=RunMode.QUICK, sample_size=sample_size),

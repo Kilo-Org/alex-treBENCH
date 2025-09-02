@@ -62,7 +62,7 @@ def status(ctx, benchmark_id):
         with get_db_session() as session:
             # Get benchmark details
             benchmark_repo = BenchmarkRepository(session)
-            benchmark = benchmark_repo.get_benchmark(benchmark_id)
+            benchmark = benchmark_repo.get_benchmark_by_id(benchmark_id)
             
             if not benchmark:
                 console.print(f"[red]❌ Benchmark {benchmark_id} not found[/red]")

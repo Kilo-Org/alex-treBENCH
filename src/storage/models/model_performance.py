@@ -8,16 +8,10 @@ from sqlalchemy import String, Integer, Text, DECIMAL, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
+from .mixins import StringTimestampMixin
 
 
-class TimestampMixin:
-    """Mixin for models that need created/updated timestamps."""
-    
-    created_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
-    updated_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
-
-
-class ModelPerformance(Base, TimestampMixin):
+class ModelPerformance(Base, StringTimestampMixin):
     """Model for aggregated performance metrics."""
 
     __tablename__ = "model_performance"
@@ -65,11 +59,11 @@ class ModelPerformance(Base, TimestampMixin):
     error_count: Mapped[int] = mapped_column(Integer, default=0)
     error_rate: Mapped[float] = mapped_column(DECIMAL(5, 4), nullable=True)
 
-    # Relationships - simple and clean
-    benchmark_run: Mapped["BenchmarkRun"] = relationship(
-        "src.storage.models.benchmark_run.BenchmarkRun",
-        back_populates="performances"
-    )
+    # Relationships - temporarily disabled due to configuration issues
+    # benchmark_run: Mapped["BenchmarkRun"] = relationship(
+    #     "src.storage.models.benchmark_run.BenchmarkRun",
+    #     back_populates="performances"
+    # )
 
     def __repr__(self) -> str:
         return f"<ModelPerformance(id={self.id}, model='{self.model_name}', accuracy={self.accuracy_rate})>"

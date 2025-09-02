@@ -20,11 +20,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from data.ingestion import KaggleDatasetLoader
 from data.preprocessing import DataPreprocessor
 from data.validation import DataValidator
-# Use the clean database system to avoid registry conflicts
-from storage.clean_db_system import (
-    Question, BenchmarkRun,
-    get_clean_db_session, init_clean_database
-)
+# Use the main database models and session management
+from storage.models import Question, BenchmarkRun
+from core.database import get_db_session, init_database
 from core.config import get_config
 from core.exceptions import DataIngestionError, ValidationError, DatabaseError
 from utils.logging import get_logger
@@ -57,7 +55,7 @@ class DataInitializer:
         """Initialize the database schema."""
         try:
             console.print("[yellow]Initializing database schema...[/yellow]")
-            init_clean_database()
+            init_database()
             console.print("[green]✓ Database schema initialized[/green]")
         except Exception as e:
             console.print(f"[red]✗ Database initialization failed: {str(e)}[/red]")
@@ -175,7 +173,7 @@ class DataInitializer:
                 # Create benchmark record
                 task = progress.add_task("Saving to database...", total=3)
                 
-                with get_clean_db_session() as session:
+                with get_db_session() as session:
                     # Step 1: Create benchmark
                     progress.update(task, advance=1, description="Creating benchmark record...")
                     

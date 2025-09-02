@@ -50,7 +50,7 @@ def export(ctx, benchmark_id, format, output):
             
             if benchmark_id:
                 # Export specific benchmark
-                benchmark = repo.get_benchmark(benchmark_id)
+                benchmark = repo.get_benchmark_by_id(benchmark_id)
                 if not benchmark:
                     console.print(f"[red]Benchmark {benchmark_id} not found[/red]")
                     return
@@ -102,11 +102,11 @@ def _prepare_export_data(benchmarks) -> List[Dict[str, Any]]:
             'id': benchmark.id,
             'name': benchmark.name,
             'status': benchmark.status,
-            'created_at': benchmark.created_at.isoformat() if benchmark.created_at else None,
-            'completed_at': benchmark.completed_at.isoformat() if benchmark.completed_at else None,
+            'created_at': benchmark.created_at.isoformat() if hasattr(benchmark, 'created_at') and benchmark.created_at else None,
+            'updated_at': benchmark.updated_at.isoformat() if hasattr(benchmark, 'updated_at') and benchmark.updated_at else None,
             'sample_size': benchmark.sample_size,
             'benchmark_mode': benchmark.benchmark_mode,
-            'models_tested': benchmark.models_tested_list if hasattr(benchmark, 'models_tested_list') else [],
+            'models_tested': getattr(benchmark, 'models_tested', '[]'),
             'total_cost_usd': float(benchmark.total_cost_usd) if benchmark.total_cost_usd else 0.0,
             'total_tokens': benchmark.total_tokens if benchmark.total_tokens else 0,
             'avg_response_time_ms': float(benchmark.avg_response_time_ms) if benchmark.avg_response_time_ms else 0.0,

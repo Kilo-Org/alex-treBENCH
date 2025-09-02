@@ -9,16 +9,10 @@ from sqlalchemy import String, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
+from .mixins import StringTimestampMixin
 
 
-class TimestampMixin:
-    """Mixin for models that need created/updated timestamps."""
-    
-    created_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
-    updated_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
-
-
-class Question(Base, TimestampMixin):
+class Question(Base, StringTimestampMixin):
     """Model for cached questions from the Jeopardy dataset."""
 
     __tablename__ = "questions"
@@ -34,12 +28,12 @@ class Question(Base, TimestampMixin):
     round: Mapped[str] = mapped_column(String(50), nullable=True)
     difficulty_level: Mapped[str] = mapped_column(String(50), nullable=True)
 
-    # Relationships - simple and clean
-    benchmark_results: Mapped[List["BenchmarkResult"]] = relationship(
-        "src.storage.models.benchmark_result.BenchmarkResult",
-        back_populates="question",
-        cascade="all, delete-orphan"
-    )
+    # Relationships - temporarily disabled due to configuration issues
+    # benchmark_results: Mapped[List["BenchmarkResult"]] = relationship(
+    #     "src.storage.models.benchmark_result.BenchmarkResult",
+    #     back_populates="question",
+    #     cascade="all, delete-orphan"
+    # )
 
     def __repr__(self) -> str:
         return f"<Question(id={self.id}, category='{self.category}', value={self.value})>"
