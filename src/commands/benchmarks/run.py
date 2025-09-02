@@ -212,10 +212,25 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
             console.print(f"[cyan]Model: {display_name}[/cyan]")
             console.print(f"[dim]Sample size: {config.sample_size}, Grading: {grading_mode}[/dim]")
             
-            # Estimate cost
-            if pricing:
-                estimated_cost = ((100 * config.sample_size) / 1_000_000) * (pricing.get('input_cost_per_1m_tokens', 0) + pricing.get('output_cost_per_1m_tokens', 0))
+            # Estimate cost using ModelRegistry
+            from src.models.model_registry import ModelRegistry
+            
+            # Estimate tokens per question (input + output)
+            estimated_input_tokens_per_q = 100  # Average prompt size
+            estimated_output_tokens_per_q = 50   # Average response size
+            
+            total_input_tokens = config.sample_size * estimated_input_tokens_per_q
+            total_output_tokens = config.sample_size * estimated_output_tokens_per_q
+            
+            estimated_cost = ModelRegistry.estimate_cost(actual_model, total_input_tokens, total_output_tokens)
+            
+            if estimated_cost > 0:
                 console.print(f"[dim]Estimated cost: ~${estimated_cost:.4f}[/dim]")
+            else:
+                # Fall back to basic calculation if no pricing found
+                if pricing and (pricing.get('input_cost_per_1m_tokens', 0) > 0 or pricing.get('output_cost_per_1m_tokens', 0) > 0):
+                    fallback_cost = ((estimated_input_tokens_per_q + estimated_output_tokens_per_q) * config.sample_size / 1_000_000) * (pricing.get('input_cost_per_1m_tokens', 0) + pricing.get('output_cost_per_1m_tokens', 0))
+                    console.print(f"[dim]Estimated cost: ~${fallback_cost:.4f}[/dim]")
             
             console.print()
             

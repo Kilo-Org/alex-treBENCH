@@ -19,5 +19,8 @@ class TimestampMixin:
 class StringTimestampMixin:
     """Mixin for models that use string-based timestamps (for backward compatibility)."""
     
-    created_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
-    updated_at: Mapped[str] = mapped_column(String, nullable=False, default="CURRENT_TIMESTAMP")
+    def _get_current_timestamp_str(self) -> str:
+        return datetime.utcnow().isoformat()
+    
+    created_at: Mapped[str] = mapped_column(String, nullable=False, default=lambda: datetime.utcnow().isoformat())
+    updated_at: Mapped[str] = mapped_column(String, nullable=False, default=lambda: datetime.utcnow().isoformat(), onupdate=lambda: datetime.utcnow().isoformat())

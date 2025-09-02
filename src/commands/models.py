@@ -12,7 +12,7 @@ from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.panel import Panel
 
-from utils.logging import get_logger
+from src.utils.logging import get_logger
 
 console = Console()
 logger = get_logger(__name__)
@@ -50,8 +50,8 @@ def models_list(ctx, provider, refresh, search):
     
     async def list_models_async():
         try:
-            from models.model_registry import model_registry
-            from models.model_cache import get_model_cache
+            from src.models.model_registry import model_registry
+            from src.models.model_cache import get_model_cache
             
             console.print("[blue]Loading available models...[/blue]")
             
@@ -223,7 +223,7 @@ def models_info(ctx, model_id):
     
     async def show_model_info_async():
         try:
-            from models.model_registry import model_registry
+            from src.models.model_registry import model_registry
             
             console.print(f"[blue]Getting information for model: {model_id}[/blue]")
             
@@ -520,8 +520,8 @@ def models_costs(ctx, model, questions, input_tokens, output_tokens):
     
     async def calculate_costs_async():
         try:
-            from models.model_registry import model_registry
-            from models.cost_calculator import CostCalculator
+            from src.models.model_registry import model_registry
+            from src.models.cost_calculator import CostCalculator
             
             # Validate model using dynamic system
             models = await model_registry.get_available_models()
@@ -553,20 +553,29 @@ def models_costs(ctx, model, questions, input_tokens, output_tokens):
             actual_input_tokens = input_tokens if input_tokens is not None else default_input_tokens
             actual_output_tokens = output_tokens if output_tokens is not None else default_output_tokens
             
-            # Get pricing from model info
-            pricing = model_info.get('pricing', {})
-            input_cost_per_1m = pricing.get('input_cost_per_1m_tokens', 0)
-            output_cost_per_1m = pricing.get('output_cost_per_1m_tokens', 0)
-            
-            # Calculate costs
+            # Calculate costs using the proper ModelRegistry method
             total_input_tokens = questions * actual_input_tokens
             total_output_tokens = questions * actual_output_tokens
             total_tokens = total_input_tokens + total_output_tokens
             
-            input_cost = (total_input_tokens / 1_000_000) * input_cost_per_1m
-            output_cost = (total_output_tokens / 1_000_000) * output_cost_per_1m
-            total_cost = input_cost + output_cost
+            # Use ModelRegistry.estimate_cost for proper cost calculation
+            from src.models.model_registry import ModelRegistry
+            total_cost = ModelRegistry.estimate_cost(model, total_input_tokens, total_output_tokens)
+            input_cost = ModelRegistry.estimate_cost(model, total_input_tokens, 0)
+            output_cost = ModelRegistry.estimate_cost(model, 0, total_output_tokens)
             cost_per_question = total_cost / questions if questions > 0 else 0
+            
+            # Get pricing information for display purposes
+            pricing = model_info.get('pricing', {})
+            input_cost_per_1m = pricing.get('input_cost_per_1m_tokens', 0)
+            output_cost_per_1m = pricing.get('output_cost_per_1m_tokens', 0)
+            
+            # If not found in dynamic model info, try static config
+            if input_cost_per_1m == 0 and output_cost_per_1m == 0:
+                static_config = ModelRegistry.get_model_config(model)
+                if static_config:
+                    input_cost_per_1m = static_config.input_cost_per_1m_tokens
+                    output_cost_per_1m = static_config.output_cost_per_1m_tokens
             
             # Display estimate
             table = Table(title=f"Cost Estimate: {model_info.get('name', model)}")

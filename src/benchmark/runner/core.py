@@ -141,9 +141,15 @@ class BenchmarkRunner:
             self.progress.current_phase = "Calculating metrics"
             metrics = await self._calculate_metrics(benchmark_id, model_name, responses)
             
+            # Phase 4.5: Save model performance summary
+            if metrics:
+                self.progress.current_phase = "Saving performance metrics"
+                await self._save_model_performance(benchmark_id, model_name, metrics)
+            
             # Phase 5: Finalize
             self.progress.current_phase = "Finalizing"
-            await self._finalize_benchmark(benchmark_id, True, None)
+            total_cost = sum(r.get('cost', 0) for r in responses)
+            await self._finalize_benchmark(benchmark_id, True, None, total_cost)
             
             execution_time = time.time() - start_time
             
@@ -169,7 +175,7 @@ class BenchmarkRunner:
             logger.error(f"Traceback: {traceback.format_exc()}")
             
             if self.current_benchmark_id:
-                await self._finalize_benchmark(self.current_benchmark_id, False, str(e))
+                await self._finalize_benchmark(self.current_benchmark_id, False, str(e), 0.0)
             
             # Return error result
             execution_time = time.time() - start_time
@@ -552,7 +558,7 @@ class BenchmarkRunner:
             logger.error(f"Failed to save benchmark results: {str(e)}")
             # Don't raise - allow benchmark to continue with other phases
     
-    async def _finalize_benchmark(self, benchmark_id: int, success: bool, error_message: Optional[str]):
+    async def _finalize_benchmark(self, benchmark_id: int, success: bool, error_message: Optional[str], total_cost: float = 0.0):
         """Finalize the benchmark run."""
         try:
             with get_db_session() as session:
@@ -568,9 +574,57 @@ class BenchmarkRunner:
                             # Store error details if provided
                             benchmark.error_details = json.dumps([error_message])  # type: ignore
                     
+                    # Update total cost
+                    benchmark.total_cost_usd = total_cost  # type: ignore
+                    
                     session.commit()
-                    logger.info(f"Benchmark {benchmark_id} finalized with status: {'completed' if success else 'failed'}")
+                    logger.info(f"Benchmark {benchmark_id} finalized with status: {'completed' if success else 'failed'}, cost: ${total_cost:.4f}")
                 else:
                     logger.warning(f"Benchmark {benchmark_id} not found for finalization")
         except Exception as e:
             logger.error(f"Failed to finalize benchmark {benchmark_id}: {str(e)}")
+    
+    async def _save_model_performance(self, benchmark_id: int, model_name: str, metrics: ComprehensiveMetrics) -> None:
+        """Save model performance metrics to database."""
+        try:
+            from src.storage.repositories.performance_repository import PerformanceRepository
+            from src.storage.models.model_performance import ModelPerformance
+            
+            logger.info(f"Saving model performance metrics for {model_name}")
+            
+            with get_db_session() as session:
+                performance_repo = PerformanceRepository(session)
+                
+                # Create ModelPerformance object from metrics
+                performance = ModelPerformance(
+                    benchmark_run_id=benchmark_id,
+                    model_name=model_name,
+                    total_questions=metrics.accuracy.total_count,
+                    correct_answers=metrics.accuracy.correct_count,
+                    accuracy_rate=metrics.accuracy.overall_accuracy,
+                    avg_response_time_ms=metrics.performance.mean_response_time,
+                    median_response_time_ms=metrics.performance.median_response_time,
+                    min_response_time_ms=metrics.performance.min_response_time,
+                    max_response_time_ms=metrics.performance.max_response_time,
+                    total_cost_usd=metrics.cost.total_cost,
+                    avg_cost_per_question=metrics.cost.cost_per_question,
+                    cost_per_correct_answer=metrics.cost.cost_per_correct_answer,
+                    total_tokens_input=metrics.cost.input_tokens,
+                    total_tokens_output=metrics.cost.output_tokens,
+                    total_tokens=metrics.cost.total_tokens,
+                    avg_tokens_per_question=metrics.cost.tokens_per_question,
+                    category_performance=json.dumps(metrics.accuracy.by_category),
+                    difficulty_performance=json.dumps(metrics.accuracy.by_difficulty),
+                    avg_confidence=getattr(metrics.consistency, 'confidence_correlation', 0.0),
+                    confidence_accuracy_correlation=metrics.consistency.confidence_correlation,
+                    error_count=metrics.performance.error_count,
+                    error_rate=(1.0 - metrics.accuracy.overall_accuracy) if metrics.accuracy.overall_accuracy >= 0 else 0.0
+                )
+                
+                # Save to database
+                performance_repo.save_performance_summary(performance)
+                logger.info(f"Successfully saved performance metrics for {model_name}")
+                
+        except Exception as e:
+            logger.error(f"Failed to save model performance: {str(e)}")
+            # Don't raise - allow benchmark to complete

@@ -118,6 +118,16 @@ class ModelRegistry:
             supports_streaming=True,
             capabilities=["chat", "reasoning", "analysis", "long-context", "creative"]
         ),
+        "anthropic/claude-sonnet-4": ModelConfig(
+            model_id="anthropic/claude-sonnet-4",
+            display_name="Claude Sonnet 4",
+            provider=ModelProvider.ANTHROPIC,
+            context_window=200000,
+            input_cost_per_1m_tokens=3.0,
+            output_cost_per_1m_tokens=15.0,
+            supports_streaming=True,
+            capabilities=["chat", "reasoning", "analysis", "long-context", "creative"]
+        ),
         "anthropic/claude-3-opus": ModelConfig(
             model_id="anthropic/claude-3-opus",
             display_name="Claude 3 Opus",
@@ -388,25 +398,52 @@ class ModelRegistry:
         """Estimate cost for a model given token counts."""
         # First try to get pricing from cached dynamic models
         pricing_info = cls._get_model_pricing(model_id)
+        logger.debug(f"Pricing info for {model_id}: {pricing_info}")
+        
         if pricing_info:
-            # OpenRouter API pricing is per million tokens (despite field names)
+            # Handle different pricing formats from OpenRouter API
+            # Check if pricing values are per token or per million tokens
             input_cost_per_1m_tokens = pricing_info.get('input_cost_per_1m_tokens', 0.0)
             output_cost_per_1m_tokens = pricing_info.get('output_cost_per_1m_tokens', 0.0)
+            
+            # If the values are very small (< 0.01), they might be per token, not per million
+            if input_cost_per_1m_tokens < 0.01 and input_cost_per_1m_tokens > 0:
+                input_cost_per_1m_tokens *= 1_000_000
+            if output_cost_per_1m_tokens < 0.01 and output_cost_per_1m_tokens > 0:
+                output_cost_per_1m_tokens *= 1_000_000
             
             input_cost = (input_tokens / 1_000_000) * input_cost_per_1m_tokens
             output_cost = (output_tokens / 1_000_000) * output_cost_per_1m_tokens
             
+            logger.debug(f"Calculated cost: input=${input_cost:.6f}, output=${output_cost:.6f}")
             return input_cost + output_cost
         
         # Fall back to static models
         config = cls.get_model_config(model_id)
-        if not config:
-            return 0.0
+        if config:
+            logger.debug(f"Using static config for {model_id}: input={config.input_cost_per_1m_tokens}, output={config.output_cost_per_1m_tokens}")
+            input_cost = (input_tokens / 1_000_000) * config.input_cost_per_1m_tokens
+            output_cost = (output_tokens / 1_000_000) * config.output_cost_per_1m_tokens
+            return input_cost + output_cost
         
-        input_cost = (input_tokens / 1_000_000) * config.input_cost_per_1m_tokens
-        output_cost = (output_tokens / 1_000_000) * config.output_cost_per_1m_tokens
+        # Try alternative model IDs (sometimes model IDs have variations)
+        alternative_ids = [
+            model_id.replace('anthropic/claude-sonnet-4', 'anthropic/claude-3.5-sonnet'),
+            model_id.replace('claude-sonnet-4', 'claude-3.5-sonnet'),
+            model_id.replace('claude-sonnet', 'claude-3.5-sonnet')
+        ]
         
-        return input_cost + output_cost
+        for alt_id in alternative_ids:
+            if alt_id != model_id:
+                alt_config = cls.get_model_config(alt_id)
+                if alt_config:
+                    logger.debug(f"Using alternative model config {alt_id} for {model_id}")
+                    input_cost = (input_tokens / 1_000_000) * alt_config.input_cost_per_1m_tokens
+                    output_cost = (output_tokens / 1_000_000) * alt_config.output_cost_per_1m_tokens
+                    return input_cost + output_cost
+        
+        logger.warning(f"No pricing information found for model {model_id}")
+        return 0.0
     
     @classmethod
     def _get_model_pricing(cls, model_id: str) -> Optional[Dict[str, float]]:
