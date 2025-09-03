@@ -29,7 +29,7 @@ setup: ## Complete setup (install deps, init database)
 
 init-db: ## Initialize the database
 	@echo "🗄️  Initializing database..."
-	python -m src.main init
+	alex init
 
 # =============================================================================
 # Testing
@@ -109,23 +109,23 @@ quality: ## Run all code quality checks
 
 dev: ## Start development environment
 	@echo "🚀 Starting development environment..."
-	python -m src.main --help
+	alex --help
 
 run-quick: ## Run a quick benchmark for testing
 	@echo "⚡ Running quick benchmark..."
-	python -m src.main benchmark run --size quick
+	alex benchmark run --size quick
 
 run-standard: ## Run a standard benchmark  
 	@echo "📊 Running standard benchmark..."
-	python -m src.main benchmark run --size standard
+	alex benchmark run --size standard
 
 run-comparison: ## Run model comparison
 	@echo "🔄 Running model comparison..."
-	python -m src.main benchmark compare --size quick
+	alex benchmark compare --size quick
 
 list-models: ## List available models
 	@echo "📋 Listing available models..."
-	python -m src.main models list
+	alex models list
 
 # =============================================================================
 # Validation & Simulation  
@@ -192,7 +192,7 @@ docker-clean: ## Clean up Docker resources
 
 db-init: ## Initialize database
 	@echo "🗄️  Initializing database..."
-	python -m src.main init
+	alex init
 
 db-reset: ## Reset database (WARNING: destroys all data)
 	@echo "⚠️  WARNING: This will destroy all data!"
@@ -233,7 +233,7 @@ db-restore: ## Restore database from backup
 
 reports-list: ## List all benchmark reports
 	@echo "📋 Available benchmark reports:"
-	python -m src.main benchmark list
+	alex benchmark list
 
 reports-clean: ## Clean up old reports
 	@echo "🧹 Cleaning up old reports..."

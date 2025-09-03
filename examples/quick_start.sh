@@ -62,11 +62,17 @@ print_step "Activating virtual environment..."
 source venv/bin/activate
 print_success "Virtual environment activated"
 
-# Step 4: Install dependencies
-print_step "Installing dependencies..."
-pip install --upgrade pip
-pip install -r requirements.txt
-print_success "Dependencies installed"
+# Step 4: Install package
+print_step "Installing alex-trebench package..."
+if command -v uv >/dev/null 2>&1; then
+    print_success "Using uv for installation"
+    uv pip install -e .
+else
+    print_warning "uv not found, using pip"
+    pip install --upgrade pip
+    pip install -e .
+fi
+print_success "Package installed"
 
 # Step 5: Check for API key
 if [ -z "$OPENROUTER_API_KEY" ]; then
@@ -88,12 +94,12 @@ fi
 
 # Step 6: Initialize database
 print_step "Initializing database..."
-python -m src.main init
+alex init
 print_success "Database initialized"
 
 # Step 7: Run system health check
 print_step "Running system health check..."
-python -m src.main health
+alex health
 print_success "System health check completed"
 
 # Step 8: Run sample benchmarks
@@ -118,14 +124,14 @@ asyncio.run(mock_benchmark())
 "
 else
     print_step "Running quick benchmark with GPT-3.5-turbo..."
-    python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
+    alex benchmark run --model openai/gpt-3.5-turbo --size quick
     print_success "Quick benchmark completed"
 fi
 
 # Step 9: Generate sample report
 print_step "Generating sample report..."
 if [ "$USE_MOCK" = false ]; then
-    python -m src.main benchmark report --run-id 1 --format markdown --output sample_report.md
+    alex benchmark report --run-id 1 --format markdown --output sample_report.md
     print_success "Sample report generated: sample_report.md"
 else
     # Create a mock report
@@ -155,25 +161,25 @@ print_step "Displaying available commands..."
 echo ""
 echo "📋 Available Commands:"
 echo "======================"
-python -m src.main --help
+alex --help
 
 echo ""
 echo "🔧 Useful Commands:"
 echo "==================="
 echo "# Run a comprehensive benchmark"
-echo "python -m src.main benchmark run --model openai/gpt-4 --size comprehensive"
+echo "alex benchmark run --model openai/gpt-4 --size comprehensive"
 echo ""
 echo "# Compare multiple models"
-echo "python -m src.main benchmark compare --models 'openai/gpt-3.5-turbo,openai/gpt-4' --size standard"
+echo "alex benchmark compare --models 'openai/gpt-3.5-turbo,openai/gpt-4' --size standard"
 echo ""
 echo "# View benchmark history"
-echo "python -m src.main benchmark history --model openai/gpt-4"
+echo "alex benchmark history --model openai/gpt-4"
 echo ""
 echo "# Generate detailed report"
-echo "python -m src.main benchmark report --run-id 1 --format markdown"
+echo "alex benchmark report --run-id 1 --format markdown"
 echo ""
 echo "# List all benchmarks"
-echo "python -m src.main benchmark list"
+echo "alex benchmark list"
 
 # Step 11: Create demo script
 print_step "Creating demo script..."
@@ -188,19 +194,19 @@ echo "==================================="
 source venv/bin/activate
 
 echo "1. System Health Check:"
-python -m src.main health
+alex health
 
 echo ""
 echo "2. List Available Models:"
-python -m src.main models list
+alex models list
 
 echo ""
 echo "3. Run Quick Benchmark:"
-python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
+alex benchmark run --model openai/gpt-3.5-turbo --size quick
 
 echo ""
 echo "4. View Results:"
-python -m src.main benchmark list
+alex benchmark list
 
 echo ""
 echo "Demo completed! Check the generated reports for detailed results."
@@ -220,10 +226,10 @@ echo "1. Set your OpenRouter API key (if not already set):"
 echo "   export OPENROUTER_API_KEY='your_key_here'"
 echo ""
 echo "2. Run your first real benchmark:"
-echo "   python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick"
+echo "   alex benchmark run --model openai/gpt-3.5-turbo --size quick"
 echo ""
 echo "3. Explore the system:"
-echo "   python -m src.main --help"
+echo "   alex --help"
 echo ""
 echo "4. Run the demo:"
 echo "   ./run_demo.sh"

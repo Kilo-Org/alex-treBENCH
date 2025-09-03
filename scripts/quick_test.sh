@@ -99,7 +99,7 @@ check_dependencies() {
     
     # Try to import key modules
     if ! $PYTHON_CMD -c "import src.core.config, src.core.database, src.benchmark.runner" 2>/dev/null; then
-        print_status "failure" "Core modules not importable - run 'pip install -r requirements.txt'"
+        print_status "failure" "Core modules not importable - run 'uv pip install -e .' or 'pip install -e .'"
         missing_deps=1
     else
         print_status "success" "Core dependencies available"
@@ -136,13 +136,14 @@ show_troubleshooting() {
     echo ""
     echo -e "${YELLOW}${WARNING} Troubleshooting Tips:${NC}"
     echo ""
-    echo "1. Dependencies issue:"
-    echo "   pip install -r requirements.txt"
-    echo "   pip install -r requirements-dev.txt"
+    echo "1. Installation issue:"
+    echo "   uv pip install -e .  # recommended"
+    echo "   pip install -e .     # alternative"
+    echo "   uv pip install -r requirements-dev.txt  # for development"
     echo ""
     echo "2. Database issues:"
     echo "   rm -f data/*.db"
-    echo "   python -m src.main init"
+    echo "   alex init"
     echo ""
     echo "3. Module import errors:"
     echo "   export PYTHONPATH=\$(pwd)"
@@ -168,8 +169,8 @@ show_success_summary() {
     print_status "success" "Ready for benchmarking operations"
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
-    echo "• Run your first benchmark: python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick"
-    echo "• View available models: python -m src.main models list"
+    echo "• Run your first benchmark: alex benchmark run --model openai/gpt-3.5-turbo --size quick"
+    echo "• View available models: alex models list"
     echo "• Read the user guide: docs/USER_GUIDE.md"
     echo ""
 }

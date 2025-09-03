@@ -71,17 +71,17 @@ I have successfully orchestrated the complete development of a production-ready 
 pip install -e .
 
 # Initialize the database and download dataset
-python -m src.main db init
-python -m src.main data init
+alex db init
+alex data init
 
 # Run a quick benchmark
-python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
+alex benchmark run --model openai/gpt-3.5-turbo --size quick
 
 # Compare multiple models
-python -m src.main benchmark compare --models "openai/gpt-4,anthropic/claude-3-sonnet"
+alex benchmark compare --models "openai/gpt-4,anthropic/claude-3-sonnet"
 
 # View results
-python -m src.main benchmark report --format markdown
+alex benchmark report --format markdown
 ```
 
 ## 📈 **System Capabilities**

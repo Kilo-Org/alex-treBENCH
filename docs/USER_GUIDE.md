@@ -30,24 +30,27 @@ The Jeopardy Benchmarking System is a comprehensive tool for evaluating and comp
 git clone <repository-url>
 cd alex-trebench
 
-# Install dependencies
-pip install -r requirements.txt
+# Install using uv (recommended)
+uv pip install -e .
+
+# Or using pip
+pip install -e .
 
 # Optional: Install development dependencies
-pip install -r requirements-dev.txt
+uv pip install -r requirements-dev.txt
 
 # Initialize the system
-python -m src.main init
+alex init
 ```
 
 ### First Benchmark
 
 ```bash
 # Run a quick benchmark with GPT-3.5-turbo
-python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
+alex benchmark run --model openai/gpt-3.5-turbo --size quick
 
 # View results
-python -m src.main benchmark list
+alex benchmark list
 ```
 
 ## Installation
@@ -89,10 +92,14 @@ pydantic>=1.8.0
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install dependencies**:
+3. **Install the package**:
 
    ```bash
-   pip install -r requirements.txt
+   # Using uv (recommended)
+   uv pip install -e .
+   
+   # Or using pip
+   pip install -e .
    ```
 
 4. **Set up environment variables**:
@@ -105,12 +112,12 @@ pydantic>=1.8.0
 5. **Initialize the database**:
 
    ```bash
-   python -m src.main init
+   alex init
    ```
 
 6. **Verify installation**:
    ```bash
-   python -m src.main --help
+   alex --help
    ```
 
 ## Configuration
@@ -174,20 +181,20 @@ models:
 
 ```bash
 # Quick benchmark (50 questions)
-python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
+alex benchmark run --model openai/gpt-3.5-turbo --size quick
 
 # Standard benchmark (200 questions)
-python -m src.main benchmark run --model openai/gpt-4 --size standard
+alex benchmark run --model openai/gpt-4 --size standard
 
 # Comprehensive benchmark (1000 questions)
-python -m src.main benchmark run --model anthropic/claude-3-opus --size comprehensive
+alex benchmark run --model anthropic/claude-3-opus --size comprehensive
 ```
 
 #### Custom Benchmark
 
 ```bash
 # Custom sample size and settings
-python -m src.main benchmark run \
+alex benchmark run \
   --model openai/gpt-4 \
   --size custom \
   --sample-size 500 \
@@ -200,12 +207,12 @@ python -m src.main benchmark run \
 
 ```bash
 # Compare two models
-python -m src.main benchmark compare \
+alex benchmark compare \
   --models openai/gpt-3.5-turbo,openai/gpt-4 \
   --size standard
 
 # Compare multiple models with concurrency control
-python -m src.main benchmark compare \
+alex benchmark compare \
   --models openai/gpt-3.5-turbo,openai/gpt-4,anthropic/claude-3-haiku \
   --size quick \
   --concurrent-limit 3
@@ -215,13 +222,13 @@ python -m src.main benchmark compare \
 
 ```bash
 # List recent benchmarks
-python -m src.main benchmark list
+alex benchmark list
 
 # View benchmark history for a specific model
-python -m src.main benchmark history --model openai/gpt-4
+alex benchmark history --model openai/gpt-4
 
 # Generate detailed report
-python -m src.main benchmark report --run-id 1 --format markdown
+alex benchmark report --run-id 1 --format markdown
 ```
 
 ## Advanced Features
@@ -232,23 +239,23 @@ python -m src.main benchmark report --run-id 1 --format markdown
 
 ```bash
 # Initialize with default Jeopardy dataset
-python -m src.main data init
+alex data init
 
 # Initialize with custom dataset
-python -m src.main data init --source path/to/custom/dataset.csv
+alex data init --source path/to/custom/dataset.csv
 ```
 
 #### Sample Questions
 
 ```bash
 # Sample questions by category
-python -m src.main data sample \
+alex data sample \
   --category "SCIENCE" \
   --size 100 \
   --output science_sample.json
 
 # Sample by difficulty and value range
-python -m src.main data sample \
+alex data sample \
   --difficulty "Hard" \
   --min-value 1000 \
   --max-value 2000 \
@@ -261,20 +268,20 @@ python -m src.main data sample \
 
 ```bash
 # List all configured models
-python -m src.main models list
+alex models list
 
 # List models by provider
-python -m src.main models list --provider openai
+alex models list --provider openai
 ```
 
 #### Test Model Connectivity
 
 ```bash
 # Test a specific model
-python -m src.main models test --model openai/gpt-3.5-turbo --prompt "Hello, world!"
+alex models test --model openai/gpt-3.5-turbo --prompt "Hello, world!"
 
 # Estimate costs
-python -m src.main models costs --model openai/gpt-4 --questions 1000
+alex models costs --model openai/gpt-4 --questions 1000
 ```
 
 ### Report Formats
@@ -282,13 +289,13 @@ python -m src.main models costs --model openai/gpt-4 --questions 1000
 #### Terminal Output
 
 ```bash
-python -m src.main benchmark run --model openai/gpt-4 --report-format terminal
+alex benchmark run --model openai/gpt-4 --report-format terminal
 ```
 
 #### Markdown Report
 
 ```bash
-python -m src.main benchmark run \
+alex benchmark run \
   --model openai/gpt-4 \
   --report-format markdown \
   --output benchmark_report.md
@@ -297,7 +304,7 @@ python -m src.main benchmark run \
 #### JSON Export
 
 ```bash
-python -m src.main benchmark run \
+alex benchmark run \
   --model openai/gpt-4 \
   --report-format json \
   --output benchmark_results.json
@@ -308,13 +315,13 @@ python -m src.main benchmark run \
 #### View Current Configuration
 
 ```bash
-python -m src.main config show
+alex config show
 ```
 
 #### Use Custom Config File
 
 ```bash
-python -m src.main --config path/to/custom/config.yaml benchmark run --model openai/gpt-4
+alex --config path/to/custom/config.yaml benchmark run --model openai/gpt-4
 ```
 
 ## CLI Reference
@@ -333,7 +340,7 @@ python -m src.main --config path/to/custom/config.yaml benchmark run --model ope
 Run a benchmark for a specific model.
 
 ```bash
-python -m src.main benchmark run [OPTIONS] --model MODEL
+alex benchmark run [OPTIONS] --model MODEL
 
 Options:
   --size, -s: Benchmark size (quick/standard/comprehensive)
@@ -351,7 +358,7 @@ Options:
 Compare multiple models.
 
 ```bash
-python -m src.main benchmark compare [OPTIONS] --models MODELS
+alex benchmark compare [OPTIONS] --models MODELS
 
 Options:
   --size, -s: Benchmark size for all models
@@ -365,7 +372,7 @@ Options:
 Show benchmark history for a model.
 
 ```bash
-python -m src.main benchmark history [OPTIONS] --model MODEL
+alex benchmark history [OPTIONS] --model MODEL
 
 Options:
   --limit, -l: Number of recent benchmarks to show
@@ -377,7 +384,7 @@ Options:
 Generate a report for a benchmark run.
 
 ```bash
-python -m src.main benchmark report [OPTIONS] --run-id RUN_ID
+alex benchmark report [OPTIONS] --run-id RUN_ID
 
 Options:
   --format, -f: Report format (terminal/markdown/json/html)
@@ -390,7 +397,7 @@ Options:
 List recent benchmarks.
 
 ```bash
-python -m src.main benchmark list [OPTIONS]
+alex benchmark list [OPTIONS]
 
 Options:
   --limit, -l: Number of benchmarks to show
@@ -405,7 +412,7 @@ Options:
 Initialize the Jeopardy dataset.
 
 ```bash
-python -m src.main data init [OPTIONS]
+alex data init [OPTIONS]
 
 Options:
   --force: Force re-initialization
@@ -417,7 +424,7 @@ Options:
 Show dataset statistics.
 
 ```bash
-python -m src.main data stats [OPTIONS]
+alex data stats [OPTIONS]
 
 Options:
   --benchmark-id, -b: Show stats for specific benchmark
@@ -429,7 +436,7 @@ Options:
 Sample questions from the dataset.
 
 ```bash
-python -m src.main data sample [OPTIONS]
+alex data sample [OPTIONS]
 
 Options:
   --size, -s: Number of questions to sample
@@ -449,7 +456,7 @@ Options:
 List available models.
 
 ```bash
-python -m src.main models list [OPTIONS]
+alex models list [OPTIONS]
 
 Options:
   --provider, -p: Filter by provider
@@ -460,7 +467,7 @@ Options:
 Test a specific model.
 
 ```bash
-python -m src.main models test [OPTIONS] --model MODEL
+alex models test [OPTIONS] --model MODEL
 
 Options:
   --prompt, -p: Test prompt to send
@@ -471,7 +478,7 @@ Options:
 Estimate costs for running benchmarks.
 
 ```bash
-python -m src.main models costs [OPTIONS] --model MODEL
+alex models costs [OPTIONS] --model MODEL
 
 Options:
   --questions, -q: Number of questions
@@ -486,7 +493,7 @@ Options:
 Initialize the database and create tables.
 
 ```bash
-python -m src.main init [OPTIONS]
+alex init [OPTIONS]
 
 Options:
   --force: Force re-initialization
@@ -497,7 +504,7 @@ Options:
 Show current configuration.
 
 ```bash
-python -m src.main config show [OPTIONS]
+alex config show [OPTIONS]
 
 Options:
   --format, -f: Output format (yaml/json)
@@ -508,7 +515,7 @@ Options:
 Check system health.
 
 ```bash
-python -m src.main health [OPTIONS]
+alex health [OPTIONS]
 
 Options:
   --check-db: Check database connectivity
@@ -532,7 +539,7 @@ Options:
 
 ```bash
 # Test API connectivity
-python -m src.main health --check-api
+alex health --check-api
 ```
 
 #### Database Issues
@@ -547,7 +554,7 @@ python -m src.main health --check-api
 
 ```bash
 # Reinitialize database
-python -m src.main init --force
+alex init --force
 ```
 
 #### Memory Issues
@@ -563,7 +570,7 @@ python -m src.main init --force
 
 ```bash
 # Run with reduced concurrency
-python -m src.main benchmark run --model openai/gpt-4 --concurrent-limit 2
+alex benchmark run --model openai/gpt-4 --concurrent-limit 2
 ```
 
 #### Model Not Found
@@ -578,7 +585,7 @@ python -m src.main benchmark run --model openai/gpt-4 --concurrent-limit 2
 
 ```bash
 # List available models
-python -m src.main models list
+alex models list
 ```
 
 ### Performance Optimization
@@ -588,18 +595,18 @@ python -m src.main models list
 1. **Reduce sample size**:
 
    ```bash
-   python -m src.main benchmark run --model openai/gpt-4 --size quick
+   alex benchmark run --model openai/gpt-4 --size quick
    ```
 
 2. **Increase concurrency** (if API allows):
 
    ```bash
-   python -m src.main benchmark run --model openai/gpt-4 --concurrent-limit 10
+   alex benchmark run --model openai/gpt-4 --concurrent-limit 10
    ```
 
 3. **Use faster models for testing**:
    ```bash
-   python -m src.main benchmark run --model openai/gpt-3.5-turbo
+   alex benchmark run --model openai/gpt-3.5-turbo
    ```
 
 #### High Memory Usage
@@ -607,12 +614,12 @@ python -m src.main models list
 1. **Process in batches**:
 
    ```bash
-   python -m src.main benchmark run --model openai/gpt-4 --batch-size 10
+   alex benchmark run --model openai/gpt-4 --batch-size 10
    ```
 
 2. **Disable result saving for testing**:
    ```bash
-   python -m src.main benchmark run --model openai/gpt-4 --no-save-results
+   alex benchmark run --model openai/gpt-4 --no-save-results
    ```
 
 ### Logging and Debugging
@@ -621,10 +628,10 @@ python -m src.main models list
 
 ```bash
 # Enable debug mode
-python -m src.main --debug benchmark run --model openai/gpt-4
+alex --debug benchmark run --model openai/gpt-4
 
 # Enable verbose logging
-python -m src.main --verbose benchmark run --model openai/gpt-4
+alex --verbose benchmark run --model openai/gpt-4
 ```
 
 #### View Logs
@@ -642,19 +649,19 @@ grep "ERROR" logs/benchmark.log | tail -10
 1. **Check command help**:
 
    ```bash
-   python -m src.main --help
-   python -m src.main benchmark run --help
+   alex --help
+   alex benchmark run --help
    ```
 
 2. **View system health**:
 
    ```bash
-   python -m src.main health
+   alex health
    ```
 
 3. **Check configuration**:
    ```bash
-   python -m src.main config show
+   alex config show
    ```
 
 ## Best Practices

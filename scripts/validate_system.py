@@ -271,7 +271,7 @@ class SystemValidator:
                         False,
                         f"Database tables issue: {e}"
                     )
-                    self.add_recommendation("Run database initialization: python -m src.main init")
+                    self.add_recommendation("Run database initialization: alex init")
                     return False
             else:
                 self.log_check(

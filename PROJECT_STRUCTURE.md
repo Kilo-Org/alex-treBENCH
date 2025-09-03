@@ -3,31 +3,45 @@
 ## 1. Directory Organization
 
 ```
-alex_trebench/
+alex-trebench/
 ├── README.md
 ├── requirements.txt
+├── requirements-dev.txt
 ├── setup.py
+├── INSTALLATION.md
+├── PROJECT_STRUCTURE.md
+├── TECHNICAL_SPEC.md
 ├── config/
-│   ├── default.yaml
-│   ├── development.yaml
-│   └── production.yaml
+│   ├── default.yaml                # Main configuration
+│   └── models/                     # Model-specific configurations
+│       ├── anthropic.yaml
+│       ├── openai.yaml
+│       └── opensource.yaml
 ├── src/
 │   ├── __init__.py
-│   ├── main.py                     # CLI entry point
+│   ├── main.py                     # CLI entry point (alex command)
 │   ├── core/
 │   │   ├── __init__.py
 │   │   ├── config.py               # Configuration management
+│   │   ├── config_manager.py       # Enhanced config management
 │   │   ├── database.py             # Database connection and schema
-│   │   └── exceptions.py           # Custom exceptions
+│   │   ├── exceptions.py           # Custom exceptions
+│   │   └── session.py              # Session management
 │   ├── data/
 │   │   ├── __init__.py
 │   │   ├── ingestion.py            # Kaggle dataset loading
 │   │   ├── preprocessing.py        # Data cleaning and normalization
-│   │   └── sampling.py             # Statistical sampling algorithms
+│   │   ├── sampling.py             # Statistical sampling algorithms
+│   │   └── validation.py           # Data validation
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── base.py                 # Abstract model interface
 │   │   ├── openrouter.py           # OpenRouter API client
+│   │   ├── model_registry.py       # Dynamic model registry
+│   │   ├── model_cache.py          # Model metadata caching
+│   │   ├── cost_calculator.py      # Cost tracking
+│   │   ├── prompt_formatter.py     # Prompt templates
+│   │   ├── response_parser.py      # Response parsing
 │   │   └── adapters/               # Future model adapters
 │   │       └── __init__.py
 │   ├── evaluation/
@@ -35,30 +49,71 @@ alex_trebench/
 │   │   ├── matcher.py              # Fuzzy answer matching
 │   │   ├── grader.py               # Answer grading logic
 │   │   └── metrics.py              # Performance metrics calculation
-│   ├── benchmarks/
+│   ├── benchmark/
 │   │   ├── __init__.py
-│   │   ├── runner.py               # Benchmark execution engine
+│   │   ├── reporting.py            # Results analysis and reporting
 │   │   ├── scheduler.py            # Task scheduling and queue management
-│   │   └── reporting.py            # Results analysis and reporting
+│   │   └── runner/                 # Benchmark execution engine
+│   │       ├── __init__.py
+│   │       ├── core.py
+│   │       ├── config.py
+│   │       └── types.py
 │   ├── storage/
 │   │   ├── __init__.py
-│   │   ├── models.py               # SQLAlchemy ORM models
-│   │   ├── repositories.py         # Data access layer
-│   │   └── migrations/             # Database migrations
-│   │       └── __init__.py
+│   │   ├── backup.py               # Database backup utilities
+│   │   ├── cache.py                # Response caching
+│   │   ├── state_manager.py        # State management for pause/resume
+│   │   ├── migrations.py           # Migration management
+│   │   ├── models/                 # SQLAlchemy ORM models
+│   │   │   ├── __init__.py
+│   │   │   ├── benchmark_result.py
+│   │   │   ├── benchmark_run.py
+│   │   │   ├── mixins.py
+│   │   │   ├── model_performance.py
+│   │   │   └── question.py
+│   │   └── repositories/           # Data access layer
+│   │       ├── __init__.py
+│   │       ├── benchmark_repository.py
+│   │       ├── performance_repository.py
+│   │       ├── question_repository.py
+│   │       └── response_repository.py
 │   ├── cli/
 │   │   ├── __init__.py
 │   │   ├── commands.py             # CLI command definitions
 │   │   └── formatting.py           # Output formatting utilities
+│   ├── commands/                   # Command implementations
+│   │   ├── __init__.py
+│   │   ├── health.py
+│   │   ├── models.py
+│   │   ├── session.py
+│   │   ├── benchmarks/
+│   │   │   ├── __init__.py
+│   │   │   ├── compare.py
+│   │   │   ├── export.py
+│   │   │   ├── history.py
+│   │   │   ├── leaderboard.py
+│   │   │   ├── list.py
+│   │   │   ├── report.py
+│   │   │   ├── run.py
+│   │   │   └── status.py
+│   │   ├── config/
+│   │   │   ├── __init__.py
+│   │   │   └── settings.py
+│   │   └── data/
+│   │       ├── __init__.py
+│   │       ├── init.py
+│   │       ├── sample.py
+│   │       ├── stats.py
+│   │       └── validate.py
 │   ├── api/                        # Future web API
 │   │   ├── __init__.py
-│   │   ├── app.py                  # FastAPI application
 │   │   ├── routes/
-│   │   │   ├── __init__.py
-│   │   │   ├── benchmarks.py
-│   │   │   └── models.py
+│   │   │   └── __init__.py
 │   │   └── middleware/
 │   │       └── __init__.py
+│   ├── scripts/                    # Initialization and utility scripts
+│   │   ├── __init__.py
+│   │   └── init_data.py
 │   └── utils/
 │       ├── __init__.py
 │       ├── logging.py              # Logging configuration
@@ -67,33 +122,51 @@ alex_trebench/
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py                 # Pytest configuration
-│   ├── unit/
+│   ├── unit/                       # Unit tests
 │   │   ├── __init__.py
 │   │   ├── test_data/
 │   │   ├── test_evaluation/
 │   │   ├── test_models/
+│   │   ├── test_storage/
+│   │   ├── test_config/
 │   │   └── test_benchmarks/
-│   ├── integration/
+│   ├── integration/                # Integration tests
 │   │   ├── __init__.py
-│   │   ├── test_api_integration.py
-│   │   └── test_database.py
-│   └── fixtures/
+│   │   ├── test_benchmark_flow.py
+│   │   ├── test_data_pipeline.py
+│   │   ├── test_models_integration.py
+│   │   └── test_persistence.py
+│   ├── e2e/                        # End-to-end tests
+│   │   ├── test_cli_commands.py
+│   │   └── test_complete_workflow.py
+│   ├── performance/                # Performance tests
+│   │   └── test_benchmark_performance.py
+│   └── fixtures/                   # Test fixtures
+│       ├── __init__.py
 │       ├── sample_questions.json
 │       └── mock_responses.json
-├── scripts/
-│   ├── setup_database.py          # Database initialization
-│   ├── migrate_data.py             # Data migration utilities
-│   └── export_results.py          # Results export scripts
-├── docs/
-│   ├── api_reference.md
-│   ├── user_guide.md
-│   └── deployment_guide.md
-├── data/                           # Local data directory
-│   ├── raw/                        # Raw Kaggle dataset
-│   ├── processed/                  # Processed question samples
-│   └── exports/                    # Exported benchmark results
-├── logs/                           # Application logs
-└── database/                       # SQLite database files
+├── scripts/                        # Utility scripts
+│   ├── demo.py                     # Interactive demo
+│   ├── quick_test.sh              # Quick verification
+│   ├── smoke_test.py              # Smoke testing
+│   └── test_agents.py             # Component testing
+├── examples/                       # Usage examples
+│   ├── quick_start.sh             # Getting started script
+│   ├── sample_benchmark.py        # Example benchmarks
+│   ├── sample_config.yaml         # Example configuration
+│   └── sample_output.md           # Example output
+├── docs/                          # Documentation
+│   ├── USER_GUIDE.md              # Complete user guide
+│   ├── API_REFERENCE.md           # API documentation
+│   └── TESTING.md                 # Testing documentation
+├── data/                          # Local data directory
+│   ├── cache/                     # Model metadata cache
+│   │   └── models.json
+│   ├── raw/                       # Raw Kaggle dataset
+│   ├── processed/                 # Processed question samples
+│   └── exports/                   # Exported benchmark results
+├── logs/                          # Application logs
+└── database/                      # SQLite database files
     └── benchmarks.db
 ```
 

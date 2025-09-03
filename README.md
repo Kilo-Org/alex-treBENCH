@@ -71,20 +71,31 @@ graph TB
 ## 📁 Project Structure
 
 ```
-alex_trebench/
+alex-trebench/
 ├── config/                    # Configuration files (YAML)
+│   ├── default.yaml           # Main configuration
+│   └── models/                # Model-specific settings
 ├── src/
+│   ├── main.py                # CLI entry point (alex command)
 │   ├── core/                  # Foundation components
 │   ├── data/                  # Data ingestion and preprocessing
 │   ├── models/                # LLM API clients and adapters
 │   ├── evaluation/            # Answer matching and grading
-│   ├── benchmarks/            # Execution engine and reporting
+│   ├── benchmark/             # Execution engine and reporting
 │   ├── storage/               # Database models and repositories
 │   ├── cli/                   # Command-line interface
+│   ├── commands/              # Command implementations
 │   └── utils/                 # Shared utilities
 ├── tests/                     # Comprehensive test suite
+│   ├── unit/                  # Unit tests
+│   ├── integration/           # Integration tests
+│   └── e2e/                   # End-to-end tests
 ├── docs/                      # Documentation
-└── data/                      # Local data storage
+│   ├── USER_GUIDE.md          # Complete user guide
+│   └── API_REFERENCE.md       # API documentation
+├── scripts/                   # Utility scripts
+├── examples/                  # Usage examples
+└── data/                      # Local data storage and cache
 ```
 
 ## 📖 Documentation
@@ -130,6 +141,7 @@ consistency_score = 1 - std_deviation(response_times) / mean(response_times)
 ### Prerequisites
 
 - Python 3.8 or higher
+- uv (recommended) or pip for package management
 - OpenRouter API key (get one at [openrouter.ai](https://openrouter.ai))
 - Internet connection for API access
 
@@ -140,12 +152,11 @@ consistency_score = 1 - std_deviation(response_times) / mean(response_times)
 git clone <repository-url>
 cd alex-trebench
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Install using uv (recommended)
+uv pip install -e .
 
-# Install dependencies
-pip install -r requirements.txt
+# Or using pip
+pip install -e .
 ```
 
 ### Configuration
@@ -158,26 +169,26 @@ export OPENROUTER_API_KEY="your_api_key_here"
 echo "OPENROUTER_API_KEY=your_api_key_here" > .env
 
 # Initialize the database
-python -m src.main init
+alex init
 ```
 
 ### Basic Usage
 
 ```bash
 # Run a quick benchmark (50 questions)
-python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
+alex benchmark run --model openai/gpt-3.5-turbo --size quick
 
 # Run a standard benchmark (200 questions)
-python -m src.main benchmark run --model openai/gpt-4 --size standard
+alex benchmark run --model openai/gpt-4 --size standard
 
 # Compare multiple models
-python -m src.main benchmark compare --models "openai/gpt-3.5-turbo,openai/gpt-4" --size quick
+alex benchmark compare --models "openai/gpt-3.5-turbo,openai/gpt-4" --size quick
 
 # View benchmark history
-python -m src.main benchmark history --model openai/gpt-4
+alex benchmark history --model openai/gpt-4
 
 # Generate a report
-python -m src.main benchmark report --run-id 1 --format markdown
+alex benchmark report --run-id 1 --format markdown
 ```
 
 ## 📊 Sample Output
@@ -226,10 +237,10 @@ Category Performance:
 
 ```bash
 # Quick test with GPT-3.5-turbo
-python -m src.main benchmark run --model openai/gpt-3.5-turbo --size quick
+alex benchmark run --model openai/gpt-3.5-turbo --size quick
 
 # Comprehensive evaluation with GPT-4
-python -m src.main benchmark run \
+alex benchmark run \
   --model openai/gpt-4 \
   --size comprehensive \
   --name "GPT-4 Comprehensive Test" \
@@ -241,13 +252,13 @@ python -m src.main benchmark run \
 
 ```bash
 # Compare popular models
-python -m src.main benchmark compare \
+alex benchmark compare \
   --models "openai/gpt-3.5-turbo,openai/gpt-4,anthropic/claude-3-haiku" \
   --size standard \
   --concurrent-limit 3
 
 # Generate comparison report
-python -m src.main benchmark compare \
+alex benchmark compare \
   --models "openai/gpt-4,anthropic/claude-3-sonnet" \
   --size quick \
   --report-format json \
@@ -258,7 +269,7 @@ python -m src.main benchmark compare \
 
 ```bash
 # Custom benchmark with specific settings
-python -m src.main benchmark run \
+alex benchmark run \
   --model openai/gpt-4 \
   --size custom \
   --sample-size 500 \
@@ -272,29 +283,29 @@ python -m src.main benchmark run \
 
 ```bash
 # Initialize dataset
-python -m src.main data init
+alex data init
 
 # Sample questions by category
-python -m src.main data sample \
+alex data sample \
   --category "SCIENCE" \
   --size 100 \
   --output science_questions.json
 
 # View dataset statistics
-python -m src.main data stats
+alex data stats
 ```
 
 #### Model Management
 
 ```bash
 # List all available models
-python -m src.main models list
+alex models list
 
 # Test model connectivity
-python -m src.main models test --model openai/gpt-3.5-turbo
+alex models test --model openai/gpt-3.5-turbo
 
 # Estimate costs
-python -m src.main models costs --model openai/gpt-4 --questions 1000
+alex models costs --model openai/gpt-4 --questions 1000
 ```
 
 ## 🧪 Testing & Verification
