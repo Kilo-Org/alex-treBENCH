@@ -44,6 +44,7 @@ if 'src' not in sys.modules:
 from core.config import get_config, reload_config
 from core.exceptions import AlexTreBenchException
 from utils.logging import setup_logging, get_logger
+from utils.help_text import show_help_with_markdown
 
 # Import all command modules
 from commands.health import health
@@ -58,29 +59,19 @@ console = Console()
 logger = get_logger(__name__)
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.option('--config', '-c', type=click.Path(exists=True), help='Configuration file path')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose logging')
 @click.option('--debug', is_flag=True, help='Enable debug mode')
+@click.option('--help', '-h', is_flag=True, expose_value=False, is_eager=True,
+              callback=show_help_with_markdown, help='Show this message and exit')
 @click.pass_context
 def cli(ctx, config, verbose, debug):
-    """alex-treBENCH - Jeopardy Benchmarking System for Language Models
+    """alex-treBENCH - Jeopardy Benchmarking System for Language Models"""
     
-    \b
-    🚀 QUICK START EXAMPLES:
-    
-    alex benchmark run --model anthropic/claude-3-5-sonnet --size quick
-    alex benchmark compare --models "openai/gpt-4,anthropic/claude-3-5-sonnet"
-    alex models list
-    alex benchmark report --run-id 1 --format markdown
-    alex data init
-    alex health
-    
-    \b
-    💡 TIP: Use 'alex COMMAND --help' for detailed options on any command.
-    
-    📚 For complete documentation, see: docs/USER_GUIDE.md
-    """
+    # If no subcommand is provided, show the Rich markdown help
+    if ctx.invoked_subcommand is None:
+        show_help_with_markdown(ctx, None, True)
     
     # Ensure context object exists
     ctx.ensure_object(dict)
