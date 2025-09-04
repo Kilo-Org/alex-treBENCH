@@ -111,10 +111,7 @@ def compare(ctx, models, size, concurrent_limit, report_format, output):
                     result_list, format_enum, output_path
                 )
                 
-                if report_format == 'terminal':
-                    report_gen.display_terminal_report(result_list)
-                else:
-                    console.print(report_content)
+                console.print(report_content)
                 
                 progress.update(task, description="Complete!")
                 progress.stop()
