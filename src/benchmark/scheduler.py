@@ -219,6 +219,7 @@ class BenchmarkScheduler:
         Returns:
             Dictionary of model_name -> BenchmarkRunResult
         """
+        logger.info("🔍 DEBUG: run_scheduled_benchmarks() called")
         with self.lock:
             if self.state != SchedulerState.IDLE:
                 raise RuntimeError(f"Scheduler is not idle (current state: {self.state})")
@@ -227,6 +228,7 @@ class BenchmarkScheduler:
                 logger.warning("No benchmarks scheduled")
                 return {}
             
+            logger.info(f"🔍 DEBUG: Setting scheduler state to RUNNING, {len(self.pending_queue)} benchmarks queued")
             self.state = SchedulerState.RUNNING
             self.start_time = datetime.now()
             
@@ -241,13 +243,15 @@ class BenchmarkScheduler:
                 start_time=self.start_time
             )
         
-        logger.info(f"Starting scheduled benchmark execution: {self.progress.total_benchmarks} benchmarks")
+        logger.info(f"🔍 DEBUG: Starting scheduled benchmark execution: {self.progress.total_benchmarks} benchmarks")
         
         try:
             # Start background monitoring
+            logger.info("🔍 DEBUG: Starting background resource monitoring...")
             self._monitor_task = asyncio.create_task(self._monitor_resources())
             
             # Main execution loop
+            logger.info("🔍 CHECKPOINT: Entering main execution loop...")
             while True:
                 with self.lock:
                     if self.state == SchedulerState.STOPPING:
@@ -264,9 +268,11 @@ class BenchmarkScheduler:
                         break
                 
                 # Try to start new benchmarks
+                logger.debug("🔍 DEBUG: Processing queue to start new benchmarks...")
                 await self._process_queue()
                 
                 # Clean up completed tasks
+                logger.debug("🔍 DEBUG: Cleaning up completed tasks...")
                 await self._cleanup_completed_tasks()
                 
                 # Wait a bit before next iteration

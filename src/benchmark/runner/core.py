@@ -231,14 +231,19 @@ class BenchmarkRunner:
     async def _load_sample_questions(self, benchmark_id: int, config: BenchmarkConfig) -> List[Dict[str, Any]]:
         """Load and sample questions for the benchmark."""
         try:
-            logger.info(f"Loading sample questions: {config.sample_size} questions using {config.sampling_method} sampling")
+            logger.info(f"🔍 DEBUG: Starting _load_sample_questions - sample_size={config.sample_size}, method={config.sampling_method}")
             
             # Get questions from database using repository
+            logger.info("🔍 DEBUG: Opening database session...")
             with get_db_session() as session:
+                logger.info("🔍 DEBUG: Creating QuestionRepository...")
                 question_repo = QuestionRepository(session)
                 
                 # Get all questions as dataframe for sampling
+                logger.info("🔍 DEBUG: Calling get_all_questions()...")
                 all_questions = question_repo.get_all_questions()
+                logger.info(f"🔍 DEBUG: Retrieved {len(all_questions) if all_questions else 0} questions from database")
+                
                 if not all_questions:
                     raise DatabaseError("No questions found in database. Please run data initialization first.")
                 
@@ -299,9 +304,10 @@ class BenchmarkRunner:
         """Query the model with all questions."""
         openrouter_client = None
         try:
-            logger.info(f"Querying model {model_name} with {len(questions)} questions")
+            logger.info(f"🔍 DEBUG: Starting _query_model_batch - model={model_name}, questions={len(questions)}")
             
             # Initialize OpenRouter client
+            logger.info("🔍 DEBUG: Initializing OpenRouterClient...")
             openrouter_client = OpenRouterClient()
             openrouter_client.config.model_name = model_name
             openrouter_client.config.timeout_seconds = config.timeout_seconds
@@ -410,8 +416,11 @@ class BenchmarkRunner:
                         }
             
             # Execute all queries concurrently
+            logger.info(f"🔍 DEBUG: Creating {len(questions)} concurrent query tasks...")
             query_tasks = [query_single_question(q) for q in questions]
+            logger.info("🔍 DEBUG: Starting asyncio.gather() for concurrent queries...")
             responses = await asyncio.gather(*query_tasks, return_exceptions=False)
+            logger.info(f"🔍 DEBUG: asyncio.gather() completed with {len(responses)} responses")
             
             logger.info(f"Completed {len(responses)} model queries")
             successful_responses = sum(1 for r in responses if r.get('is_correct', False))

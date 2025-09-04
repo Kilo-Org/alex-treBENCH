@@ -119,7 +119,7 @@ class StatisticalSampler:
                 population_size=population_size
             ) from e
     
-    def stratified_sample(self, df: pd.DataFrame, 
+    def stratified_sample(self, df: pd.DataFrame,
                          sample_size: Optional[int] = None,
                          stratify_columns: Optional[List[str]] = None,
                          seed: Optional[int] = None) -> pd.DataFrame:
@@ -158,15 +158,25 @@ class StatisticalSampler:
             
             # If no stratification columns, use simple random sampling
             if not stratify_columns:
-                return self._simple_random_sample(df, sample_size)
+                return self._simple_random_sample(df, sample_size, seed)
             
-            # Create stratification groups
+            # For large datasets (>100k rows), use optimized approach or fallback
+            if len(df) > 100000:
+                logger.warning(f"Large dataset detected ({len(df)} rows). Using optimized stratified sampling...")
+                return self._optimized_stratified_sample(df, sample_size, stratify_columns, seed)
+            
+            # Create stratification groups (optimized)
             df_with_strata = df.copy()
             if stratify_columns:
-                # Combine stratification columns into a single stratum identifier
-                df_with_strata['stratum'] = df_with_strata[stratify_columns].apply(
-                    lambda x: '|'.join(x.astype(str)), axis=1
-                )
+                # OPTIMIZED: Use vectorized string operations instead of slow apply()
+                if len(stratify_columns) == 1:
+                    df_with_strata['stratum'] = df_with_strata[stratify_columns[0]].astype(str)
+                else:
+                    # Concatenate columns efficiently using vectorized operations
+                    stratum_parts = [df_with_strata[col].astype(str) for col in stratify_columns]
+                    df_with_strata['stratum'] = stratum_parts[0]
+                    for part in stratum_parts[1:]:
+                        df_with_strata['stratum'] = df_with_strata['stratum'] + '|' + part
             else:
                 df_with_strata['stratum'] = 'all'
             
@@ -270,9 +280,92 @@ class StatisticalSampler:
                 population_size=len(df)
             ) from e
     
-    def _simple_random_sample(self, df: pd.DataFrame, sample_size: int) -> pd.DataFrame:
+    def _simple_random_sample(self, df: pd.DataFrame, sample_size: int, seed: Optional[int] = None) -> pd.DataFrame:
         """Internal method for simple random sampling."""
-        return self.random_sample(df, sample_size)
+        return self.random_sample(df, sample_size, seed)
+    
+    def _optimized_stratified_sample(self, df: pd.DataFrame, sample_size: int,
+                                   stratify_columns: List[str], seed: Optional[int] = None) -> pd.DataFrame:
+        """
+        Optimized stratified sampling for large datasets (>100k rows).
+        Uses faster sampling methods and fallback strategies.
+        """
+        try:
+            logger.info(f"Using optimized stratified sampling for {len(df)} rows")
+            
+            # Limit stratification to avoid memory issues
+            effective_strat_cols = stratify_columns[:2]  # Max 2 columns for large datasets
+            
+            if len(effective_strat_cols) != len(stratify_columns):
+                logger.warning(f"Limiting stratification to {effective_strat_cols} for performance")
+            
+            # Use pandas groupby for efficient stratified sampling
+            np.random.seed(seed)  # Set numpy seed for consistent results
+            
+            # Group by stratification columns
+            if len(effective_strat_cols) == 1:
+                grouped = df.groupby(effective_strat_cols[0])
+            else:
+                grouped = df.groupby(effective_strat_cols)
+            
+            # Calculate group sizes proportionally
+            group_sizes = grouped.size()
+            total_groups = len(group_sizes)
+            
+            if total_groups > 1000:  # Too many strata, fallback to simple sampling
+                logger.warning(f"Too many strata ({total_groups}), falling back to random sampling")
+                return self._simple_random_sample(df, sample_size, seed)
+            
+            # Allocate samples proportionally
+            total_population = len(df)
+            samples_per_group = {}
+            allocated_total = 0
+            
+            for group_name, group_size in group_sizes.items():
+                proportion = group_size / total_population
+                group_sample_size = max(1, int(sample_size * proportion))
+                group_sample_size = min(group_sample_size, group_size)  # Don't exceed group size
+                samples_per_group[group_name] = group_sample_size
+                allocated_total += group_sample_size
+            
+            # Adjust for rounding differences
+            if allocated_total != sample_size:
+                diff = sample_size - allocated_total
+                # Add/subtract from largest groups
+                largest_groups = group_sizes.nlargest(abs(diff)).index
+                for group_name in largest_groups:
+                    if diff > 0 and samples_per_group[group_name] < group_sizes[group_name]:
+                        samples_per_group[group_name] += 1
+                        diff -= 1
+                    elif diff < 0 and samples_per_group[group_name] > 1:
+                        samples_per_group[group_name] -= 1
+                        diff += 1
+                    if diff == 0:
+                        break
+            
+            # Sample from each group
+            sampled_data = []
+            for group_name, n_samples in samples_per_group.items():
+                if n_samples > 0:
+                    group_data = grouped.get_group(group_name)
+                    if len(group_data) >= n_samples:
+                        sampled_group = group_data.sample(n=n_samples, random_state=seed)
+                    else:
+                        sampled_group = group_data  # Take all if group is smaller
+                    sampled_data.append(sampled_group)
+            
+            # Combine results
+            if sampled_data:
+                result_df = pd.concat(sampled_data, ignore_index=True)
+                logger.info(f"Optimized stratified sampling complete: {len(result_df)} questions selected")
+                return result_df
+            else:
+                logger.warning("No samples generated, falling back to random sampling")
+                return self._simple_random_sample(df, sample_size, seed)
+                
+        except Exception as e:
+            logger.error(f"Optimized stratified sampling failed: {str(e)}, falling back to random sampling")
+            return self._simple_random_sample(df, sample_size, seed)
     
     def temporal_stratified_sample(self, df: pd.DataFrame,
                                  sample_size: Optional[int] = None,

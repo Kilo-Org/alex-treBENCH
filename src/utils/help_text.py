@@ -30,6 +30,15 @@ alex health
 - `--verbose, -v`: Enable verbose logging
 - `--debug`: Enable debug mode
 - `--help`: Show this message and exit
+
+## Commands
+- benchmark  Benchmark management commands.
+- config     Configuration management commands.
+- data       Data management commands.
+- database   Database management commands.
+- health     Check system health and connectivity.
+- models     Model management commands.
+- session    Session management commands.
 """
     
     console.print(Markdown(markdown_help))

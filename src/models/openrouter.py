@@ -112,9 +112,12 @@ class OpenRouterClient(ModelAdapter):
             RateLimitError: If rate limits are exceeded
         """
         try:
+            logger.debug(f"🔍 DEBUG: Starting OpenRouter query for model {self.config.model_name}")
             await self._check_rate_limit()
+            logger.debug("🔍 DEBUG: Rate limit check passed")
             
             session = await self._ensure_session()
+            logger.debug("🔍 DEBUG: HTTP session ensured")
             
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -144,7 +147,9 @@ class OpenRouterClient(ModelAdapter):
             start_time = time.time()
             
             # Make the API request with retry logic
+            logger.info(f"🔍 DEBUG: Making OpenRouter API request to model {self.config.model_name}...")
             response_data = await self._make_request_with_retry(session, headers, payload)
+            logger.info(f"🔍 DEBUG: OpenRouter API request completed successfully")
             
             end_time = time.time()
             response_time_ms = int((end_time - start_time) * 1000)

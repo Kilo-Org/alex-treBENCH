@@ -111,15 +111,12 @@ def compare(ctx, models, size, concurrent_limit, report_format, output):
                     result_list, format_enum, output_path
                 )
                 
-                if report_format == 'terminal':
-                    report_gen.display_terminal_report(result_list)
-                else:
-                    console.print(report_content)
+                console.print(report_content)
                 
                 progress.update(task, description="Complete!")
                 progress.stop()
             
-            successful_count = len([r for r in result_list if r.success])
+            successful_count = len([r for r in result_list if r.is_successful])
             console.print(f"\n[green]✓ Comparison complete: {successful_count}/{len(model_list)} models succeeded[/green]")
             
             if output:

@@ -376,7 +376,7 @@ class ReportGenerator:
                 str(js.negative_scores)
             )
         
-        return str(table)
+        return table
     
     def _generate_plain_leaderboard(self, sorted_results) -> str:
         """Generate plain text leaderboard."""
