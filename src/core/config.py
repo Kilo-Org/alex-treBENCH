@@ -117,6 +117,19 @@ class BenchmarkConfig:
 
 
 @dataclass
+class DebugModeConfig:
+    """Debug mode configuration for detailed logging."""
+    enabled: bool = False
+    log_dir: str = "logs/debug"
+    log_prompts: bool = True
+    log_responses: bool = True
+    log_grading: bool = True
+    log_errors_only: bool = False  # If True, only log incorrect answers and errors
+    include_tokens: bool = True
+    include_costs: bool = True
+
+
+@dataclass
 class LoggingConfig:
     """Logging configuration."""
     level: str = "INFO"
@@ -125,6 +138,7 @@ class LoggingConfig:
     file: str = "logs/benchmark.log"
     max_size: str = "10MB"
     backup_count: int = 5
+    debug: DebugModeConfig = field(default_factory=DebugModeConfig)
 
 
 @dataclass
@@ -304,7 +318,10 @@ class AppConfig:
             config_data['benchmark'] = BenchmarkConfig(**benchmark_data)
 
         if 'logging' in config_data and isinstance(config_data['logging'], dict):
-            config_data['logging'] = LoggingConfig(**config_data['logging'])
+            logging_data = config_data['logging']
+            if 'debug' in logging_data and isinstance(logging_data['debug'], dict):
+                logging_data['debug'] = DebugModeConfig(**logging_data['debug'])
+            config_data['logging'] = LoggingConfig(**logging_data)
 
         if 'kaggle' in config_data and isinstance(config_data['kaggle'], dict):
             config_data['kaggle'] = KaggleConfig(**config_data['kaggle'])
