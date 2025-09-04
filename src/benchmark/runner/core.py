@@ -82,6 +82,18 @@ class BenchmarkRunner:
             )
         }
     
+    def get_default_config(self, mode: RunMode) -> BenchmarkConfig:
+        """
+        Get default configuration for the specified benchmark mode.
+        
+        Args:
+            mode: The benchmark run mode
+            
+        Returns:
+            BenchmarkConfig for the specified mode
+        """
+        return self.mode_configs.get(mode, self.mode_configs[RunMode.STANDARD])
+    
     async def run_benchmark(self,
                           model_name: str,
                           mode: RunMode = RunMode.STANDARD,
