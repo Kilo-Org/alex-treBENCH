@@ -119,7 +119,7 @@ def compare(ctx, models, size, concurrent_limit, report_format, output):
                 progress.update(task, description="Complete!")
                 progress.stop()
             
-            successful_count = len([r for r in result_list if r.success])
+            successful_count = len([r for r in result_list if r.is_successful])
             console.print(f"\n[green]✓ Comparison complete: {successful_count}/{len(model_list)} models succeeded[/green]")
             
             if output:
