@@ -531,14 +531,20 @@ class BenchmarkRunner:
                 saved_count = 0
                 for response_data in responses:
                     try:
+                        # Calculate Jeopardy score for this question
+                        question_value = response_data.get('value', 400)  # Default to $400 if no value
+                        is_correct = response_data.get('is_correct', False)
+                        jeopardy_score = question_value if is_correct else -question_value
+                        
                         # Create BenchmarkResult object
                         result = BenchmarkResult(
                             benchmark_run_id=benchmark_id,
                             question_id=response_data.get('question_id'),
                             model_name=model_name,
                             response_text=response_data.get('model_response', ''),
-                            is_correct=response_data.get('is_correct', False),
+                            is_correct=is_correct,
                             confidence_score=response_data.get('confidence_score', 0.0),
+                            jeopardy_score=jeopardy_score,  # Add Jeopardy score calculation
                             response_time_ms=response_data.get('response_time_ms', 0.0),
                             tokens_generated=response_data.get('tokens_generated', 0),
                             cost_usd=response_data.get('cost', 0.0)
@@ -602,6 +608,8 @@ class BenchmarkRunner:
                     total_questions=metrics.accuracy.total_count,
                     correct_answers=metrics.accuracy.correct_count,
                     accuracy_rate=metrics.accuracy.overall_accuracy,
+                    jeopardy_score=metrics.jeopardy_score.total_jeopardy_score,  # Add Jeopardy total score
+                    category_jeopardy_scores=json.dumps(metrics.jeopardy_score.category_scores),  # Add category scores
                     avg_response_time_ms=metrics.performance.mean_response_time,
                     median_response_time_ms=metrics.performance.median_response_time,
                     min_response_time_ms=metrics.performance.min_response_time,
