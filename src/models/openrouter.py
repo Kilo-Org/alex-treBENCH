@@ -418,9 +418,21 @@ class OpenRouterClient(ModelAdapter):
             output_cost = 0.0
             
             if pricing_info:
-                # OpenRouter pricing is typically in the format per 1M tokens
+                # OpenRouter pricing can come in different formats - handle both
+                # Format 1: Direct per-1M-token pricing
                 input_cost = float(pricing_info.get('prompt', 0))
                 output_cost = float(pricing_info.get('completion', 0))
+                
+                # Format 2: Already converted per-1M-token pricing
+                if input_cost == 0 and output_cost == 0:
+                    input_cost = float(pricing_info.get('input_cost_per_1m_tokens', 0))
+                    output_cost = float(pricing_info.get('output_cost_per_1m_tokens', 0))
+                
+                # Convert from per-token to per-1M-tokens if values are very small (likely per-token)
+                if input_cost > 0 and input_cost < 0.01:
+                    input_cost = input_cost * 1_000_000
+                if output_cost > 0 and output_cost < 0.01:
+                    output_cost = output_cost * 1_000_000
             
             # Extract capabilities and features
             capabilities = []

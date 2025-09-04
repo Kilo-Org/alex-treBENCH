@@ -104,9 +104,21 @@ def models_list(ctx, provider, refresh, search):
                 input_cost_per_token = pricing.get('input_cost_per_1m_tokens', 0)
                 output_cost_per_token = pricing.get('output_cost_per_1m_tokens', 0)
                 
-                # Convert from per-token to per-million-tokens for display
-                input_cost_per_million = input_cost_per_token * 1_000_000
-                output_cost_per_million = output_cost_per_token * 1_000_000
+                # The cached values can be either per-token or per-million-tokens
+                # Very small values (< 0.01) are per-token, larger values are per-million-tokens
+                if input_cost_per_token > 0 and input_cost_per_token < 0.01:
+                    # Values are per-token, convert to per-million-tokens
+                    input_cost_per_million = input_cost_per_token * 1_000_000
+                else:
+                    # Values are already per-million-tokens
+                    input_cost_per_million = input_cost_per_token
+                    
+                if output_cost_per_token > 0 and output_cost_per_token < 0.01:
+                    # Values are per-token, convert to per-million-tokens
+                    output_cost_per_million = output_cost_per_token * 1_000_000
+                else:
+                    # Values are already per-million-tokens
+                    output_cost_per_million = output_cost_per_token
                 
                 # Format costs
                 def format_list_cost(cost):
@@ -194,8 +206,20 @@ def models_search(ctx, query, limit):
             
             for model in matching_models:
                 pricing = model.get('pricing', {})
-                input_cost = pricing.get('input_cost_per_1m_tokens', 0)
-                output_cost = pricing.get('output_cost_per_1m_tokens', 0)
+                input_cost_per_token = pricing.get('input_cost_per_1m_tokens', 0)
+                output_cost_per_token = pricing.get('output_cost_per_1m_tokens', 0)
+                
+                # Convert per-token costs to per-million-tokens for display
+                # Very small values (< 0.01) are per-token, larger values are per-million-tokens
+                if input_cost_per_token > 0 and input_cost_per_token < 0.01:
+                    input_cost = input_cost_per_token * 1_000_000
+                else:
+                    input_cost = input_cost_per_token
+                    
+                if output_cost_per_token > 0 and output_cost_per_token < 0.01:
+                    output_cost = output_cost_per_token * 1_000_000
+                else:
+                    output_cost = output_cost_per_token
                 
                 table.add_row(
                     (model.get('provider', 'Unknown')).title(),
