@@ -28,3 +28,15 @@ class PerformanceRepository:
         except Exception as e:
             self.session.rollback()
             raise DatabaseError(f"Failed to save performance summary: {str(e)}")
+
+    def get_performances_by_benchmark(self, benchmark_id: int) -> List[ModelPerformance]:
+        """Get all performance summaries for a specific benchmark."""
+        try:
+            performances = (
+                self.session.query(ModelPerformance)
+                .filter(ModelPerformance.benchmark_run_id == benchmark_id)
+                .all()
+            )
+            return performances
+        except Exception as e:
+            raise DatabaseError(f"Failed to get performances for benchmark {benchmark_id}: {str(e)}")
