@@ -307,7 +307,7 @@ class OpenRouterClient(ModelAdapter):
         
         pricing = self.MODEL_PRICING.get(self.config.model_name)
         if not pricing:
-            logger.warning(f"TRACE: No static MODEL_PRICING entry for '{self.config.model_name}'. Falling back to registry estimate.")
+            logger.debug(f"TRACE: No static MODEL_PRICING entry for '{self.config.model_name}'. Falling back to registry estimate.")
             # Fallback to registry for dynamic pricing
             from .model_registry import ModelRegistry
             return ModelRegistry.estimate_cost(self.config.model_name, input_tokens, output_tokens)

@@ -30,6 +30,11 @@ from src.utils.logging import get_logger
 from .config import BenchmarkConfig, RunMode
 from .types import BenchmarkRunResult, BenchmarkProgress
 
+from .question_loader import QuestionLoader
+from .model_query_handler import ModelQueryHandler
+from .result_saver import ResultSaver
+from .metrics_handler import MetricsHandler
+
 logger = get_logger(__name__)
 
 
@@ -52,6 +57,21 @@ class BenchmarkRunner:
         self.response_parser = ResponseParser()
         self.grader = AnswerGrader()
         self.metrics_calculator = MetricsCalculator()
+        
+        # Initialize handler components
+        self.question_loader = QuestionLoader(self.sampler)
+        self.model_query_handler = ModelQueryHandler(
+            prompt_formatter=self.prompt_formatter,
+            response_parser=self.response_parser,
+            grader=self.grader,
+            debug_logger=self.debug_logger,
+            config=self.config
+        )
+        self.result_saver = ResultSaver(config=self.config)
+        self.metrics_handler = MetricsHandler(
+            metrics_calculator=self.metrics_calculator,
+            config=self.config
+        )
         
         # State tracking
         self.current_benchmark: Optional[BenchmarkRun] = None
@@ -146,24 +166,26 @@ class BenchmarkRunner:
             
             # Phase 2: Load and sample questions
             self.progress.current_phase = "Loading questions"
-            questions = await self._load_sample_questions(benchmark_id, config)
+            questions = await self.question_loader.load_sample_questions(benchmark_id, config)
             
             # Phase 3: Query model and grade responses
             self.progress.current_phase = "Querying model"
-            responses = await self._query_model_batch(model_name, questions, config)
+            responses = await self.model_query_handler.query_model_batch(
+                model_name, questions, config, benchmark_id, self.progress
+            )
             
             # Phase 3.5: Save individual response results to database
             self.progress.current_phase = "Saving results"
-            await self._save_benchmark_results(benchmark_id, model_name, responses)
+            await self.result_saver.save_benchmark_results(benchmark_id, model_name, responses)
             
             # Phase 4: Calculate metrics
             self.progress.current_phase = "Calculating metrics"
-            metrics = await self._calculate_metrics(benchmark_id, model_name, responses)
+            metrics = await self.metrics_handler.calculate_metrics(benchmark_id, model_name, responses)
             
             # Phase 4.5: Save model performance summary
             if metrics:
                 self.progress.current_phase = "Saving performance metrics"
-                await self._save_model_performance(benchmark_id, model_name, metrics)
+                await self.result_saver.save_model_performance(benchmark_id, model_name, metrics)
             
             # Phase 5: Finalize
             self.progress.current_phase = "Finalizing"
@@ -235,318 +257,7 @@ class BenchmarkRunner:
         except Exception as e:
             raise DatabaseError(f"Failed to initialize benchmark: {str(e)}")
     
-    async def _load_sample_questions(self, benchmark_id: int, config: BenchmarkConfig) -> List[Dict[str, Any]]:
-        """Load and sample questions for the benchmark."""
-        try:
-            logger.info(f"🔍 DEBUG: Starting _load_sample_questions - sample_size={config.sample_size}, method={config.sampling_method}")
-            
-            # Get questions from database using repository
-            logger.info("🔍 DEBUG: Opening database session...")
-            with get_db_session() as session:
-                logger.info("🔍 DEBUG: Creating QuestionRepository...")
-                question_repo = QuestionRepository(session)
-                
-                # Get all questions as dataframe for sampling
-                logger.info("🔍 DEBUG: Calling get_all_questions()...")
-                all_questions = question_repo.get_all_questions()
-                logger.info(f"🔍 DEBUG: Retrieved {len(all_questions) if all_questions else 0} questions from database")
-                
-                if not all_questions:
-                    raise DatabaseError("No questions found in database. Please run data initialization first.")
-                
-                logger.info(f"Found {len(all_questions)} total questions in database")
-                
-                # Convert to DataFrame for sampling
-                questions_data = []
-                for q in all_questions:
-                    questions_data.append({
-                        'id': q.id,
-                        'question_text': q.question_text,
-                        'correct_answer': q.correct_answer,
-                        'category': q.category,
-                        'value': q.value or 400,  # Default value if None
-                        'difficulty_level': q.difficulty_level or 'Medium',  # Default if None
-                        'air_date': q.air_date,
-                        'show_number': q.show_number,
-                        'round': q.round
-                    })
-                
-                df = pd.DataFrame(questions_data)
-                
-                # Use statistical sampler to get representative sample
-                if config.sampling_method == "stratified":
-                    sampled_df = self.sampler.stratified_sample(
-                        df=df,
-                        sample_size=config.sample_size,
-                        stratify_columns=config.stratify_columns,
-                        seed=config.sampling_seed
-                    )
-                else:
-                    # Fall back to simple random sampling
-                    sampled_df = df.sample(n=min(config.sample_size, len(df)), 
-                                         random_state=config.sampling_seed)
-                
-                # Convert back to list of dicts with proper type handling
-                sample_records = sampled_df.to_dict('records')
-                sample_questions: List[Dict[str, Any]] = []
-                for record in sample_records:
-                    # Convert keys to strings and add to list
-                    str_record: Dict[str, Any] = {str(k): v for k, v in record.items()}
-                    sample_questions.append(str_record)
-                
-                logger.info(f"Sampled {len(sample_questions)} questions for benchmark")
-                
-                # Log sampling distribution
-                if 'category' in sampled_df.columns:
-                    category_counts = sampled_df['category'].value_counts()
-                    logger.debug(f"Category distribution: {category_counts.head(10).to_dict()}")
-                
-                return sample_questions
-                
-        except Exception as e:
-            logger.error(f"Failed to load sample questions: {str(e)}")
-            raise DatabaseError(f"Failed to load sample questions: {str(e)}")
     
-    async def _query_model_batch(self, model_name: str, questions: List[Dict[str, Any]], config: BenchmarkConfig) -> List[Dict[str, Any]]:
-        """Query the model with all questions."""
-        openrouter_client = None
-        try:
-            logger.info(f"🔍 DEBUG: Starting _query_model_batch - model={model_name}, questions={len(questions)}")
-            
-            # Initialize OpenRouter client
-            logger.info("🔍 DEBUG: Initializing OpenRouterClient...")
-            openrouter_client = OpenRouterClient()
-            openrouter_client.config.model_name = model_name
-            openrouter_client.config.timeout_seconds = config.timeout_seconds
-            
-            # Configure prompt formatter  
-            prompt_config = PromptConfig(
-                template=PromptTemplate.JEOPARDY_STYLE,
-                include_category=True,
-                include_value=True,
-                include_difficulty=False
-            )
-            
-            responses = []
-            semaphore = asyncio.Semaphore(config.max_concurrent_requests)
-            
-            async def query_single_question(question_data: Dict[str, Any]) -> Dict[str, Any]:
-                async with semaphore:
-                    try:
-                        # Format the prompt
-                        prompt = self.prompt_formatter.format_prompt(
-                            question=question_data['question_text'],
-                            category=question_data.get('category'),
-                            value=f"${question_data.get('value', 400)}",
-                            difficulty=question_data.get('difficulty_level'),
-                            config=prompt_config
-                        )
-                        
-                        # Debug log prompt if enabled
-                        if self.config.logging.debug.enabled and self.config.logging.debug.log_prompts:
-                            self.debug_logger.log_prompt_only(
-                                question_id=question_data['id'],
-                                model_name=model_name,
-                                question_text=question_data['question_text'],
-                                formatted_prompt=prompt
-                            )
-                        
-                        # Query the model
-                        model_response = await openrouter_client.query(prompt)
-                        
-                        # Parse the response
-                        parsed_response = self.response_parser.parse_response(model_response.response)
-                        
-                        # Debug log response if enabled
-                        if self.config.logging.debug.enabled and self.config.logging.debug.log_responses:
-                            self.debug_logger.log_response_only(
-                                question_id=question_data['id'],
-                                model_name=model_name,
-                                raw_response=model_response.response,
-                                parsed_answer=parsed_response.extracted_answer
-                            )
-                        
-                        # Grade the response
-                        graded_response = self.grader.grade_response(
-                            response_text=model_response.response,
-                            correct_answer=question_data['correct_answer'],
-                            question_context={
-                                'category': question_data.get('category'),
-                                'value': question_data.get('value', 400),
-                                'question_text': question_data['question_text']
-                            },
-                            multiple_acceptable=None,
-                            criteria=GradingCriteria(
-                                mode=GradingMode.JEOPARDY,
-                                fuzzy_threshold=0.80,
-                                semantic_threshold=0.70
-                            )
-                        )
-                        
-                        # Debug log grading details if enabled
-                        if self.config.logging.debug.enabled and self.config.logging.debug.log_grading:
-                            grading_details = {
-                                'fuzzy_threshold': 0.80,
-                                'semantic_threshold': 0.70,
-                                'mode': 'JEOPARDY',
-                                'match_details': graded_response.match_result.details if graded_response.match_result else {}
-                            }
-                            self.debug_logger.log_grading_details(
-                                question_id=question_data['id'],
-                                model_name=model_name,
-                                parsed_answer=parsed_response.extracted_answer,
-                                correct_answer=question_data['correct_answer'],
-                                is_correct=graded_response.is_correct,
-                                match_score=graded_response.match_result.confidence if graded_response.match_result else 0.0,
-                                match_type=graded_response.match_result.match_type.value if graded_response.match_result else 'unknown',
-                                grading_details=grading_details
-                            )
-                        
-                        # Update progress
-                        if self.progress:
-                            self.progress.completed_questions += 1
-                            if graded_response.is_correct:
-                                self.progress.successful_responses += 1
-                            else:
-                                self.progress.failed_responses += 1
-                        
-                        # Comprehensive debug logging
-                        if self.config.logging.debug.enabled:
-                            # Only log if not in errors_only mode, or if there's an error/incorrect answer
-                            should_log = not self.config.logging.debug.log_errors_only or not graded_response.is_correct
-                            
-                            if should_log:
-                                # Extract token information
-                                tokens_input = model_response.metadata.get('tokens_input', 0) if model_response.metadata else 0
-                                tokens_output = model_response.metadata.get('tokens_output', 0) if model_response.metadata else 0
-                                
-                                grading_details = {
-                                    'fuzzy_threshold': 0.80,
-                                    'semantic_threshold': 0.70,
-                                    'mode': 'JEOPARDY',
-                                    'match_details': graded_response.match_result.details if graded_response.match_result else {},
-                                    'confidence': graded_response.confidence,
-                                    'score': graded_response.score,
-                                    'partial_credit': graded_response.partial_credit
-                                }
-                                
-                                self.debug_logger.log_model_interaction(
-                                    benchmark_id=self.current_benchmark_id,
-                                    question_id=question_data['id'],
-                                    model_name=model_name,
-                                    category=question_data.get('category'),
-                                    value=question_data.get('value', 400),
-                                    question_text=question_data['question_text'],
-                                    correct_answer=question_data['correct_answer'],
-                                    formatted_prompt=prompt,
-                                    raw_response=model_response.response,
-                                    parsed_answer=parsed_response.extracted_answer,
-                                    is_correct=graded_response.is_correct,
-                                    match_score=graded_response.match_result.confidence if graded_response.match_result else 0.0,
-                                    match_type=graded_response.match_result.match_type.value if graded_response.match_result else 'unknown',
-                                    confidence_score=graded_response.confidence or 0.0,
-                                    response_time_ms=model_response.latency_ms,
-                                    cost_usd=model_response.cost,
-                                    tokens_input=tokens_input,
-                                    tokens_output=tokens_output,
-                                    grading_details=grading_details
-                                )
-                        
-                        # Return comprehensive response data
-                        return {
-                            'question_id': question_data['id'],
-                            'question_text': question_data['question_text'],
-                            'correct_answer': question_data['correct_answer'],
-                            'category': question_data.get('category'),
-                            'value': question_data.get('value', 400),
-                            'model_response': model_response.response,
-                            'parsed_answer': parsed_response.extracted_answer,
-                            'is_correct': graded_response.is_correct,
-                            'match_score': graded_response.match_result.confidence,
-                            'match_type': graded_response.match_result.match_type.value,
-                            'confidence_score': graded_response.confidence or 0.0,
-                            'response_time_ms': model_response.latency_ms,
-                            'tokens_generated': model_response.tokens_used,
-                            'cost': model_response.cost,
-                            'prompt': prompt,
-                            'graded_response': graded_response,
-                            'model_response_obj': model_response
-                        }
-                        
-                    except Exception as e:
-                        logger.error(f"Failed to query question {question_data.get('id', 'unknown')}: {str(e)}")
-                        
-                        # Update progress for failed response
-                        if self.progress:
-                            self.progress.completed_questions += 1
-                            self.progress.failed_responses += 1
-                        
-                        # Debug log error if enabled
-                        if self.config.logging.debug.enabled:
-                            try:
-                                # Try to get the prompt that was being formatted when error occurred
-                                error_prompt = ""
-                                try:
-                                    error_prompt = self.prompt_formatter.format_prompt(
-                                        question=question_data['question_text'],
-                                        category=question_data.get('category'),
-                                        value=f"${question_data.get('value', 400)}",
-                                        difficulty=question_data.get('difficulty_level'),
-                                        config=prompt_config
-                                    )
-                                except:
-                                    error_prompt = f"Failed to format prompt: {question_data['question_text']}"
-                                
-                                self.debug_logger.log_model_interaction(
-                                    benchmark_id=self.current_benchmark_id,
-                                    question_id=question_data['id'],
-                                    model_name=model_name,
-                                    category=question_data.get('category'),
-                                    value=question_data.get('value', 400),
-                                    question_text=question_data['question_text'],
-                                    correct_answer=question_data['correct_answer'],
-                                    formatted_prompt=error_prompt,
-                                    raw_response=f"ERROR: {str(e)}",
-                                    parsed_answer="",
-                                    is_correct=False,
-                                    match_score=0.0,
-                                    match_type='error',
-                                    confidence_score=0.0,
-                                    response_time_ms=0.0,
-                                    cost_usd=0.0,
-                                    tokens_input=0,
-                                    tokens_output=0,
-                                    error=str(e)
-                                )
-                            except Exception as debug_error:
-                                logger.warning(f"Failed to log debug info for error: {debug_error}")
-                        
-                        # Return error response
-                        return {
-                            'question_id': question_data['id'],
-                            'question_text': question_data['question_text'],
-                            'correct_answer': question_data['correct_answer'],
-                            'category': question_data.get('category'),
-                            'value': question_data.get('value', 400),
-                            'model_response': f"ERROR: {str(e)}",
-                            'parsed_answer': "",
-                            'is_correct': False,
-                            'match_score': 0.0,
-                            'match_type': 'error',
-                            'confidence_score': 0.0,
-                            'response_time_ms': 0.0,
-                            'tokens_generated': 0,
-                            'cost': 0.0,
-                            'prompt': "",
-                            'error': str(e)
-                        }
-            
-            # Execute all queries concurrently
-            logger.info(f"🔍 DEBUG: Creating {len(questions)} concurrent query tasks...")
-            query_tasks = [query_single_question(q) for q in questions]
-            logger.info("🔍 DEBUG: Starting asyncio.gather() for concurrent queries...")
-            responses = await asyncio.gather(*query_tasks, return_exceptions=False)
-            logger.info(f"🔍 DEBUG: asyncio.gather() completed with {len(responses)} responses")
             
             logger.info(f"Completed {len(responses)} model queries")
             successful_responses = sum(1 for r in responses if r.get('is_correct', False))
