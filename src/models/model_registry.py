@@ -396,9 +396,13 @@ class ModelRegistry:
     @classmethod
     def estimate_cost(cls, model_id: str, input_tokens: int, output_tokens: int) -> float:
         """Estimate cost for a model given token counts."""
+        logger.info(f"TRACE: estimate_cost called for model '{model_id}' with input_tokens={input_tokens}, output_tokens={output_tokens}")
+        
         # First try to get pricing from cached dynamic models
         pricing_info = cls._get_model_pricing(model_id)
-        logger.debug(f"Pricing info for {model_id}: {pricing_info}")
+        logger.info(f"TRACE: Dynamic pricing lookup for '{model_id}': {pricing_info}")
+        if pricing_info:
+            logger.info(f"TRACE: Using dynamic pricing for '{model_id}'")
         
         if pricing_info:
             # Handle different pricing formats from OpenRouter API
@@ -421,28 +425,37 @@ class ModelRegistry:
         # Fall back to static models
         config = cls.get_model_config(model_id)
         if config:
-            logger.debug(f"Using static config for {model_id}: input={config.input_cost_per_1m_tokens}, output={config.output_cost_per_1m_tokens}")
+            logger.info(f"TRACE: Using static config for '{model_id}': input={config.input_cost_per_1m_tokens}, output={config.output_cost_per_1m_tokens}")
             input_cost = (input_tokens / 1_000_000) * config.input_cost_per_1m_tokens
             output_cost = (output_tokens / 1_000_000) * config.output_cost_per_1m_tokens
-            return input_cost + output_cost
+            total_cost = input_cost + output_cost
+            logger.info(f"TRACE: Static cost calculated for '{model_id}': total=${total_cost:.6f}")
+            return total_cost
+        else:
+            logger.warning(f"TRACE: No static config found for '{model_id}'")
         
         # Try alternative model IDs (sometimes model IDs have variations)
         alternative_ids = [
             model_id.replace('anthropic/claude-sonnet-4', 'anthropic/claude-3.5-sonnet'),
             model_id.replace('claude-sonnet-4', 'claude-3.5-sonnet'),
-            model_id.replace('claude-sonnet', 'claude-3.5-sonnet')
+            model_id.replace('claude-sonnet', 'claude-3.5-sonnet'),
+            f"openai/gpt-5-preview" if "gpt-5" in model_id else None,
+            f"openai/{model_id.split('/')[-1]}-preview" if "gpt-5" in model_id else None
         ]
+        alternative_ids = [aid for aid in alternative_ids if aid and aid != model_id]
+        logger.info(f"TRACE: Trying {len(alternative_ids)} alternative IDs for '{model_id}': {alternative_ids}")
         
         for alt_id in alternative_ids:
-            if alt_id != model_id:
-                alt_config = cls.get_model_config(alt_id)
-                if alt_config:
-                    logger.debug(f"Using alternative model config {alt_id} for {model_id}")
-                    input_cost = (input_tokens / 1_000_000) * alt_config.input_cost_per_1m_tokens
-                    output_cost = (output_tokens / 1_000_000) * alt_config.output_cost_per_1m_tokens
-                    return input_cost + output_cost
+            alt_config = cls.get_model_config(alt_id)
+            if alt_config:
+                logger.info(f"TRACE: Using alternative model config '{alt_id}' for '{model_id}': input={alt_config.input_cost_per_1m_tokens}, output={alt_config.output_cost_per_1m_tokens}")
+                input_cost = (input_tokens / 1_000_000) * alt_config.input_cost_per_1m_tokens
+                output_cost = (output_tokens / 1_000_000) * alt_config.output_cost_per_1m_tokens
+                total_cost = input_cost + output_cost
+                logger.info(f"TRACE: Alternative cost calculated for '{model_id}': total=${total_cost:.6f}")
+                return total_cost
         
-        logger.warning(f"No pricing information found for model {model_id}")
+        logger.warning(f"TRACE: No pricing information found after all fallbacks for model '{model_id}'. Cache status: valid={cls()._get_cache().is_cache_valid()}")
         return 0.0
     
     @classmethod

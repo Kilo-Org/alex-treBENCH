@@ -37,6 +37,7 @@ class OpenRouterClient(ModelAdapter):
         'openai/gpt-4-turbo': {'input': 10.0, 'output': 30.0},
         'openai/gpt-4o': {'input': 5.0, 'output': 15.0},
         'openai/gpt-4o-mini': {'input': 0.15, 'output': 0.6},
+        'openai/gpt-5': {'input': 1.0, 'output': 10.0},
         'meta-llama/llama-2-70b-chat': {'input': 0.7, 'output': 0.8},
         'meta-llama/llama-3.1-405b-instruct': {'input': 3.0, 'output': 3.0},
         'mistralai/mixtral-8x7b-instruct': {'input': 0.24, 'output': 0.24},
@@ -302,16 +303,23 @@ class OpenRouterClient(ModelAdapter):
     
     def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """Calculate cost based on token usage."""
+        logger.info(f"TRACE: OpenRouterClient._calculate_cost called for '{self.config.model_name}' with input_tokens={input_tokens}, output_tokens={output_tokens}")
+        
         pricing = self.MODEL_PRICING.get(self.config.model_name)
         if not pricing:
-            logger.warning(f"No pricing info for model {self.config.model_name}")
-            return 0.0
+            logger.warning(f"TRACE: No static MODEL_PRICING entry for '{self.config.model_name}'. Falling back to registry estimate.")
+            # Fallback to registry for dynamic pricing
+            from .model_registry import ModelRegistry
+            return ModelRegistry.estimate_cost(self.config.model_name, input_tokens, output_tokens)
         
+        logger.info(f"TRACE: Using static pricing for '{self.config.model_name}': input={pricing['input']}, output={pricing['output']}")
         # Convert from per-1M-token pricing
         input_cost = (input_tokens / 1_000_000) * pricing['input']
         output_cost = (output_tokens / 1_000_000) * pricing['output']
+        total_cost = input_cost + output_cost
+        logger.info(f"TRACE: Static cost calculated: total=${total_cost:.6f}")
         
-        return input_cost + output_cost
+        return total_cost
     
     def is_available(self) -> bool:
         """Check if OpenRouter API is available."""
