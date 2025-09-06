@@ -16,6 +16,7 @@ import pandas as pd
 from src.core.config import get_config
 from src.core.database import get_db_session
 from src.core.exceptions import DatabaseError, ModelAPIError
+from src.core.debug_logger import initialize_debug_logger, get_debug_logger
 from src.data.sampling import StatisticalSampler
 from src.models.openrouter import OpenRouterClient
 from src.models.prompt_formatter import PromptFormatter, PromptConfig, PromptTemplate
@@ -38,6 +39,12 @@ class BenchmarkRunner:
     def __init__(self):
         """Initialize the benchmark runner."""
         self.config = get_config()
+        
+        # Initialize debug logger
+        self.debug_logger = initialize_debug_logger(
+            debug_enabled=self.config.logging.debug.enabled,
+            log_dir=self.config.logging.debug.log_dir
+        )
         
         # Initialize components
         self.sampler = StatisticalSampler()
@@ -335,11 +342,29 @@ class BenchmarkRunner:
                             config=prompt_config
                         )
                         
+                        # Debug log prompt if enabled
+                        if self.config.logging.debug.enabled and self.config.logging.debug.log_prompts:
+                            self.debug_logger.log_prompt_only(
+                                question_id=question_data['id'],
+                                model_name=model_name,
+                                question_text=question_data['question_text'],
+                                formatted_prompt=prompt
+                            )
+                        
                         # Query the model
                         model_response = await openrouter_client.query(prompt)
                         
                         # Parse the response
                         parsed_response = self.response_parser.parse_response(model_response.response)
+                        
+                        # Debug log response if enabled
+                        if self.config.logging.debug.enabled and self.config.logging.debug.log_responses:
+                            self.debug_logger.log_response_only(
+                                question_id=question_data['id'],
+                                model_name=model_name,
+                                raw_response=model_response.response,
+                                parsed_answer=parsed_response.extracted_answer
+                            )
                         
                         # Grade the response
                         graded_response = self.grader.grade_response(
@@ -358,6 +383,25 @@ class BenchmarkRunner:
                             )
                         )
                         
+                        # Debug log grading details if enabled
+                        if self.config.logging.debug.enabled and self.config.logging.debug.log_grading:
+                            grading_details = {
+                                'fuzzy_threshold': 0.80,
+                                'semantic_threshold': 0.70,
+                                'mode': 'JEOPARDY',
+                                'match_details': graded_response.match_result.details if graded_response.match_result else {}
+                            }
+                            self.debug_logger.log_grading_details(
+                                question_id=question_data['id'],
+                                model_name=model_name,
+                                parsed_answer=parsed_response.extracted_answer,
+                                correct_answer=question_data['correct_answer'],
+                                is_correct=graded_response.is_correct,
+                                match_score=graded_response.match_result.confidence if graded_response.match_result else 0.0,
+                                match_type=graded_response.match_result.match_type.value if graded_response.match_result else 'unknown',
+                                grading_details=grading_details
+                            )
+                        
                         # Update progress
                         if self.progress:
                             self.progress.completed_questions += 1
@@ -365,6 +409,48 @@ class BenchmarkRunner:
                                 self.progress.successful_responses += 1
                             else:
                                 self.progress.failed_responses += 1
+                        
+                        # Comprehensive debug logging
+                        if self.config.logging.debug.enabled:
+                            # Only log if not in errors_only mode, or if there's an error/incorrect answer
+                            should_log = not self.config.logging.debug.log_errors_only or not graded_response.is_correct
+                            
+                            if should_log:
+                                # Extract token information
+                                tokens_input = model_response.metadata.get('tokens_input', 0) if model_response.metadata else 0
+                                tokens_output = model_response.metadata.get('tokens_output', 0) if model_response.metadata else 0
+                                
+                                grading_details = {
+                                    'fuzzy_threshold': 0.80,
+                                    'semantic_threshold': 0.70,
+                                    'mode': 'JEOPARDY',
+                                    'match_details': graded_response.match_result.details if graded_response.match_result else {},
+                                    'confidence': graded_response.confidence,
+                                    'score': graded_response.score,
+                                    'partial_credit': graded_response.partial_credit
+                                }
+                                
+                                self.debug_logger.log_model_interaction(
+                                    benchmark_id=self.current_benchmark_id,
+                                    question_id=question_data['id'],
+                                    model_name=model_name,
+                                    category=question_data.get('category'),
+                                    value=question_data.get('value', 400),
+                                    question_text=question_data['question_text'],
+                                    correct_answer=question_data['correct_answer'],
+                                    formatted_prompt=prompt,
+                                    raw_response=model_response.response,
+                                    parsed_answer=parsed_response.extracted_answer,
+                                    is_correct=graded_response.is_correct,
+                                    match_score=graded_response.match_result.confidence if graded_response.match_result else 0.0,
+                                    match_type=graded_response.match_result.match_type.value if graded_response.match_result else 'unknown',
+                                    confidence_score=graded_response.confidence or 0.0,
+                                    response_time_ms=model_response.latency_ms,
+                                    cost_usd=model_response.cost,
+                                    tokens_input=tokens_input,
+                                    tokens_output=tokens_output,
+                                    grading_details=grading_details
+                                )
                         
                         # Return comprehensive response data
                         return {
@@ -394,6 +480,46 @@ class BenchmarkRunner:
                         if self.progress:
                             self.progress.completed_questions += 1
                             self.progress.failed_responses += 1
+                        
+                        # Debug log error if enabled
+                        if self.config.logging.debug.enabled:
+                            try:
+                                # Try to get the prompt that was being formatted when error occurred
+                                error_prompt = ""
+                                try:
+                                    error_prompt = self.prompt_formatter.format_prompt(
+                                        question=question_data['question_text'],
+                                        category=question_data.get('category'),
+                                        value=f"${question_data.get('value', 400)}",
+                                        difficulty=question_data.get('difficulty_level'),
+                                        config=prompt_config
+                                    )
+                                except:
+                                    error_prompt = f"Failed to format prompt: {question_data['question_text']}"
+                                
+                                self.debug_logger.log_model_interaction(
+                                    benchmark_id=self.current_benchmark_id,
+                                    question_id=question_data['id'],
+                                    model_name=model_name,
+                                    category=question_data.get('category'),
+                                    value=question_data.get('value', 400),
+                                    question_text=question_data['question_text'],
+                                    correct_answer=question_data['correct_answer'],
+                                    formatted_prompt=error_prompt,
+                                    raw_response=f"ERROR: {str(e)}",
+                                    parsed_answer="",
+                                    is_correct=False,
+                                    match_score=0.0,
+                                    match_type='error',
+                                    confidence_score=0.0,
+                                    response_time_ms=0.0,
+                                    cost_usd=0.0,
+                                    tokens_input=0,
+                                    tokens_output=0,
+                                    error=str(e)
+                                )
+                            except Exception as debug_error:
+                                logger.warning(f"Failed to log debug info for error: {debug_error}")
                         
                         # Return error response
                         return {

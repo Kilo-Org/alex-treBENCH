@@ -175,6 +175,15 @@ logging:
   file: "logs/benchmark.log"
   max_size: "10MB"
   backup_count: 5
+  debug:
+    enabled: false  # Set to true to enable detailed debug logging
+    log_dir: "logs/debug"
+    log_prompts: true
+    log_responses: true
+    log_grading: true
+    log_errors_only: false  # If true, only logs incorrect answers and errors
+    include_tokens: true
+    include_costs: true
 
 kaggle:
   dataset: "aravindram11/jeopardy-dataset-updated"

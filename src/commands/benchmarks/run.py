@@ -38,9 +38,11 @@ logger = get_logger(__name__)
 @click.option('--report-format', type=click.Choice(['terminal', 'markdown', 'json']),
               default='terminal', help='Report output format')
 @click.option('--show-jeopardy-scores/--no-jeopardy-scores', default=True, help='Show Jeopardy scores in reports')
+@click.option('--debug/--no-debug', default=False, help='Enable detailed debug logging of prompts and responses')
+@click.option('--debug-errors-only', is_flag=True, help='Only log incorrect answers and errors (requires --debug)')
 @click.option('--list-models', is_flag=True, help='Show available models and exit')
 @click.pass_context
-def run(ctx, model, size, name, description, timeout, grading_mode, save_results, report_format, show_jeopardy_scores, list_models):
+def run(ctx, model, size, name, description, timeout, grading_mode, save_results, report_format, show_jeopardy_scores, debug, debug_errors_only, list_models):
     """Run a benchmark for a specific model.
     
     \b
@@ -58,11 +60,16 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
     
     alex benchmark run --model anthropic/claude-3.5-sonnet --size quick --no-jeopardy-scores
     
+    alex benchmark run --debug --model openai/gpt-4 --size quick
+    
+    alex benchmark run --debug --debug-errors-only --model anthropic/claude-3-haiku --size standard
+    
     alex benchmark run --list-models
     
     \b
     💡 SIZES: quick=10 questions, standard=50 questions, comprehensive=200 questions
     💰 JEOPARDY SCORES: Shows winnings/losses based on question values (enabled by default)
+    🐛 DEBUG MODE: Logs all prompts, responses, and grading details to files in logs/debug/
     """
     
     async def run_benchmark_async():
@@ -155,7 +162,24 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
                 console.print("[dim]Try a different model or check OpenRouter status[/dim]")
                 return
             
-            # Initialize runner
+            # Handle debug configuration
+            if debug:
+                # Override global config for debug mode
+                from src.core.config import get_config
+                config_instance = get_config()
+                
+                # Temporarily override debug settings
+                original_debug_enabled = config_instance.logging.debug.enabled
+                original_debug_errors_only = config_instance.logging.debug.log_errors_only
+                
+                config_instance.logging.debug.enabled = True
+                config_instance.logging.debug.log_errors_only = debug_errors_only
+                
+                console.print("[yellow]🐛 Debug mode enabled - detailed logs will be saved to logs/debug/[/yellow]")
+                if debug_errors_only:
+                    console.print("[dim]Only logging incorrect answers and errors[/dim]")
+            
+            # Initialize runner (will pick up debug config)
             runner = BenchmarkRunner()
             
             # Set display name using validated model_info
@@ -264,11 +288,29 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
                 
                 if result.total_cost > 0:
                     console.print(f"[dim]Total cost: ${result.total_cost:.6f}[/dim]")
+                
+                # Show debug log location if debug was enabled
+                if debug:
+                    console.print(f"\n[yellow]🐛 Debug logs saved to: logs/debug/[/yellow]")
+                    console.print("[dim]Files: model_interactions_*.jsonl (structured data) and debug_summary_*.log (readable)[/dim]")
                     
             else:
                 error_msg = result.errors[0] if result.errors else "Unknown error"
                 console.print(f"\n[red]✗ Benchmark failed: {error_msg}[/red]")
                 console.print(f"[dim]Execution time: {result.execution_time_seconds:.2f}s[/dim]")
+                
+                # Show debug log location if debug was enabled
+                if debug:
+                    console.print(f"\n[yellow]🐛 Debug logs saved to: logs/debug/[/yellow]")
+                    console.print("[dim]Check debug logs for error details[/dim]")
+            
+            # Restore original debug config if it was overridden
+            if debug:
+                try:
+                    config_instance.logging.debug.enabled = original_debug_enabled
+                    config_instance.logging.debug.log_errors_only = original_debug_errors_only
+                except:
+                    pass  # Ignore errors restoring config
             
         except Exception as e:
             console.print(f"[red]Error running benchmark: {str(e)}[/red]")
