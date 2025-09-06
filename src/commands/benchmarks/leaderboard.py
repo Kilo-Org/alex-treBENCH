@@ -20,11 +20,12 @@ logger = get_logger(__name__)
 
 @click.command()
 @click.option('--limit', '-l', type=int, default=10, help='Number of models to show in leaderboard')
+@click.option('--unique', is_flag=True, help='Show only the best entry per model (highest Jeopardy score)')
 @click.option('--report-format', type=click.Choice(['terminal', 'markdown', 'json']),
               default='terminal', help='Report output format')
 @click.option('--output', '-o', type=click.Path(), help='Save leaderboard to file')
 @click.pass_context
-def leaderboard(ctx, limit, report_format, output):
+def leaderboard(ctx, limit, unique, report_format, output):
     """Show Jeopardy leaderboard of model performances.
     
     \b
@@ -86,7 +87,20 @@ def leaderboard(ctx, limit, report_format, output):
                 if not leaderboard_data:
                     console.print("[yellow]No Jeopardy scores found in benchmarks. Run benchmarks with Jeopardy scoring enabled![/yellow]")
                     return
-                
+
+                # If unique flag is set, group by model and select best (highest jeopardy score)
+                if unique:
+                    model_best = {}
+                    for result in leaderboard_data:
+                        model_name = result.model_name
+                        score = result.metrics.jeopardy_score.total_jeopardy_score
+                        if model_name not in model_best or score > model_best[model_name]['score']:
+                            model_best[model_name] = {
+                                'result': result,
+                                'score': score
+                            }
+                    leaderboard_data = [entry['result'] for entry in model_best.values()]
+
                 # Generate leaderboard report
                 report_config = ReportConfig(show_jeopardy_scores=True, show_leaderboard=True)
                 report_gen = ReportGenerator(config=report_config)
@@ -106,7 +120,10 @@ def leaderboard(ctx, limit, report_format, output):
                     else:
                         console.print(leaderboard_report)
                 
-                console.print(f"\n[dim]Showing top {min(limit, len(leaderboard_data))} models from {len(completed_benchmarks)} completed benchmarks[/dim]")
+                if unique:
+                    console.print(f"\n[dim]Showing top {min(limit, len(leaderboard_data))} unique models (best entry each) from {len(completed_benchmarks)} completed benchmarks[/dim]")
+                else:
+                    console.print(f"\n[dim]Showing top {min(limit, len(leaderboard_data))} models from {len(completed_benchmarks)} completed benchmarks[/dim]")
                 
         except Exception as e:
             console.print(f"[red]Error generating leaderboard: {str(e)}[/red]")
