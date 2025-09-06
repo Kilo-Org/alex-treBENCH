@@ -16,6 +16,7 @@ from src.models.prompt_formatter import PromptFormatter, PromptConfig, PromptTem
 from src.models.response_parser import ResponseParser
 from src.evaluation.grader import AnswerGrader, GradingCriteria, GradingMode
 from src.core.debug_logger import DebugLogger
+from rich.progress import Progress
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +46,14 @@ class ModelQueryHandler:
         self.debug_logger = debug_logger
         self.config = config or get_config()
     
-    async def query_model_batch(self, 
-                               model_name: str, 
-                               questions: List[Dict[str, Any]], 
+    async def query_model_batch(self,
+                               model_name: str,
+                               questions: List[Dict[str, Any]],
                                config: 'BenchmarkConfig',
                                benchmark_id: int,
-                               progress: 'BenchmarkProgress') -> List[Dict[str, Any]]:
+                               progress: 'BenchmarkProgress',
+                               progress_obj: Optional[Progress] = None,
+                               task_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Query the model with all questions in a batch.
         
@@ -60,6 +63,7 @@ class ModelQueryHandler:
             config: Benchmark configuration
             benchmark_id: Current benchmark ID
             progress: Progress tracker to update
+            progress_task: Optional Rich progress task for UI updates
             
         Returns:
             List of response dictionaries with grading and metrics
@@ -86,7 +90,7 @@ class ModelQueryHandler:
             
             # Execute all queries concurrently
             logger.info(f"🔍 DEBUG: Creating {len(questions)} concurrent query tasks...")
-            query_tasks = [self._query_single_question(q, model_name, config, benchmark_id, prompt_config, semaphore, progress) for q in questions]
+            query_tasks = [self._query_single_question(q, model_name, config, benchmark_id, prompt_config, semaphore, progress, progress_obj, task_id) for q in questions]
             logger.info("🔍 DEBUG: Starting asyncio.gather() for concurrent queries...")
             responses = await asyncio.gather(*query_tasks, return_exceptions=False)
             logger.info(f"🔍 DEBUG: asyncio.gather() completed with {len(responses)} responses")
@@ -109,14 +113,16 @@ class ModelQueryHandler:
                 except Exception as e:
                     logger.warning(f"Error closing OpenRouter client session: {str(e)}")
     
-    async def _query_single_question(self, 
-                                   question_data: Dict[str, Any], 
+    async def _query_single_question(self,
+                                   question_data: Dict[str, Any],
                                    model_name: str,
                                    config: 'BenchmarkConfig',
                                    benchmark_id: int,
                                    prompt_config: PromptConfig,
                                    semaphore: asyncio.Semaphore,
-                                   progress: 'BenchmarkProgress') -> Dict[str, Any]:
+                                   progress: 'BenchmarkProgress',
+                                   progress_obj: Optional[Progress] = None,
+                                   task_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Query a single question and process the response.
         
@@ -128,6 +134,7 @@ class ModelQueryHandler:
             prompt_config: Prompt configuration
             semaphore: Async semaphore for concurrency control
             progress: Progress tracker
+            progress_task: Optional Rich progress task for UI updates
             
         Returns:
             Dictionary with comprehensive response data
@@ -213,6 +220,10 @@ class ModelQueryHandler:
                 
                 # Update progress
                 progress.completed_questions += 1
+                if progress_obj and task_id is not None:
+                    progress_obj.advance(task_id, 1)
+                    progress_obj.update(task_id, description=f"Processed {progress.completed_questions}/{progress.total_questions} questions")
+                    progress_obj.refresh()
                 if graded_response.is_correct:
                     progress.successful_responses += 1
                 else:
@@ -286,6 +297,10 @@ class ModelQueryHandler:
                 
                 # Update progress for failed response
                 progress.completed_questions += 1
+                if progress_obj and task_id is not None:
+                    progress_obj.advance(task_id, 1)
+                    progress_obj.update(task_id, description=f"Processed {progress.completed_questions}/{progress.total_questions} questions (error)")
+                    progress_obj.refresh()
                 progress.failed_responses += 1
                 
                 # Debug log error if enabled

@@ -28,6 +28,7 @@ from src.storage.models import BenchmarkRun, Question, BenchmarkResult
 from src.utils.logging import get_logger
 
 from .config import BenchmarkConfig, RunMode
+from rich.progress import Progress
 from .types import BenchmarkRunResult, BenchmarkProgress
 
 from .question_loader import QuestionLoader
@@ -125,7 +126,9 @@ class BenchmarkRunner:
                           model_name: str,
                           mode: RunMode = RunMode.STANDARD,
                           custom_config: Optional[BenchmarkConfig] = None,
-                          benchmark_name: Optional[str] = None) -> BenchmarkRunResult:
+                          benchmark_name: Optional[str] = None,
+                          progress: Optional[Progress] = None,
+                          task_id: Optional[int] = None) -> BenchmarkRunResult:
         """
         Run a complete benchmark for a specified model.
         
@@ -134,6 +137,7 @@ class BenchmarkRunner:
             mode: Benchmark mode (quick, standard, comprehensive)
             custom_config: Optional custom configuration
             benchmark_name: Optional name for the benchmark
+            progress_task: Optional Rich progress task for UI updates
             
         Returns:
             BenchmarkRunResult with complete results
@@ -168,14 +172,21 @@ class BenchmarkRunner:
             self.progress.current_phase = "Loading questions"
             questions = await self.question_loader.load_sample_questions(benchmark_id, config)
             
+            # Update progress after loading questions
+            if progress and task_id is not None:
+                progress.advance(task_id, 1)  # Small advance for loading phase
+                self.progress.completed_questions = 0  # Reset for querying
+                self.progress.current_phase = "Querying model"
+            
             # Phase 3: Query model and grade responses
-            self.progress.current_phase = "Querying model"
             responses = await self.model_query_handler.query_model_batch(
-                model_name, questions, config, benchmark_id, self.progress
+                model_name, questions, config, benchmark_id, self.progress, progress, task_id
             )
             
             # Phase 3.5: Save individual response results to database
             self.progress.current_phase = "Saving results"
+            if progress and task_id is not None:
+                progress.advance(task_id, len(responses))
             await self.result_saver.save_benchmark_results(benchmark_id, model_name, responses)
             
             # Phase 4: Calculate metrics

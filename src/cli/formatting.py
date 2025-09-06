@@ -54,13 +54,14 @@ def format_table(data: List[Dict[str, Any]], title: str = "Results", headers: Op
     return table
 
 
-def format_progress(description: str = "Processing...", total: Optional[int] = None) -> Progress:
+def format_progress(description: str = "Processing...", total: Optional[int] = None, show_count: bool = False) -> Progress:
     """
-    Create a progress bar with spinner.
+    Create a progress bar with spinner or determinate bar.
     
     Args:
         description: Progress description text
         total: Total number of items (None for indeterminate progress)
+        show_count: Whether to show completed/total count column
     
     Returns:
         Rich Progress object
@@ -74,12 +75,14 @@ def format_progress(description: str = "Processing...", total: Optional[int] = N
         )
     else:
         # Determinate progress with bar
-        progress = Progress(
+        columns = [
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            console=console
-        )
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%")
+        ]
+        if show_count:
+            columns.insert(2, TextColumn("[progress.completed]/{task.total} questions"))
+        progress = Progress(*columns, console=console)
     
     return progress
 

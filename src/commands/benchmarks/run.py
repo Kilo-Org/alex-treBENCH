@@ -11,8 +11,10 @@ from typing import Optional
 
 import click
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
 from rich.table import Table
+
+from src.cli.formatting import format_progress
 
 from models.model_registry import model_registry, get_default_model
 from benchmark.runner import BenchmarkRunner, RunMode, BenchmarkConfig
@@ -259,22 +261,20 @@ def run(ctx, model, size, name, description, timeout, grading_mode, save_results
             console.print()
             
             # Run benchmark with progress tracking
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-                transient=False
-            ) as progress:
-                task = progress.add_task("[green]Running benchmark...", total=None)
+            progress_instance = format_progress("Running benchmark...", config.sample_size, show_count=True)
+            with progress_instance as progress:
+                task = progress.add_task("[green]Running benchmark...", total=config.sample_size)
                 
                 # Execute benchmark
                 result = await runner.run_benchmark(
                     model_name=actual_model,
                     mode=RunMode[config.mode.value.upper()],
-                    custom_config=config
+                    custom_config=config,
+                    progress=progress,
+                    task_id=task
                 )
                 
-                progress.update(task, description="[green]Complete!")
+                progress.update(task, completed=config.sample_size, description="[green]Complete!")
             
             # Display results
             if result.is_successful:

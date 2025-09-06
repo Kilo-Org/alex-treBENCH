@@ -162,7 +162,7 @@ class StatisticalSampler:
             
             # For large datasets (>100k rows), use optimized approach or fallback
             if len(df) > 100000:
-                logger.warning(f"Large dataset detected ({len(df)} rows). Using optimized stratified sampling...")
+                logger.info(f"Large dataset detected ({len(df)} rows). Using optimized stratified sampling...")
                 return self._optimized_stratified_sample(df, sample_size, stratify_columns, seed)
             
             # Create stratification groups (optimized)
