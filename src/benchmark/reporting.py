@@ -214,6 +214,8 @@ class ReportGenerator:
             lines.append(f"Total Score: ${js.total_jeopardy_score:,}")
             lines.append(f"Correct Answers: {js.positive_scores} questions")
             lines.append(f"Incorrect Answers: {js.negative_scores} questions")
+            if hasattr(js, 'unanswered_count') and js.unanswered_count > 0:
+                lines.append(f"Unanswered (Rate Limited): {js.unanswered_count} questions")
             lines.append("")
         
         # Performance metrics
@@ -265,6 +267,8 @@ class ReportGenerator:
             lines.append(f"**Total Score:** ${js.total_jeopardy_score:,}")
             lines.append(f"**Correct Answers:** {js.positive_scores} questions")
             lines.append(f"**Incorrect Answers:** {js.negative_scores} questions")
+            if hasattr(js, 'unanswered_count') and js.unanswered_count > 0:
+                lines.append(f"**Unanswered (Rate Limited):** {js.unanswered_count} questions")
             lines.append("")
             
             if js.category_scores:
@@ -331,6 +335,7 @@ class ReportGenerator:
                     "total_jeopardy_score": m.jeopardy_score.total_jeopardy_score,
                     "positive_scores": m.jeopardy_score.positive_scores,
                     "negative_scores": m.jeopardy_score.negative_scores,
+                    "unanswered_count": getattr(m.jeopardy_score, 'unanswered_count', 0),
                     "category_scores": m.jeopardy_score.category_scores,
                     "difficulty_scores": m.jeopardy_score.difficulty_scores,
                     "value_range_scores": m.jeopardy_score.value_range_scores
@@ -351,6 +356,7 @@ class ReportGenerator:
         table.add_column("Accuracy", style="blue", justify="right")
         table.add_column("Correct", style="green", justify="right")
         table.add_column("Incorrect", style="red", justify="right")
+        table.add_column("Unanswered", style="yellow", justify="right")
         
         for i, result in enumerate(sorted_results[:10], 1):  # Top 10
             metrics = result.metrics
@@ -367,13 +373,15 @@ class ReportGenerator:
             else:
                 score_text = f"[green]{score_text}[/green]"
             
+            unanswered_count = getattr(js, 'unanswered_count', 0)
             table.add_row(
                 f"{rank_emoji}",
                 getattr(result, 'model_name', 'Unknown'),
                 score_text,
                 f"{metrics.accuracy.overall_accuracy:.1%}",
                 str(js.positive_scores),
-                str(js.negative_scores)
+                str(js.negative_scores),
+                str(unanswered_count) if unanswered_count > 0 else "-"
             )
         
         return table
@@ -383,8 +391,8 @@ class ReportGenerator:
         lines = []
         lines.append("🏆 JEOPARDY LEADERBOARD")
         lines.append("=" * 50)
-        lines.append(f"{'Rank':<6} {'Model':<25} {'Score':<12} {'Accuracy':<10}")
-        lines.append("-" * 50)
+        lines.append(f"{'Rank':<6} {'Model':<25} {'Score':<12} {'Accuracy':<10} {'Unanswered':<12}")
+        lines.append("-" * 65)
         
         for i, result in enumerate(sorted_results[:10], 1):
             metrics = result.metrics
@@ -394,8 +402,9 @@ class ReportGenerator:
             model_name = getattr(result, 'model_name', 'Unknown')[:25]
             score = f"${js.total_jeopardy_score:,}"
             accuracy = f"{metrics.accuracy.overall_accuracy:.1%}"
+            unanswered = str(getattr(js, 'unanswered_count', 0))
             
-            lines.append(f"{rank_emoji:<6} {model_name:<25} {score:<12} {accuracy:<10}")
+            lines.append(f"{rank_emoji:<6} {model_name:<25} {score:<12} {accuracy:<10} {unanswered:<12}")
         
         return "\n".join(lines)
     

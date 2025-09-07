@@ -12,7 +12,7 @@ from src.evaluation.metrics import ComprehensiveMetrics
 from .config import BenchmarkConfig
 
 
-@dataclass 
+@dataclass
 class BenchmarkProgress:
     """Progress tracking for benchmark execution."""
     total_questions: int
@@ -21,6 +21,7 @@ class BenchmarkProgress:
     failed_responses: int
     current_phase: str
     start_time: datetime
+    unanswered_responses: int = 0  # New field for rate-limited questions
     estimated_completion: Optional[datetime] = None
     
     @property
@@ -31,9 +32,19 @@ class BenchmarkProgress:
     
     @property
     def success_rate(self) -> float:
+        """Success rate based on answered questions only."""
+        answered_questions = self.successful_responses + self.failed_responses
+        if answered_questions == 0:
+            return 0.0
+        return (self.successful_responses / answered_questions) * 100.0
+    
+    @property
+    def answer_rate(self) -> float:
+        """Percentage of questions that were answered (not rate limited)."""
         if self.completed_questions == 0:
             return 0.0
-        return (self.successful_responses / self.completed_questions) * 100.0
+        answered_questions = self.successful_responses + self.failed_responses
+        return (answered_questions / self.completed_questions) * 100.0
 
 
 @dataclass

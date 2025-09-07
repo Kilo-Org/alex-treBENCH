@@ -365,6 +365,34 @@ class AnswerGrader:
             timestamp=datetime.now()
         )
     
+    def create_unanswered_grade(self, parsed_response: ParsedResponse,
+                              correct_answer: str, reason: str,
+                              criteria: GradingCriteria) -> GradedResponse:
+        """Create an unanswered grade result (for rate limits, etc.)."""
+        dummy_match = MatchResult(
+            is_match=False,
+            confidence=0.0,
+            match_type=MatchType.EXACT,
+            details={'unanswered_reason': reason},
+            normalized_answer="",
+            normalized_expected=correct_answer
+        )
+        
+        return GradedResponse(
+            is_correct=None,  # None indicates unanswered
+            score=0.0,
+            confidence=0.0,
+            partial_credit=0.0,
+            match_result=dummy_match,
+            parsed_response=parsed_response,
+            grading_metadata={
+                'unanswered_reason': reason,
+                'grading_mode': criteria.mode.value
+            },
+            grade_explanation=f"Unanswered: {reason}",
+            timestamp=datetime.now()
+        )
+    
     def _update_stats(self, match_result: MatchResult, 
                      parsed_response: ParsedResponse, is_correct: bool):
         """Update grading statistics."""

@@ -142,6 +142,29 @@ class QuestionRepository:
                 table="questions"
             ) from e
     
+    def update_questions(self, questions: List[Question]) -> List[Question]:
+        """Update multiple questions efficiently."""
+        try:
+            # Merge each question (update if exists, insert if new)
+            for question in questions:
+                self.session.merge(question)
+            
+            self.session.commit()
+            
+            # Refresh all objects to get their updated state
+            for question in questions:
+                self.session.refresh(question)
+                
+            return questions
+            
+        except Exception as e:
+            self.session.rollback()
+            raise DatabaseError(
+                f"Failed to update questions batch: {str(e)}",
+                operation="bulk_update",
+                table="questions"
+            ) from e
+    
     def count_questions(self, category: Optional[str] = None, 
                        difficulty: Optional[str] = None) -> int:
         """Count questions with optional filters."""

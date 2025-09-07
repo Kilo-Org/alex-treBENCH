@@ -382,6 +382,161 @@ class DataValidator:
         logger.info(f"Validation complete: {results['valid_questions']}/{results['total_questions']} questions valid ({validation_rate:.1f}%)")
         
         return results
+    
+    def validate_questions(self, questions: List) -> Dict[str, Any]:
+        """
+        Validate a list of Question objects from the database.
+        
+        Args:
+            questions: List of Question objects to validate
+            
+        Returns:
+            Dictionary with validation results similar to validate_dataframe
+        """
+        logger.info(f"Validating {len(questions)} question objects")
+        
+        # Convert Question objects to a format we can validate
+        validation_results = {
+            'missing_data': {'passed': True, 'issues': 0, 'passed_count': 0, 'details': []},
+            'format_validation': {'passed': True, 'issues': 0, 'passed_count': 0, 'details': []},
+            'category_consistency': {'passed': True, 'issues': 0, 'passed_count': 0, 'details': []},
+            'value_range_validation': {'passed': True, 'issues': 0, 'passed_count': 0, 'details': []},
+            'duplicate_detection': {'passed': True, 'issues': 0, 'passed_count': 0, 'details': []}
+        }
+        
+        question_texts = set()
+        
+        for question in questions:
+            # Missing data check
+            missing_fields = []
+            if not question.question_text:
+                missing_fields.append('question_text')
+            if not question.correct_answer:
+                missing_fields.append('correct_answer')
+            if not question.category:
+                missing_fields.append('category')
+            
+            if missing_fields:
+                validation_results['missing_data']['passed'] = False
+                validation_results['missing_data']['issues'] += 1
+                validation_results['missing_data']['details'].append(
+                    f"Question {question.id}: Missing fields {missing_fields}"
+                )
+            else:
+                validation_results['missing_data']['passed_count'] += 1
+            
+            # Format validation
+            if question.question_text:
+                valid_q, q_issues = self.validate_question_format(question.question_text)
+                if not valid_q:
+                    validation_results['format_validation']['passed'] = False
+                    validation_results['format_validation']['issues'] += 1
+                    validation_results['format_validation']['details'].append(
+                        f"Question {question.id}: {'; '.join(q_issues)}"
+                    )
+                else:
+                    validation_results['format_validation']['passed_count'] += 1
+            
+            if question.correct_answer:
+                valid_a, a_issues = self.validate_answer_format(question.correct_answer)
+                if not valid_a:
+                    validation_results['format_validation']['passed'] = False
+                    validation_results['format_validation']['issues'] += 1
+                    validation_results['format_validation']['details'].append(
+                        f"Answer {question.id}: {'; '.join(a_issues)}"
+                    )
+                else:
+                    validation_results['format_validation']['passed_count'] += 1
+            
+            # Category consistency
+            if question.category:
+                valid_c, c_issues = self.validate_category(question.category)
+                if not valid_c:
+                    validation_results['category_consistency']['passed'] = False
+                    validation_results['category_consistency']['issues'] += 1
+                    validation_results['category_consistency']['details'].append(
+                        f"Category {question.id}: {'; '.join(c_issues)}"
+                    )
+                else:
+                    validation_results['category_consistency']['passed_count'] += 1
+            
+            # Value range validation
+            if question.value is not None:
+                valid_v, v_issues = self.validate_dollar_value(question.value)
+                if not valid_v:
+                    validation_results['value_range_validation']['passed'] = False
+                    validation_results['value_range_validation']['issues'] += 1
+                    validation_results['value_range_validation']['details'].append(
+                        f"Value {question.id}: {'; '.join(v_issues)}"
+                    )
+                else:
+                    validation_results['value_range_validation']['passed_count'] += 1
+            
+            # Duplicate detection
+            if question.question_text:
+                if question.question_text in question_texts:
+                    validation_results['duplicate_detection']['passed'] = False
+                    validation_results['duplicate_detection']['issues'] += 1
+                    validation_results['duplicate_detection']['details'].append(
+                        f"Duplicate question text: {question.question_text[:50]}..."
+                    )
+                else:
+                    question_texts.add(question.question_text)
+                    validation_results['duplicate_detection']['passed_count'] += 1
+        
+        return validation_results
+    
+    def fix_validation_issues(self, questions: List, validation_results: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Attempt to fix validation issues in the questions.
+        
+        Args:
+            questions: List of Question objects
+            validation_results: Results from validate_questions
+            
+        Returns:
+            Dictionary with fix results
+        """
+        logger.info("Attempting to fix validation issues")
+        
+        fixed_questions = []
+        fixed_count = 0
+        
+        for question in questions:
+            fixed = False
+            
+            # Fix excessive whitespace in question text
+            if question.question_text:
+                original_text = question.question_text
+                cleaned_text = re.sub(r'\s{3,}', ' ', original_text.strip())
+                if cleaned_text != original_text:
+                    question.question_text = cleaned_text
+                    fixed = True
+            
+            # Fix excessive whitespace in answer
+            if question.correct_answer:
+                original_answer = question.correct_answer
+                cleaned_answer = re.sub(r'\s{3,}', ' ', original_answer.strip())
+                if cleaned_answer != original_answer:
+                    question.correct_answer = cleaned_answer
+                    fixed = True
+            
+            # Fix category formatting
+            if question.category:
+                original_category = question.category
+                cleaned_category = question.category.strip().upper()
+                if cleaned_category != original_category:
+                    question.category = cleaned_category
+                    fixed = True
+            
+            if fixed:
+                fixed_questions.append(question)
+                fixed_count += 1
+        
+        return {
+            'fixed_count': fixed_count,
+            'fixed_questions': fixed_questions
+        }
 
 
 def validate_question_format(question: str) -> bool:

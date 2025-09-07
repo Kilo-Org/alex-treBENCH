@@ -76,6 +76,7 @@ class JeopardyScoreMetrics:
     total_jeopardy_score: int
     positive_scores: int  # Number of correct answers contributing positive points
     negative_scores: int  # Number of incorrect answers contributing negative points
+    unanswered_count: int = 0  # Number of unanswered questions (rate limited, etc.)
     category_scores: Dict[str, int] = field(default_factory=dict)
     difficulty_scores: Dict[str, int] = field(default_factory=dict)
     value_range_scores: Dict[str, int] = field(default_factory=dict)
@@ -186,6 +187,7 @@ class MetricsCalculator:
         total_score = 0
         positive_scores = 0
         negative_scores = 0
+        unanswered_count = 0
         category_scores = defaultdict(int)
         difficulty_scores = defaultdict(int)
         value_range_scores = defaultdict(int)
@@ -197,7 +199,11 @@ class MetricsCalculator:
             difficulty = context.get('difficulty_level', 'Unknown')
             
             # Calculate Jeopardy score for this question
-            if response.is_correct:
+            if response.is_correct is None:
+                # Unanswered question (rate limited, etc.) - no score change
+                question_score = 0
+                unanswered_count += 1
+            elif response.is_correct:
                 question_score = question_value
                 positive_scores += 1
             else:
@@ -219,7 +225,9 @@ class MetricsCalculator:
             value_range_scores[value_range] += question_score
             
             # Score distribution tracking
-            if question_score > 0:
+            if response.is_correct is None:
+                score_distribution['Unanswered'] += 1
+            elif question_score > 0:
                 score_distribution[f'+${question_score}'] += 1
             elif question_score < 0:
                 score_distribution[f'-${abs(question_score)}'] += 1
@@ -230,23 +238,32 @@ class MetricsCalculator:
             total_jeopardy_score=total_score,
             positive_scores=positive_scores,
             negative_scores=negative_scores,
+            unanswered_count=unanswered_count,
             category_scores=dict(category_scores),
             difficulty_scores=dict(difficulty_scores),
             value_range_scores=dict(value_range_scores),
             score_distribution=dict(score_distribution)
         )
 
-    def _calculate_accuracy_metrics(self, 
+    def _calculate_accuracy_metrics(self,
                                   graded_responses: List[GradedResponse],
                                   question_contexts: Optional[List[Dict[str, Any]]]) -> AccuracyMetrics:
         """Calculate accuracy-related metrics."""
         if not graded_responses:
             return AccuracyMetrics(overall_accuracy=0.0, correct_count=0, total_count=0)
         
-        # Overall accuracy
-        correct_count = sum(1 for r in graded_responses if r.is_correct)
-        total_count = len(graded_responses)
-        overall_accuracy = correct_count / total_count
+        # Filter out unanswered questions (rate-limited, etc.)
+        answered_responses = [r for r in graded_responses if r.is_correct is not None]
+        
+        if not answered_responses:
+            # All questions were unanswered (rate-limited)
+            return AccuracyMetrics(overall_accuracy=0.0, correct_count=0, total_count=len(graded_responses))
+        
+        # Overall accuracy based on answered questions only
+        correct_count = sum(1 for r in answered_responses if r.is_correct)
+        answered_count = len(answered_responses)
+        total_count = len(graded_responses)  # Include unanswered for total count
+        overall_accuracy = correct_count / answered_count if answered_count > 0 else 0.0
         
         # By category accuracy
         by_category = defaultdict(list)
@@ -259,21 +276,23 @@ class MetricsCalculator:
                 difficulty = context.get('difficulty_level', 'Unknown')
                 value = context.get('value', 0)
                 
-                by_category[category].append(response.is_correct)
-                by_difficulty[difficulty].append(response.is_correct)
-                
-                # Group values into ranges
-                if value < 400:
-                    value_range = 'Low ($1-399)'
-                elif value < 800:
-                    value_range = 'Medium ($400-799)'
-                else:
-                    value_range = 'High ($800+)'
-                by_value[value_range].append(response.is_correct)
+                # Only include answered questions (is_correct is not None)
+                if response.is_correct is not None:
+                    by_category[category].append(response.is_correct)
+                    by_difficulty[difficulty].append(response.is_correct)
+                    
+                    # Group values into ranges
+                    if value < 400:
+                        value_range = 'Low ($1-399)'
+                    elif value < 800:
+                        value_range = 'Medium ($400-799)'
+                    else:
+                        value_range = 'High ($800+)'
+                    by_value[value_range].append(response.is_correct)
         
         # Calculate category accuracies
         category_accuracies = {
-            cat: sum(results) / len(results) 
+            cat: sum(results) / len(results)
             for cat, results in by_category.items() if results
         }
         

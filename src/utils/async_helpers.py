@@ -11,8 +11,8 @@ from typing import Callable, Any, Optional, Dict, List
 from functools import wraps
 import random
 
-from core.exceptions import ModelAPIError, RateLimitError
-from utils.logging import get_logger
+from src.core.exceptions import ModelAPIError, RateLimitError
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

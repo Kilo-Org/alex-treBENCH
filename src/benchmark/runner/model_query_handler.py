@@ -122,7 +122,17 @@ class ModelQueryHandler:
             
             logger.info(f"Completed {len(responses)} model queries")
             successful_responses = sum(1 for r in responses if r.get('is_correct', False))
-            logger.info(f"Successful responses: {successful_responses}/{len(responses)} ({successful_responses/len(responses)*100:.1f}%)")
+            unanswered_responses = sum(1 for r in responses if r.get('is_unanswered', False))
+            failed_responses = len(responses) - successful_responses - unanswered_responses
+            
+            logger.info(f"Results: {successful_responses} correct, {failed_responses} incorrect, {unanswered_responses} unanswered")
+            if len(responses) > 0:
+                answered_questions = len(responses) - unanswered_responses
+                if answered_questions > 0:
+                    accuracy = (successful_responses / answered_questions) * 100
+                    logger.info(f"Accuracy (answered questions): {successful_responses}/{answered_questions} ({accuracy:.1f}%)")
+                else:
+                    logger.info("No questions were answered due to rate limits or errors")
             
             return responses
             
@@ -320,13 +330,23 @@ class ModelQueryHandler:
             except Exception as e:
                 logger.error(f"Failed to query question {question_data.get('id', 'unknown')}: {str(e)}")
                 
-                # Update progress for failed response
+                # Update progress based on error type
                 progress.completed_questions += 1
                 if progress_obj and task_id is not None:
                     progress_obj.advance(task_id, 1)
+                    
+                from src.core.exceptions import RateLimitError
+                if isinstance(e, RateLimitError):
+                    # Count rate limit as unanswered, not failed
+                    if hasattr(progress, 'unanswered_responses'):
+                        progress.unanswered_responses += 1
+                    else:
+                        progress.unanswered_responses = 1
+                    progress_obj.update(task_id, description=f"Processed {progress.completed_questions}/{progress.total_questions} questions (rate limited)")
+                else:
+                    progress.failed_responses += 1
                     progress_obj.update(task_id, description=f"Processed {progress.completed_questions}/{progress.total_questions} questions (error)")
-                    progress_obj.refresh()
-                progress.failed_responses += 1
+                progress_obj.refresh()
                 
                 # Debug log error if enabled
                 if self.config.logging.debug.enabled:
@@ -368,22 +388,80 @@ class ModelQueryHandler:
                     except Exception as debug_error:
                         logger.warning(f"Failed to log debug info for error: {debug_error}")
                 
-                # Return error response
-                return {
-                    'question_id': question_data['id'],
-                    'question_text': question_data['question_text'],
-                    'correct_answer': question_data['correct_answer'],
-                    'category': question_data.get('category'),
-                    'value': question_data.get('value', 400),
-                    'model_response': f"ERROR: {str(e)}",
-                    'parsed_answer': "",
-                    'is_correct': False,
-                    'match_score': 0.0,
-                    'match_type': 'error',
-                    'confidence_score': 0.0,
-                    'response_time_ms': 0.0,
-                    'tokens_generated': 0,
-                    'cost': 0.0,
-                    'prompt': "",
-                    'error': str(e)
-                }
+                # Determine response type based on exception and create appropriate graded response
+                from src.core.exceptions import RateLimitError
+                from src.models.response_parser import ParsedResponse, ResponseType
+                from src.evaluation.grader import GradingCriteria, GradingMode
+                
+                # Create a dummy parsed response for the error
+                parsed_response = ParsedResponse(
+                    original_text=f"ERROR: {str(e)}",
+                    extracted_answer="",
+                    response_type=ResponseType.ERROR,
+                    confidence_indicators=[]
+                )
+                
+                criteria = GradingCriteria(
+                    mode=GradingMode.JEOPARDY,
+                    fuzzy_threshold=0.80,
+                    semantic_threshold=0.70
+                )
+                
+                if isinstance(e, RateLimitError):
+                    # Rate limit error after retries - create unanswered grade
+                    graded_response = self.grader.create_unanswered_grade(
+                        parsed_response=parsed_response,
+                        correct_answer=question_data['correct_answer'],
+                        reason="Rate limit exceeded after retries",
+                        criteria=criteria
+                    )
+                    
+                    return {
+                        'question_id': question_data['id'],
+                        'question_text': question_data['question_text'],
+                        'correct_answer': question_data['correct_answer'],
+                        'category': question_data.get('category'),
+                        'value': question_data.get('value', 400),
+                        'model_response': f"RATE_LIMITED: {str(e)}",
+                        'parsed_answer': "",
+                        'is_correct': None,  # None indicates unanswered
+                        'is_unanswered': True,
+                        'unanswered_reason': 'rate_limit',
+                        'match_score': 0.0,
+                        'match_type': 'unanswered',
+                        'confidence_score': 0.0,
+                        'response_time_ms': 0.0,
+                        'tokens_generated': 0,
+                        'cost': 0.0,
+                        'prompt': "",
+                        'graded_response': graded_response,
+                        'error': str(e)
+                    }
+                else:
+                    # Other errors - create failed grade
+                    graded_response = self.grader._create_failed_grade(
+                        parsed_response=parsed_response,
+                        correct_answer=question_data['correct_answer'],
+                        reason=f"Query error: {str(e)}",
+                        criteria=criteria
+                    )
+                    
+                    return {
+                        'question_id': question_data['id'],
+                        'question_text': question_data['question_text'],
+                        'correct_answer': question_data['correct_answer'],
+                        'category': question_data.get('category'),
+                        'value': question_data.get('value', 400),
+                        'model_response': f"ERROR: {str(e)}",
+                        'parsed_answer': "",
+                        'is_correct': False,
+                        'match_score': 0.0,
+                        'match_type': 'error',
+                        'confidence_score': 0.0,
+                        'response_time_ms': 0.0,
+                        'tokens_generated': 0,
+                        'cost': 0.0,
+                        'prompt': "",
+                        'graded_response': graded_response,
+                        'error': str(e)
+                    }
