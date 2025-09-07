@@ -391,7 +391,6 @@ class ModelQueryHandler:
                 # Determine response type based on exception and create appropriate graded response
                 from src.core.exceptions import RateLimitError
                 from src.models.response_parser import ParsedResponse, ResponseType
-                from src.evaluation.grader import GradingCriteria, GradingMode
                 
                 # Create a dummy parsed response for the error
                 parsed_response = ParsedResponse(
