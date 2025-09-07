@@ -12,6 +12,6 @@ from .model_performance import ModelPerformance
 __all__ = [
     "Question",
     "BenchmarkRun",
-    "BenchmarkResult", 
+    "BenchmarkResult",
     "ModelPerformance",
 ]

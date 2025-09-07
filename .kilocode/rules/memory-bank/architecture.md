@@ -99,14 +99,16 @@
    - id, benchmark_run_id, model_name, accuracy_rate, avg_response_time_ms, total_cost_usd
    - category_performance, difficulty_performance, confidence_accuracy_correlation
 
-### Backward Compatibility
+### Database Models
 
-The system maintains backward compatibility through aliases in `src/storage/models.py`:
+The system uses the following SQLAlchemy ORM models (found in `src/storage/models/`):
 
-- `Benchmark = BenchmarkRun`
-- `BenchmarkQuestion = Question`
-- `ModelResponse = BenchmarkResult`
-- `ModelPerformanceSummary = ModelPerformance`
+- **BenchmarkRun**: Main benchmark execution records
+- **Question**: Jeopardy questions cache
+- **BenchmarkResult**: Individual question results from benchmark runs
+- **ModelPerformance**: Aggregated performance metrics
+
+Note: The model names are standardized and no backward compatibility aliases are maintained.
 
 ## Key Design Patterns
 

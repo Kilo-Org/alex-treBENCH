@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 from sqlalchemy.orm import Session
 
 from src.storage.repositories import QuestionRepository, BenchmarkRepository
-from src.storage.models import BenchmarkQuestion, Benchmark
+from src.storage.models import Question, BenchmarkRun
 from src.core.exceptions import DatabaseError
 
 
@@ -70,7 +70,7 @@ class TestQuestionRepository:
         
         # Verify returned questions
         assert len(result) == 3
-        assert all(isinstance(q, BenchmarkQuestion) for q in result)
+        assert all(isinstance(q, Question) for q in result)
         assert result[0].benchmark_id == benchmark_id
         assert result[0].question_text == 'This European capital is known as the City of Light'
     
@@ -109,8 +109,8 @@ class TestQuestionRepository:
         """Test getting questions without filters."""
         # Mock database query
         mock_questions = [
-            Mock(spec=BenchmarkQuestion),
-            Mock(spec=BenchmarkQuestion)
+            Mock(spec=Question),
+            Mock(spec=Question)
         ]
         mock_query = Mock()
         mock_query.offset.return_value.all.return_value = mock_questions
@@ -119,7 +119,7 @@ class TestQuestionRepository:
         result = question_repo.get_questions()
         
         # Verify query construction
-        mock_session.query.assert_called_once_with(BenchmarkQuestion)
+        mock_session.query.assert_called_once_with(Question)
         assert result == mock_questions
     
     def test_get_questions_with_filters(self, question_repo, mock_session):
@@ -144,7 +144,7 @@ class TestQuestionRepository:
         result = question_repo.get_questions(filters, limit=10, offset=5)
         
         # Verify query was built with filters
-        mock_session.query.assert_called_once_with(BenchmarkQuestion)
+        mock_session.query.assert_called_once_with(Question)
         assert mock_query.filter.call_count >= 4  # Should apply multiple filters
         mock_query.offset.assert_called_once_with(5)
         mock_query.limit.assert_called_once_with(10)
@@ -162,7 +162,7 @@ class TestQuestionRepository:
         mock_query.filter.return_value = mock_query
         mock_query.order_by.return_value = mock_query
         mock_query.limit.return_value = mock_query
-        mock_query.all.return_value = [Mock(spec=BenchmarkQuestion) for _ in range(n)]
+        mock_query.all.return_value = [Mock(spec=Question) for _ in range(n)]
         
         result = question_repo.get_random_questions(
             n=n, 
@@ -253,7 +253,7 @@ class TestRepositoryDataHandling:
     """Test data handling aspects of repositories."""
     
     def test_question_mapping_from_dataframe(self, question_repo, mock_session):
-        """Test proper mapping of DataFrame columns to BenchmarkQuestion fields."""
+        """Test proper mapping of DataFrame columns to Question fields."""
         # DataFrame with alternative column names
         df_alt_columns = pd.DataFrame({
             'clue': ['Test clue'],

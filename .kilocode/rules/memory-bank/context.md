@@ -37,7 +37,7 @@
 - **Comprehensive Testing**: 80%+ code coverage with automated CI/CD
 - **Session Management**: Checkpoint and recovery for interrupted benchmarks
 - **Cost Tracking**: Real-time API cost calculation and reporting
-- **Backward Compatibility**: Aliases maintained for database model names
+- **Standardized Models**: Clean database model names without legacy aliases
 
 ### Known Issues
 

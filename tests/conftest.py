@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from core.config import AppConfig
 from core.database import Base
-from storage.models import Benchmark, BenchmarkQuestion, ModelResponse
+from storage.models import BenchmarkRun, Question, BenchmarkResult
 from data.ingestion import DataIngestionEngine
 from data.preprocessing import DataPreprocessor
 from models.openrouter import OpenRouterClient
@@ -141,7 +141,7 @@ def sample_questions_df(sample_questions_data):
 def test_benchmark(test_db_session, sample_questions_data):
     """Create a test benchmark with questions."""
     # Create benchmark
-    benchmark = Benchmark(
+    benchmark = BenchmarkRun(
         name="Test Benchmark",
         description="A test benchmark for unit tests",
         question_count=len(sample_questions_data),
@@ -154,8 +154,8 @@ def test_benchmark(test_db_session, sample_questions_data):
     # Add questions
     questions = []
     for q_data in sample_questions_data:
-        question = BenchmarkQuestion(
-            benchmark_id=benchmark.id,
+        question = Question(
+            id=f"q_{q_data['id']}",
             question_id=q_data["question_id"],
             question_text=q_data["question"],
             correct_answer=q_data["answer"],
@@ -244,9 +244,9 @@ def mock_data_ingestion():
 def sample_model_responses(test_benchmark):
     """Provide sample model responses."""
     responses = []
-    for i, question in enumerate(test_benchmark.questions[:3]):
-        response = ModelResponse(
-            benchmark_id=test_benchmark.id,
+    for i, question in enumerate(test_questions[:3]):
+        response = BenchmarkResult(
+            benchmark_run_id=test_benchmark.id,
             question_id=question.id,
             model_name="test-model",
             response_text=f"Test response {i}",

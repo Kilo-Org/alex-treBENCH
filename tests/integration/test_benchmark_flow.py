@@ -19,7 +19,7 @@ from src.evaluation.matcher import FuzzyMatcher
 from src.evaluation.grader import AnswerGrader, GradingMode
 from src.evaluation.metrics import MetricsCalculator
 from src.models.base import ModelResponse
-from src.storage.models import Benchmark, BenchmarkQuestion
+from src.storage.models import BenchmarkRun, Question
 from src.core.database import get_session
 from src.storage.repositories import BenchmarkRepository
 
