@@ -14,6 +14,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
+import sqlalchemy_libsql
+
 from .config import get_config
 from .exceptions import DatabaseError
 
@@ -40,16 +42,23 @@ def get_engine() -> Engine:
     if _engine is None:
         config = get_config()
         
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Creating database engine with URL: {config.database.url}")
+        
         try:
             # Configure engine based on database URL
             if config.database.url.startswith('libsql:'):
                 # libSQL/Turso configuration
+                logger.info("Using libSQL/Turso engine configuration")
                 _engine = _create_libsql_engine(config)
             elif config.database.url.startswith('sqlite:'):
                 # SQLite-specific configuration
+                logger.info("Using SQLite engine configuration")
                 _engine = _create_sqlite_engine(config)
             else:
                 # Generic database configuration
+                logger.info("Using generic engine configuration")
                 _engine = _create_generic_engine(config)
         except Exception as e:
             raise DatabaseError(
@@ -62,13 +71,7 @@ def get_engine() -> Engine:
 
 
 def _create_libsql_engine(config) -> Engine:
-    """Create a SQLAlchemy engine for libSQL/Turso databases."""
-    if not LIBSQL_AVAILABLE:
-        raise DatabaseError(
-            "libSQL client is not available. Install with: pip install libsql-client",
-            operation="create_libsql_engine"
-        )
-    
+    """Create a SQLAlchemy engine for libSQL/Turso databases using sqlalchemy-libsql dialect."""
     database_url = config.database.url
     auth_token = config.database.turso_auth_token
     
@@ -91,82 +94,33 @@ def _create_libsql_engine(config) -> Engine:
             operation="create_libsql_engine"
         )
     
-    # Clean URL for libSQL client (remove auth token from query params)
-    clean_url = database_url
-    if 'authToken' in query_params:
-        # Rebuild URL without authToken parameter
-        clean_query = '&'.join([f"{k}={v[0]}" for k, v in query_params.items() if k != 'authToken'])
-        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
-        if clean_query:
-            clean_url += f"?{clean_query}"
+    # Clean URL and convert to sqlite+libsql:// dialect
+    # Remove authToken from query params for security
+    clean_query_params = {k: v for k, v in query_params.items() if k != 'authToken'}
+    clean_query = '&'.join(f"{k}={v[0]}" for k, v in clean_query_params.items())
     
-    try:
-        # Test libSQL connection before creating SQLAlchemy engine
-        libsql_client_instance = libsql_client.create_client(
-            url=clean_url,
-            auth_token=auth_token
-        )
-        
-        # Test the connection
-        try:
-            libsql_client_instance.execute("SELECT 1")
-        except Exception as e:
-            raise DatabaseError(
-                f"libSQL connection test failed: {str(e)}. "
-                "Check your database URL and auth token",
-                operation="create_libsql_engine",
-                url=clean_url
-            ) from e
-        finally:
-            libsql_client_instance.close()
-        
-        # For SQLAlchemy compatibility, we'll convert libsql:// URLs to sqlite://
-        # and store the libSQL configuration for later use
-        # This approach allows us to leverage SQLAlchemy's SQLite dialect
-        # while maintaining libSQL connection capability
-        
-        # Convert to local SQLite URL for SQLAlchemy compatibility
-        # In production, this would need a more sophisticated approach
-        # like a custom SQLAlchemy dialect or connection pool
-        
-        # For now, we'll create a warning and fall back to a local SQLite database
-        # This maintains functionality while indicating the limitation
-        import warnings
-        warnings.warn(
-            "libSQL support is experimental. Using local SQLite for SQLAlchemy compatibility. "
-            "Full libSQL integration requires custom SQLAlchemy dialect.",
-            UserWarning
-        )
-        
-        # Create a local SQLite engine with libSQL metadata stored
-        local_db_path = "database/turso_local_cache.db"
-        sqlite_url = f"sqlite:///{local_db_path}"
-        
-        engine = create_engine(
-            sqlite_url,
-            echo=config.database.echo,
-            poolclass=StaticPool,
-            connect_args={
-                'check_same_thread': False,
-                'timeout': 30,
-                # Store libSQL connection info for future use
-                '_libsql_url': clean_url,
-                '_libsql_token': auth_token,
-                '_libsql_sync_enabled': config.database.turso_sync_enabled,
-            }
-        )
-        
-        return engine
-        
-    except Exception as e:
-        if "libSQL connection test failed" in str(e):
-            raise e
-        raise DatabaseError(
-            f"Failed to create libSQL engine: {str(e)}. "
-            "Ensure the database URL is correct and auth token is valid",
-            operation="create_libsql_engine",
-            url=clean_url
-        ) from e
+    # Build libSQL URL with dialect
+    # The sqlite+libsql dialect handles the protocol internally
+    libsql_url = f"sqlite+libsql://{parsed_url.netloc}{parsed_url.path}?secure=true"
+    if clean_query:
+        libsql_url += f"&{clean_query}"
+    
+    # Debug logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Creating libSQL engine with URL: {libsql_url}")
+    logger.info(f"Using auth_token: {'***' if auth_token else 'None'}")
+    
+    # Create engine with libSQL dialect and auth_token
+    engine = create_engine(
+        libsql_url,
+        echo=config.database.echo,
+        connect_args={
+            'auth_token': auth_token,
+        }
+    )
+    
+    return engine
 
 
 def _create_sqlite_engine(config) -> Engine:
@@ -211,7 +165,36 @@ def create_tables() -> None:
         # This ensures all models are available for table creation
         from src.storage.models import Question, BenchmarkRun, BenchmarkResult, ModelPerformance
         
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Debug: Check what tables are registered
+        table_names = list(Base.metadata.tables.keys())
+        logger.info(f"Registered table names in metadata: {table_names}")
+        
+        # Try creating tables without explicit transaction first
         Base.metadata.create_all(engine)
+        logger.info("create_all() completed")
+        
+        # Verify tables were created
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+            tables = [row[0] for row in result.fetchall()]
+            
+            logger.info(f"Tables found in database: {tables}")
+            
+            # Only check for tables that are actually registered
+            required_tables = [name for name in table_names if name in ['questions', 'benchmark_runs', 'benchmark_results', 'model_performance']]
+            missing_tables = [t for t in required_tables if t not in tables]
+            
+            if missing_tables:
+                logger.error(f"Missing tables: {missing_tables}")
+                logger.error(f"Available tables: {tables}")
+                logger.error(f"Expected tables: {required_tables}")
+                raise DatabaseError(f"Failed to create required tables: {missing_tables}")
+            else:
+                logger.info(f"All required tables created successfully: {required_tables}")
+                
     except Exception as e:
         raise DatabaseError(
             f"Failed to create database tables: {str(e)}",

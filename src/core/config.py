@@ -11,6 +11,14 @@ from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 import yaml
 
+# Load .env file if it exists
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv not installed, skip .env loading
+    pass
+
 
 @dataclass
 class DatabaseBackupConfig:
