@@ -299,3 +299,84 @@ class QuestionRepository:
                 operation="delete_all",
                 table="questions"
             ) from e
+    
+    def get_question_statistics(self, benchmark_id: Optional[int] = None) -> Dict[str, Any]:
+        """Get comprehensive statistics about questions.
+        
+        Args:
+            benchmark_id: Optional benchmark ID to filter statistics for specific benchmark
+            
+        Returns:
+            Dictionary containing various statistics about the questions
+        """
+        try:
+            # Start with base query
+            if benchmark_id:
+                # Import here to avoid circular imports
+                from src.storage.models.benchmark_result import BenchmarkResult
+                from src.storage.models.benchmark_run import BenchmarkRun
+                
+                base_query = self.session.query(Question)\
+                    .join(BenchmarkResult, Question.id == BenchmarkResult.question_id)\
+                    .join(BenchmarkRun, BenchmarkResult.benchmark_run_id == BenchmarkRun.id)\
+                    .filter(BenchmarkRun.id == benchmark_id)\
+                    .distinct()
+            else:
+                base_query = self.session.query(Question)
+            
+            # Total questions
+            total_questions = base_query.count()
+            
+            if total_questions == 0:
+                return {
+                    'total_questions': 0,
+                    'unique_categories': 0,
+                    'value_range': None,
+                    'category_distribution': {},
+                    'difficulty_distribution': {}
+                }
+            
+            # Get all questions for analysis
+            questions = base_query.all()
+            
+            # Unique categories
+            categories = set(q.category for q in questions if q.category)
+            unique_categories = len(categories)
+            
+            # Value range statistics
+            values = [q.value for q in questions if q.value is not None and q.value > 0]
+            value_range = None
+            if values:
+                value_range = {
+                    'min': min(values),
+                    'max': max(values),
+                    'average': sum(values) / len(values),
+                    'count': len(values)
+                }
+            
+            # Category distribution
+            category_counts = {}
+            for question in questions:
+                if question.category:
+                    category_counts[question.category] = category_counts.get(question.category, 0) + 1
+            
+            # Difficulty distribution
+            difficulty_counts = {}
+            for question in questions:
+                if question.difficulty_level:
+                    difficulty_counts[question.difficulty_level] = difficulty_counts.get(question.difficulty_level, 0) + 1
+            
+            return {
+                'total_questions': total_questions,
+                'unique_categories': unique_categories,
+                'value_range': value_range,
+                'category_distribution': category_counts,
+                'difficulty_distribution': difficulty_counts
+            }
+            
+        except Exception as e:
+            raise DatabaseError(
+                f"Failed to get question statistics: {str(e)}",
+                operation="statistics",
+                table="questions"
+            ) from e
