@@ -214,17 +214,18 @@ class SmokeTestRunner:
                 benchmark_name="Smoke Test Benchmark"
             )
             
-            if result.success:
+            if result.is_successful:
                 self.benchmark_id = result.benchmark_id
                 console.print(f"[green]Benchmark completed successfully (ID: {result.benchmark_id})[/green]")
-                console.print(f"[dim]Execution time: {result.execution_time:.2f}s[/dim]")
+                console.print(f"[dim]Execution time: {result.execution_time_seconds:.2f}s[/dim]")
                 
                 if result.metrics:
-                    console.print(f"[dim]Accuracy: {result.metrics.accuracy.overall_accuracy:.1%}[/dim]")
-                    console.print(f"[dim]Total cost: ${result.metrics.cost.total_cost:.4f}[/dim]")
+                    console.print(f"[dim]Accuracy: {result.accuracy_rate:.1%}[/dim]")
+                    console.print(f"[dim]Total cost: ${result.total_cost:.4f}[/dim]")
                     
             else:
-                raise Exception(f"Benchmark failed: {result.error_message}")
+                error_msg = "; ".join(result.errors) if result.errors else "Unknown error"
+                raise Exception(f"Benchmark failed: {error_msg}")
                 
         except Exception as e:
             if "API" in str(e) or "OpenRouter" in str(e):

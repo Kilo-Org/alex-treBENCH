@@ -21,5 +21,5 @@ mkdocs>=1.5.0
 mkdocs-material>=9.2.0
 
 # Development utilities
-ipython>=8.14.0
+ipython>=8.0.0
 jupyter>=1.0.0
