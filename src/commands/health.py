@@ -57,12 +57,61 @@ def health(ctx, check_db, check_api, check_files, check_config, verbose):
         if check_db or run_all:
             console.print("[blue]Checking database connection...[/blue]")
             try:
-                if check_database_connection():
-                    health_results.append(("Database Connection", True, "Connected successfully"))
-                    if verbose:
-                        console.print("[green]✓ Database connection: OK[/green]")
+                from core.config import get_config
+                config = get_config()
+                db_url = config.database.url
+                
+                # Determine database type and sanitize URL for display
+                if db_url.startswith('sqlite:'):
+                    db_type = "SQLite"
+                    display_url = db_url
+                elif db_url.startswith('libsql:'):
+                    db_type = "libSQL/Turso"
+                    # Sanitize libSQL URL (remove auth token)
+                    from urllib.parse import urlparse, parse_qs
+                    parsed = urlparse(db_url)
+                    if parsed.query and 'authToken' in parse_qs(parsed.query):
+                        display_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?authToken=***"
+                    else:
+                        display_url = db_url
+                elif db_url.startswith('postgresql:'):
+                    db_type = "PostgreSQL"
+                    # Sanitize PostgreSQL URL (remove password)
+                    from urllib.parse import urlparse
+                    parsed = urlparse(db_url)
+                    if parsed.password:
+                        display_url = db_url.replace(f":{parsed.password}@", ":***@")
+                    else:
+                        display_url = db_url
                 else:
-                    health_results.append(("Database Connection", False, "Connection failed"))
+                    db_type = "Unknown"
+                    display_url = db_url
+                
+                # Test connection
+                if check_database_connection():
+                    details = f"{db_type} - {display_url}"
+                    
+                    # Add auth token status for libSQL
+                    if db_type == "libSQL/Turso":
+                        import os
+                        has_env_token = bool(os.getenv('TURSO_AUTH_TOKEN'))
+                        has_config_token = bool(config.database.turso_auth_token)
+                        has_url_token = 'authToken' in (parsed.query if parsed.query else '')
+                        
+                        if has_env_token or has_config_token or has_url_token:
+                            details += " (Auth: ✓)"
+                        else:
+                            details += " (Auth: ✗)"
+                    
+                    health_results.append(("Database Connection", True, details))
+                    if verbose:
+                        console.print(f"[green]✓ Database connection: OK[/green]")
+                        console.print(f"[dim]  Type: {db_type}[/dim]")
+                        console.print(f"[dim]  URL: {display_url}[/dim]")
+                        if db_type == "libSQL/Turso":
+                            console.print(f"[dim]  Auth token configured: {'Yes' if (has_env_token or has_config_token or has_url_token) else 'No'}[/dim]")
+                else:
+                    health_results.append(("Database Connection", False, f"{db_type} - Connection failed"))
                     console.print("[red]✗ Database connection: FAILED[/red]")
                     all_checks_passed = False
             except Exception as e:

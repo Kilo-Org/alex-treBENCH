@@ -229,10 +229,25 @@ class DataInitializer:
                         )
                         questions.append(question)
                     
-                    # Save questions in batch using SQLAlchemy directly
-                    session.add_all(questions)
-                    session.flush()
-                    saved_questions = questions
+                    # Save questions in batches to avoid connection timeout with cloud databases
+                    batch_size = 1000  # Process 1000 questions at a time
+                    saved_questions = []
+                    
+                    for i in range(0, len(questions), batch_size):
+                        batch = questions[i:i + batch_size]
+                        session.add_all(batch)
+                        try:
+                            session.flush()  # Flush each batch
+                            saved_questions.extend(batch)
+                            
+                            # Update progress for each batch
+                            progress_desc = f"Saving questions... ({len(saved_questions)}/{len(questions)})"
+                            progress.update(task, description=progress_desc)
+                            
+                        except Exception as e:
+                            # If a batch fails, rollback and re-raise
+                            session.rollback()
+                            raise DatabaseError(f"Failed to save batch {i//batch_size + 1}: {str(e)}") from e
                     
                     # Step 4: Generate basic statistics
                     progress.update(task, advance=1, description="Generating statistics...")

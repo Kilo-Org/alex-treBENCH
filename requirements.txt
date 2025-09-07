@@ -3,7 +3,9 @@ pandas>=2.0.0
 numpy>=1.24.0
 kagglehub>=0.2.0
 SQLAlchemy>=2.0.0
+sqlalchemy-libsql>=0.1.0
 alembic>=1.12.0
+libsql-client==0.3.1
 
 # API and async
 aiohttp>=3.8.0
@@ -12,7 +14,7 @@ tenacity>=8.2.0
 
 # Text processing
 fuzzywuzzy>=0.18.0
-python-Levenshtein>=0.21.0
+rapidfuzz>=3.0.0
 nltk>=3.8.0
 
 # CLI and output
