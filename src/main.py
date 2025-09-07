@@ -49,7 +49,7 @@ from utils.help_text import show_help_with_markdown
 # Import all command modules
 from commands.health import health
 from commands.models import models
-from commands.benchmarks import run, compare, history, report, status, leaderboard, list_benchmarks, export as benchmark_export
+from commands.benchmarks import run, compare, history, report, status, leaderboard, list_benchmarks, export as benchmark_export, samples
 from commands.data import init as data_init, stats, sample, validate
 from commands.config import show as config_show, validate as config_validate, export as config_export
 from commands.session import session
@@ -129,6 +129,7 @@ benchmark.add_command(run)
 benchmark.add_command(compare)
 benchmark.add_command(history)
 benchmark.add_command(report)
+benchmark.add_command(samples)
 benchmark.add_command(status)
 benchmark.add_command(leaderboard)
 benchmark.add_command(list_benchmarks, name='list')
