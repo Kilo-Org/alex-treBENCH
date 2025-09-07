@@ -172,28 +172,41 @@ def create_tables() -> None:
         table_names = list(Base.metadata.tables.keys())
         logger.info(f"Registered table names in metadata: {table_names}")
         
-        # Try creating tables without explicit transaction first
+        # Create tables (PostgreSQL autocommits DDL)
         Base.metadata.create_all(engine)
         logger.info("create_all() completed")
         
-        # Verify tables were created
-        with engine.connect() as connection:
-            result = connection.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
-            tables = [row[0] for row in result.fetchall()]
+        # Verify tables were created using database-agnostic approach
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        
+        logger.info(f"Tables found in database: {tables}")
+        
+        # Only check for tables that are actually registered
+        required_tables = [name for name in table_names if name in ['questions', 'benchmark_runs', 'benchmark_results', 'model_performance']]
+        missing_tables = [t for t in required_tables if t not in tables]
+        
+        if missing_tables:
+            logger.error(f"Missing tables: {missing_tables}")
+            logger.error(f"Available tables: {tables}")
+            logger.error(f"Expected tables: {required_tables}")
+            raise DatabaseError(f"Failed to create required tables: {missing_tables}")
+        else:
+            logger.info(f"All required tables created successfully: {required_tables}")
             
-            logger.info(f"Tables found in database: {tables}")
-            
-            # Only check for tables that are actually registered
-            required_tables = [name for name in table_names if name in ['questions', 'benchmark_runs', 'benchmark_results', 'model_performance']]
-            missing_tables = [t for t in required_tables if t not in tables]
-            
-            if missing_tables:
-                logger.error(f"Missing tables: {missing_tables}")
-                logger.error(f"Available tables: {tables}")
-                logger.error(f"Expected tables: {required_tables}")
-                raise DatabaseError(f"Failed to create required tables: {missing_tables}")
-            else:
-                logger.info(f"All required tables created successfully: {required_tables}")
+        # Additional verification: try to query each table with a new session
+        # This ensures tables are visible to new connections
+        try:
+            from sqlalchemy.orm import sessionmaker
+            SessionLocal = sessionmaker(bind=engine)
+            with SessionLocal() as test_session:
+                from src.storage.models import Question
+                test_session.query(Question).count()
+                logger.info("Table visibility verified with new session")
+        except Exception as e:
+            logger.error(f"Table visibility check failed: {e}")
+            raise DatabaseError(f"Tables created but not visible to new sessions: {e}")
                 
     except Exception as e:
         raise DatabaseError(
