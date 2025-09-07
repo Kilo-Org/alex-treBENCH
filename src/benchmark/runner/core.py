@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 import traceback
 import pandas as pd
+import numpy as np
 
 from src.core.config import get_config
 from src.core.database import get_db_session
@@ -37,6 +38,30 @@ from .result_saver import ResultSaver
 from .metrics_handler import MetricsHandler
 
 logger = get_logger(__name__)
+
+
+def _convert_numpy_types(value: Any) -> Any:
+    """
+    Convert NumPy types to native Python types for database compatibility.
+    
+    Args:
+        value: Value that might be a NumPy type
+        
+    Returns:
+        Native Python type equivalent
+    """
+    if isinstance(value, np.floating):
+        return float(value)
+    elif isinstance(value, np.integer):
+        return int(value)
+    elif isinstance(value, np.bool_):
+        return bool(value)
+    elif isinstance(value, (np.ndarray, list)):
+        return [_convert_numpy_types(item) for item in value]
+    elif isinstance(value, dict):
+        return {key: _convert_numpy_types(val) for key, val in value.items()}
+    else:
+        return value
 
 
 class BenchmarkRunner:
@@ -289,17 +314,18 @@ class BenchmarkRunner:
                         jeopardy_score = question_value if is_correct else -question_value
                         
                         # Create BenchmarkResult object
+                        # Convert numeric values to native Python types for PostgreSQL compatibility
                         result = BenchmarkResult(
                             benchmark_run_id=benchmark_id,
                             question_id=response_data.get('question_id'),
                             model_name=model_name,
                             response_text=response_data.get('model_response', ''),
                             is_correct=is_correct,
-                            confidence_score=response_data.get('confidence_score', 0.0),
-                            jeopardy_score=jeopardy_score,  # Add Jeopardy score calculation
-                            response_time_ms=response_data.get('response_time_ms', 0.0),
-                            tokens_generated=response_data.get('tokens_generated', 0),
-                            cost_usd=response_data.get('cost', 0.0)
+                            confidence_score=_convert_numpy_types(response_data.get('confidence_score', 0.0)),
+                            jeopardy_score=_convert_numpy_types(jeopardy_score),
+                            response_time_ms=_convert_numpy_types(response_data.get('response_time_ms', 0.0)),
+                            tokens_generated=_convert_numpy_types(response_data.get('tokens_generated', 0)),
+                            cost_usd=_convert_numpy_types(response_data.get('cost', 0.0))
                         )
                         
                         # Save to database
@@ -354,31 +380,32 @@ class BenchmarkRunner:
                 performance_repo = PerformanceRepository(session)
                 
                 # Create ModelPerformance object from metrics
+                # Convert all values to native Python types to avoid PostgreSQL schema errors
                 performance = ModelPerformance(
                     benchmark_run_id=benchmark_id,
                     model_name=model_name,
-                    total_questions=metrics.accuracy.total_count,
-                    correct_answers=metrics.accuracy.correct_count,
-                    accuracy_rate=metrics.accuracy.overall_accuracy,
-                    jeopardy_score=metrics.jeopardy_score.total_jeopardy_score,  # Add Jeopardy total score
-                    category_jeopardy_scores=json.dumps(metrics.jeopardy_score.category_scores),  # Add category scores
-                    avg_response_time_ms=metrics.performance.mean_response_time,
-                    median_response_time_ms=metrics.performance.median_response_time,
-                    min_response_time_ms=metrics.performance.min_response_time,
-                    max_response_time_ms=metrics.performance.max_response_time,
-                    total_cost_usd=metrics.cost.total_cost,
-                    avg_cost_per_question=metrics.cost.cost_per_question,
-                    cost_per_correct_answer=metrics.cost.cost_per_correct_answer,
-                    total_tokens_input=metrics.cost.input_tokens,
-                    total_tokens_output=metrics.cost.output_tokens,
-                    total_tokens=metrics.cost.total_tokens,
-                    avg_tokens_per_question=metrics.cost.tokens_per_question,
-                    category_performance=json.dumps(metrics.accuracy.by_category),
-                    difficulty_performance=json.dumps(metrics.accuracy.by_difficulty),
-                    avg_confidence=getattr(metrics.consistency, 'confidence_correlation', 0.0),
-                    confidence_accuracy_correlation=metrics.consistency.confidence_correlation,
-                    error_count=metrics.performance.error_count,
-                    error_rate=(1.0 - metrics.accuracy.overall_accuracy) if metrics.accuracy.overall_accuracy >= 0 else 0.0
+                    total_questions=_convert_numpy_types(metrics.accuracy.total_count),
+                    correct_answers=_convert_numpy_types(metrics.accuracy.correct_count),
+                    accuracy_rate=_convert_numpy_types(metrics.accuracy.overall_accuracy),
+                    jeopardy_score=_convert_numpy_types(metrics.jeopardy_score.total_jeopardy_score),
+                    category_jeopardy_scores=json.dumps(_convert_numpy_types(metrics.jeopardy_score.category_scores)),
+                    avg_response_time_ms=_convert_numpy_types(metrics.performance.mean_response_time),
+                    median_response_time_ms=_convert_numpy_types(metrics.performance.median_response_time),
+                    min_response_time_ms=_convert_numpy_types(metrics.performance.min_response_time),
+                    max_response_time_ms=_convert_numpy_types(metrics.performance.max_response_time),
+                    total_cost_usd=_convert_numpy_types(metrics.cost.total_cost),
+                    avg_cost_per_question=_convert_numpy_types(metrics.cost.cost_per_question),
+                    cost_per_correct_answer=_convert_numpy_types(metrics.cost.cost_per_correct_answer),
+                    total_tokens_input=_convert_numpy_types(metrics.cost.input_tokens),
+                    total_tokens_output=_convert_numpy_types(metrics.cost.output_tokens),
+                    total_tokens=_convert_numpy_types(metrics.cost.total_tokens),
+                    avg_tokens_per_question=_convert_numpy_types(metrics.cost.tokens_per_question),
+                    category_performance=json.dumps(_convert_numpy_types(metrics.accuracy.by_category)),
+                    difficulty_performance=json.dumps(_convert_numpy_types(metrics.accuracy.by_difficulty)),
+                    avg_confidence=_convert_numpy_types(getattr(metrics.consistency, 'confidence_correlation', 0.0)),
+                    confidence_accuracy_correlation=_convert_numpy_types(metrics.consistency.confidence_correlation),
+                    error_count=_convert_numpy_types(metrics.performance.error_count),
+                    error_rate=_convert_numpy_types((1.0 - metrics.accuracy.overall_accuracy) if metrics.accuracy.overall_accuracy >= 0 else 0.0)
                 )
                 
                 # Save to database

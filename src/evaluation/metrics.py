@@ -476,7 +476,8 @@ class MetricsCalculator:
         if len(graded_responses) > 1:
             correct_scores = [1.0 if r.is_correct else 0.0 for r in graded_responses]
             try:
-                confidence_correlation = np.corrcoef(confidences, correct_scores)[0, 1]
+                correlation_matrix = np.corrcoef(confidences, correct_scores)
+                confidence_correlation = float(correlation_matrix[0, 1])  # Convert numpy.float64 to Python float
                 if np.isnan(confidence_correlation):
                     confidence_correlation = 0.0
             except (ValueError, IndexError):
