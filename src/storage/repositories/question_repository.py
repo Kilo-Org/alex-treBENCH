@@ -204,6 +204,77 @@ class QuestionRepository:
                 table="questions"
             ) from e
     
+    def get_questions(self, filters: Optional[Dict[str, Any]] = None,
+                     limit: Optional[int] = None, offset: int = 0) -> List[Question]:
+        """Get questions with flexible filtering support.
+        
+        Args:
+            filters: Dictionary of field filters. Supported keys:
+                - category: Filter by category
+                - difficulty_level: Filter by difficulty
+                - value: Filter by exact value
+                - min_value: Filter by minimum value
+                - max_value: Filter by maximum value
+                - round: Filter by round (Jeopardy, Double Jeopardy, Final Jeopardy)
+                - benchmark_id: Filter by questions used in a specific benchmark (joins with benchmark_results)
+            limit: Maximum number of questions to return
+            offset: Number of questions to skip
+            
+        Returns:
+            List of Question objects matching the filters
+        """
+        try:
+            query = self.session.query(Question)
+            
+            if filters:
+                # Handle benchmark_id filter by joining with benchmark_results
+                if 'benchmark_id' in filters:
+                    # Import here to avoid circular imports
+                    from src.storage.models.benchmark_result import BenchmarkResult
+                    from src.storage.models.benchmark_run import BenchmarkRun
+                    
+                    query = query.join(BenchmarkResult, Question.id == BenchmarkResult.question_id)\
+                                .join(BenchmarkRun, BenchmarkResult.benchmark_run_id == BenchmarkRun.id)\
+                                .filter(BenchmarkRun.id == filters['benchmark_id'])\
+                                .distinct()
+                
+                # Handle standard question field filters
+                if 'category' in filters:
+                    query = query.filter(Question.category == filters['category'])
+                    
+                if 'difficulty_level' in filters:
+                    query = query.filter(Question.difficulty_level == filters['difficulty_level'])
+                    
+                if 'value' in filters:
+                    query = query.filter(Question.value == filters['value'])
+                    
+                if 'min_value' in filters:
+                    query = query.filter(Question.value >= filters['min_value'])
+                    
+                if 'max_value' in filters:
+                    query = query.filter(Question.value <= filters['max_value'])
+                    
+                if 'round' in filters:
+                    query = query.filter(Question.round == filters['round'])
+            
+            # Apply ordering
+            query = query.order_by(Question.id)
+            
+            # Apply pagination
+            if offset:
+                query = query.offset(offset)
+            if limit:
+                query = query.limit(limit)
+                
+            return query.all()
+            
+        except Exception as e:
+            raise DatabaseError(
+                f"Failed to get questions with filters {filters}: {str(e)}",
+                operation="query",
+                table="questions"
+            ) from e
+
     def clear_all_questions(self) -> int:
         """Delete all questions from the database.
         
