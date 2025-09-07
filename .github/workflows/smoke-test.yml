@@ -23,10 +23,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
@@ -138,7 +138,7 @@ jobs:
 
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-artifacts-python-${{ matrix.python-version }}
           path: |
@@ -146,6 +146,8 @@ jobs:
             data/*.db
             logs/*.log
           retention-days: 7
+          if-no-files-found: warn
+          overwrite: true
 
       - name: Check smoke test result
         if: steps.smoke_test.outputs.smoke_test_result != '0'
