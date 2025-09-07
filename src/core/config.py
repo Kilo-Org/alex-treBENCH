@@ -27,6 +27,8 @@ class DatabaseConfig:
     echo: bool = False
     pool_size: int = 5
     backup: DatabaseBackupConfig = field(default_factory=DatabaseBackupConfig)
+    turso_auth_token: Optional[str] = None
+    turso_sync_enabled: bool = False
 
 
 @dataclass
@@ -343,6 +345,7 @@ class AppConfig:
         """Apply environment variable overrides to configuration."""
         env_mappings = {
             'DATABASE_URL': ['database', 'url'],
+            'TURSO_AUTH_TOKEN': ['database', 'turso_auth_token'],
             'LOG_LEVEL': ['logging', 'level'],
             'DEBUG': ['debug'],
             'ENVIRONMENT': ['environment'],

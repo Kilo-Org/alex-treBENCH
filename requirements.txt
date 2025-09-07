@@ -4,6 +4,7 @@ numpy>=1.24.0
 kagglehub>=0.2.0
 SQLAlchemy>=2.0.0
 alembic>=1.12.0
+libsql-client>=0.4.0
 
 # API and async
 aiohttp>=3.8.0
