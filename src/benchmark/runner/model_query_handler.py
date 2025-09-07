@@ -88,12 +88,37 @@ class ModelQueryHandler:
             
             semaphore = asyncio.Semaphore(config.max_concurrent_requests)
             
-            # Execute all queries concurrently
-            logger.info(f"🔍 DEBUG: Creating {len(questions)} concurrent query tasks...")
-            query_tasks = [self._query_single_question(q, model_name, config, benchmark_id, prompt_config, semaphore, progress, progress_obj, task_id) for q in questions]
-            logger.info("🔍 DEBUG: Starting asyncio.gather() for concurrent queries...")
-            responses = await asyncio.gather(*query_tasks, return_exceptions=False)
-            logger.info(f"🔍 DEBUG: asyncio.gather() completed with {len(responses)} responses")
+            # Process questions in batches for smooth progress updates
+            # Batch size balances performance vs progress granularity
+            batch_size = min(10, max(2, config.max_concurrent_requests * 2))
+            responses = []
+            
+            logger.info(f"🔍 DEBUG: Processing {len(questions)} questions in batches of {batch_size}")
+            
+            for i in range(0, len(questions), batch_size):
+                batch = questions[i:i+batch_size]
+                batch_start = i + 1
+                batch_end = min(i + batch_size, len(questions))
+                
+                logger.info(f"🔍 DEBUG: Processing batch {batch_start}-{batch_end} ({len(batch)} questions)")
+                
+                # Execute current batch concurrently
+                batch_tasks = [
+                    self._query_single_question(q, model_name, config, benchmark_id, prompt_config, semaphore, progress, progress_obj, task_id)
+                    for q in batch
+                ]
+                
+                # Wait for current batch to complete
+                batch_responses = await asyncio.gather(*batch_tasks, return_exceptions=False)
+                responses.extend(batch_responses)
+                
+                logger.info(f"🔍 DEBUG: Completed batch {batch_start}-{batch_end}, total progress: {len(responses)}/{len(questions)}")
+                
+                # Small delay between batches to allow progress updates to render
+                if i + batch_size < len(questions):  # Don't delay after the last batch
+                    await asyncio.sleep(0.1)
+            
+            logger.info(f"🔍 DEBUG: All batches completed with {len(responses)} total responses")
             
             logger.info(f"Completed {len(responses)} model queries")
             successful_responses = sum(1 for r in responses if r.get('is_correct', False))
