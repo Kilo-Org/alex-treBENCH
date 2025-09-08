@@ -1,49 +1,28 @@
 
+import { TrophyIcon } from "@heroicons/react/20/solid"
 import { ClockIcon, CodeBracketIcon } from '@heroicons/react/24/outline'
 
 export default function Hero() {
     return (
         <div className="relative">
-            <div className="relative z-10 flex flex-col items-center justify-center px-6 py-12">
-                {/* Top notification banner */}
+            <div className="relative z-10 flex flex-col items-center justify-center px-6 md:py-6">
                 <div className="mb-12 flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-gray-300 text-sm">GPT-5 and GPT OSS now available in LLM Stats!</span>
-                    </div>
-                    <div className="flex space-x-2">
-                        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md flex items-center space-x-1 transition-colors">
-                            <span>🎮</span>
-                            <span>Try in playground</span>
-                        </button>
-                        <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-md flex items-center space-x-1 transition-colors">
-                            <CodeBracketIcon className="w-4 h-4" />
-                            <span>Use in API</span>
-                        </button>
-                    </div>
+                    <span className="inline-flex items-center gap-x-1.5 rounded-md px-2 py-1 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-200 dark:text-white dark:ring-white/10">
+                        <svg viewBox="0 0 6 6" aria-hidden="true" className="size-1.5 fill-green-500 dark:fill-green-400">
+                            <circle r={3} cx={3} cy={3} />
+                        </svg>
+                        LLM performance tracking across 200k+ Jeopardy questions
+                    </span>
                 </div>
 
-                {/* Main heading */}
-                <h1 className="text-6xl md:text-7xl font-bold text-white text-center mb-8">
-                    LLM Leaderboardx
+                <h1 className="flex items-center gap-2 text-xl md:text-5xl font-bold text-white text-center mb-8">
+                    {/* <TrophyIcon className="size-8 shrink-0 text-brand-primary border border-amber-50 bg-amber-50" /> */}
+                    LLM Jeopardy Championship Leaderboard
                 </h1>
 
-                {/* Subtitle */}
-                <p className="text-xl text-gray-400 text-center max-w-4xl mb-16">
-                    Analyze and compare <span className="text-blue-400">API models</span> across benchmarks, pricing, and capabilities.
+                <p className="text-xl text-gray-400 text-center max-w-4xl mb-2">
+                    "What is... the smartest language model?"
                 </p>
-
-                {/* Bottom section */}
-                <div className="flex items-center space-x-6">
-                    <div className="flex items-center space-x-2 text-gray-400">
-                        <ClockIcon className="w-4 h-4" />
-                        <span className="text-sm">Updated daily</span>
-                    </div>
-                    <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors">
-                        <span>💬</span>
-                        <span>Join our Discord</span>
-                    </button>
-                </div>
             </div>
         </div>
     )

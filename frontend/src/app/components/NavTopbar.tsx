@@ -35,10 +35,10 @@ export default function NavTopbar({ setSidebarOpen }: NavTopbarProps) {
             <div aria-hidden="true" className="h-6 w-px bg-gray-900/10 lg:hidden dark:bg-white/10" />
 
             <div className="flex justify-between w-full gap-x-4 items-center lg:gap-x-6">
-                <div className="flex-1 text-amber-100">
+                <div className="hidden md:block flex-1 text-amber-100">
                     LLM Jeopardy Championship
                 </div>
-                <h1 className="flex-1 text-4xl font-bold text-brand-primary dark:text-white" style={{ fontFamily: 'Gyparody, sans-serif' }}>
+                <h1 className="flex-1 text-xl md:text-4xl font-bold text-brand-primary dark:text-white" style={{ fontFamily: 'Gyparody, sans-serif' }}>
                     alex tre-BENCH
                 </h1>
                 <div className="flex items-center gap-x-4 lg:gap-x-6">

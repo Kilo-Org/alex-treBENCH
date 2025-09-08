@@ -24,7 +24,6 @@ export default function LayoutClient({
           </div>
         </main>
       </div>
-      {children}
     </div>
   );
 }
