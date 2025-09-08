@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Gyparody';
+  src: url('/gyparody/gyparody rg.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gyparody';
+  src: url('/gyparody/gyparody hv.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -10,6 +26,10 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-brand-primary: #081484;
+  --color-brand-primary-dark: #0a1a9a;
+  --color-brand-primary-light: #1e3a8a;
+  --color-brand-primary-border: #4a5db8;
 }
 
 @media (prefers-color-scheme: dark) {

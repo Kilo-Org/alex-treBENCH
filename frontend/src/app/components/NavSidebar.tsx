@@ -66,7 +66,7 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                             </TransitionChild>
 
                             {/* Sidebar component, swap this element with another sidebar if you like */}
-                            <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-indigo-600 px-6 pb-4 dark:bg-indigo-800 dark:ring-1 dark:ring-white/10">
+                            <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-brand-primary px-6 pb-4 dark:bg-brand-primary-dark dark:ring-1 dark:ring-white/10">
                                 <div className="flex h-16 shrink-0 items-center">
                                     <img
                                         alt="Your Company"
@@ -84,8 +84,8 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                                             href={item.href}
                                                             className={classNames(
                                                                 item.current
-                                                                    ? 'bg-indigo-700 text-white dark:bg-indigo-950/25'
-                                                                    : 'text-indigo-200 hover:bg-indigo-700 hover:text-white dark:text-indigo-100 dark:hover:bg-indigo-950/25',
+                                                                    ? 'bg-brand-primary-dark text-white dark:bg-brand-primary/40'
+                                                                    : 'text-blue-200 hover:bg-brand-primary-dark hover:text-white dark:text-blue-100 dark:hover:bg-brand-primary/40',
                                                                 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
                                                             )}
                                                         >
@@ -94,7 +94,7 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                                                 className={classNames(
                                                                     item.current
                                                                         ? 'text-white'
-                                                                        : 'text-indigo-200 group-hover:text-white dark:text-indigo-100',
+                                                                        : 'text-blue-200 group-hover:text-white dark:text-blue-100',
                                                                     'size-6 shrink-0',
                                                                 )}
                                                             />
@@ -105,7 +105,7 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                             </ul>
                                         </li>
                                         <li>
-                                            <div className="text-xs/6 font-semibold text-indigo-200 dark:text-indigo-100">Your teams</div>
+                                            <div className="text-xs/6 font-semibold text-blue-200 dark:text-blue-100">Your teams</div>
                                             <ul role="list" className="-mx-2 mt-2 space-y-1">
                                                 {teams.map((team) => (
                                                     <li key={team.name}>
@@ -113,12 +113,12 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                                             href={team.href}
                                                             className={classNames(
                                                                 team.current
-                                                                    ? 'bg-indigo-700 text-white dark:bg-indigo-950/25'
-                                                                    : 'text-indigo-200 hover:bg-indigo-700 hover:text-white dark:text-indigo-100 dark:hover:bg-indigo-950/25',
+                                                                    ? 'bg-brand-primary-dark text-white dark:bg-brand-primary/40'
+                                                                    : 'text-blue-200 hover:bg-brand-primary-dark hover:text-white dark:text-blue-100 dark:hover:bg-brand-primary/40',
                                                                 'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
                                                             )}
                                                         >
-                                                            <span className="flex size-6 shrink-0 items-center justify-center rounded-lg border border-indigo-400 bg-indigo-500 text-[0.625rem] font-medium text-white dark:border-indigo-500/50 dark:bg-indigo-700">
+                                                            <span className="flex size-6 shrink-0 items-center justify-center rounded-lg border border-brand-primary-border bg-brand-primary-light text-[0.625rem] font-medium text-white dark:border-brand-primary-light/50 dark:bg-brand-primary-dark">
                                                                 {team.initial}
                                                             </span>
                                                             <span className="truncate">{team.name}</span>
@@ -130,11 +130,11 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                         <li className="mt-auto">
                                             <a
                                                 href="#"
-                                                className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold text-indigo-200 hover:bg-indigo-700 hover:text-white dark:text-indigo-100 dark:hover:bg-indigo-950/25"
+                                                className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold text-blue-200 hover:bg-brand-primary-dark hover:text-white dark:text-blue-100 dark:hover:bg-brand-primary/40"
                                             >
                                                 <Cog6ToothIcon
                                                     aria-hidden="true"
-                                                    className="size-6 shrink-0 text-indigo-200 group-hover:text-white dark:text-indigo-100"
+                                                    className="size-6 shrink-0 text-blue-200 group-hover:text-white dark:text-blue-100"
                                                 />
                                                 Settings
                                             </a>
@@ -149,7 +149,7 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                 {/* Desktop Sidebar */}
                 <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
                     {/* Sidebar component, swap this element with another sidebar if you like */}
-                    <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-indigo-600 px-6 pb-4 dark:bg-indigo-800 dark:after:pointer-events-none dark:after:absolute dark:after:inset-y-0 dark:after:right-0 dark:after:w-px dark:after:bg-white/10">
+                    <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-brand-primary px-6 pb-4 dark:bg-brand-primary-dark dark:after:pointer-events-none dark:after:absolute dark:after:inset-y-0 dark:after:right-0 dark:after:w-px dark:after:bg-white/10">
                         <div className="flex h-16 shrink-0 items-center">
                             <img
                                 alt="Your Company"
@@ -167,8 +167,8 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                                     href={item.href}
                                                     className={classNames(
                                                         item.current
-                                                            ? 'bg-indigo-700 text-white dark:bg-indigo-950/25'
-                                                            : 'text-indigo-200 hover:bg-indigo-700 hover:text-white dark:text-indigo-100 dark:hover:bg-indigo-950/25',
+                                                            ? 'bg-brand-primary-dark text-white dark:bg-brand-primary/40'
+                                                            : 'text-blue-200 hover:bg-brand-primary-dark hover:text-white dark:text-blue-100 dark:hover:bg-brand-primary/40',
                                                         'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
                                                     )}
                                                 >
@@ -177,7 +177,7 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                                         className={classNames(
                                                             item.current
                                                                 ? 'text-white'
-                                                                : 'text-indigo-200 group-hover:text-white dark:text-indigo-100',
+                                                                : 'text-blue-200 group-hover:text-white dark:text-blue-100',
                                                             'size-6 shrink-0',
                                                         )}
                                                     />
@@ -188,7 +188,7 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                     </ul>
                                 </li>
                                 <li>
-                                    <div className="text-xs/6 font-semibold text-indigo-200 dark:text-indigo-100">Your teams</div>
+                                    <div className="text-xs/6 font-semibold text-blue-200 dark:text-blue-100">Your teams</div>
                                     <ul role="list" className="-mx-2 mt-2 space-y-1">
                                         {teams.map((team) => (
                                             <li key={team.name}>
@@ -196,12 +196,12 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                                     href={team.href}
                                                     className={classNames(
                                                         team.current
-                                                            ? 'bg-indigo-700 text-white dark:bg-indigo-950/25'
-                                                            : 'text-indigo-200 hover:bg-indigo-700 hover:text-white dark:text-indigo-100 dark:hover:bg-indigo-950/25',
+                                                            ? 'bg-brand-primary-dark text-white dark:bg-brand-primary/40'
+                                                            : 'text-blue-200 hover:bg-brand-primary-dark hover:text-white dark:text-blue-100 dark:hover:bg-brand-primary/40',
                                                         'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
                                                     )}
                                                 >
-                                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-lg border border-indigo-400 bg-indigo-500 text-[0.625rem] font-medium text-white dark:border-indigo-500/50 dark:bg-indigo-700">
+                                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-lg border border-brand-primary-border bg-brand-primary-light text-[0.625rem] font-medium text-white dark:border-brand-primary-light/50 dark:bg-brand-primary-dark">
                                                         {team.initial}
                                                     </span>
                                                     <span className="truncate">{team.name}</span>
@@ -213,11 +213,11 @@ export default function NavSidebar({ sidebarOpen, setSidebarOpen }: NavSidebarPr
                                 <li className="mt-auto">
                                     <a
                                         href="#"
-                                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold text-indigo-200 hover:bg-indigo-700 hover:text-white dark:text-indigo-100 dark:hover:bg-indigo-950/25"
+                                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold text-blue-200 hover:bg-brand-primary-dark hover:text-white dark:text-blue-100 dark:hover:bg-brand-primary/40"
                                     >
                                         <Cog6ToothIcon
                                             aria-hidden="true"
-                                            className="size-6 shrink-0 text-indigo-200 group-hover:text-white dark:text-indigo-100"
+                                            className="size-6 shrink-0 text-blue-200 group-hover:text-white dark:text-blue-100"
                                         />
                                         Settings
                                     </a>

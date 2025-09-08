@@ -4,7 +4,7 @@ import { ClockIcon, CodeBracketIcon } from '@heroicons/react/24/outline'
 export default function Hero() {
     return (
         <div className="relative">
-            <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 py-12">
+            <div className="relative z-10 flex flex-col items-center justify-center px-6 py-12">
                 {/* Top notification banner */}
                 <div className="mb-12 flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
@@ -25,7 +25,7 @@ export default function Hero() {
 
                 {/* Main heading */}
                 <h1 className="text-6xl md:text-7xl font-bold text-white text-center mb-8">
-                    LLM Leaderboard
+                    LLM Leaderboardx
                 </h1>
 
                 {/* Subtitle */}
