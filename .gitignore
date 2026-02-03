@@ -1,10 +1,66 @@
-# Byte-compiled / optimized / DLL files
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
 
 # Distribution / packaging
 .Python
@@ -20,65 +76,28 @@ parts/
 sdist/
 var/
 wheels/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
 # PyInstaller
 *.manifest
 *.spec
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
 # Unit test / coverage reports
 htmlcov/
 .tox/
-.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
-*.py,cover
 .hypothesis/
 .pytest_cache/
-cover/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
 
 # pyenv
 .python-version
@@ -86,91 +105,18 @@ ipython_config.py
 # pipenv
 Pipfile.lock
 
-# poetry
-poetry.lock
-
-# pdm
-.pdm.toml
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-.idea/
-
-# VS Code
-.vscode/
-
-# Project-specific files
-database/
-logs/
-data/raw/
-data/processed/
-data/exports/
-*.db
-*.sqlite
-*.sqlite3
-
-# Kaggle credentials
-kaggle.json
-
-# Model outputs and cache
-.cache/
-outputs/
-models_cache/
-
 # Temporary files
-tmp/
-temp/
-.tmp/
+*.tmp
+*.temp
 
-# OS files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Data files (adjust as needed for your project)
+data/
+*.csv
+*.json
+*.sqlite
+*.db
 
-/data
+# Benchmark results (adjust as needed)
+results/
+benchmarks/results/
+*.benchmark

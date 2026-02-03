@@ -1,415 +1,224 @@
-# alex-treBENCH!
+# Jeopardy Benchmark Tool
 
-Jeopardy Language Model Benchmarking System.
+A simplified Jeopardy benchmarking tool that combines the question downloading capabilities from the `org` folder with the elegant design patterns from `skatebench`.
 
-🎮 Benchmark LLMs with Jeopardy! questions. Tournament-style testing for large language models. What is... your model's true performance?
+> **Note**: This project now uses [Bun](https://bun.sh) as the JavaScript runtime and package manager for improved performance and developer experience.
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-passing-green.svg)](tests/)
+## Features
 
-A comprehensive benchmarking application that evaluates language models using Jeopardy questions from Kaggle, providing statistically significant and repeatable performance analysis through OpenRouter's API.
+- **Question Download**: Automatically downloads Jeopardy questions from public datasets
+- **Multi-Model Support**: Test multiple AI models simultaneously via OpenRouter
+- **Smart Evaluation**: Multiple answer matching strategies (exact, fuzzy, Jeopardy format, etc.)
+- **Caching System**: Intelligent result caching to minimize API costs
+- **Real-time Progress**: Live terminal feedback during benchmarking
+- **Cost Tracking**: Monitor token usage and API costs
 
-## 🎯 Project Overview
+## Prerequisites
 
-This system is designed to:
+- [Bun](https://bun.sh) runtime (latest version recommended)
+- OpenRouter API key
 
-- ✅ Test multiple language models simultaneously using authentic Jeopardy questions
-- ✅ Provide statistically significant benchmarking with proper sampling methodologies
-- ✅ Measure key performance metrics: accuracy, response speed, cost efficiency, and consistency
-- ✅ Generate comprehensive reports with category and difficulty-level analysis
-- ✅ Support both CLI interface and future web interface expansion
+## Quick Start
 
-## 📋 Key Features
+1. **Install dependencies:**
+   ```bash
+   bun install
+   ```
 
-### Core Capabilities
+2. **Set up OpenRouter API key:**
+   ```bash
+   export OPENROUTER_API_KEY=your_api_key_here
+   ```
 
-- **Statistical Sampling**: Scientifically valid question selection ensuring 95% confidence level
-- **Fuzzy Answer Matching**: Intelligent answer evaluation handling variations and formats
-- **Multi-Model Support**: Concurrent testing of 5-10 language models via OpenRouter API
-- **Comprehensive Metrics**: Accuracy, latency, tokens/second, cost analysis, and consistency tracking
-- **Category Analysis**: Performance breakdown by Jeopardy categories and difficulty levels
-- **Reproducible Results**: Deterministic benchmarking with configurable parameters
+3. **Download sample questions:**
+   ```bash
+   bun run dev download --sample 50
+   ```
 
-### Performance Metrics Tracked
+4. **Run a quick benchmark:**
+   ```bash
+   bun run dev benchmark
+   ```
 
-- Response accuracy (correct/incorrect with confidence scoring)
-- Response speed (latency and tokens per second)
-- Cost per query and cost-effectiveness ratios
-- Model consistency across similar question types
-- Category-specific performance analysis
-- Difficulty-level performance based on Jeopardy dollar values
+## Commands
 
-## 🏗️ Architecture Overview
+### Download Questions
+```bash
+# Download sample questions
+bun run dev download --sample 50
 
-### System Components
+# Download questions from specific category
+bun run dev download --sample 30 --category "SCIENCE"
 
-```mermaid
-graph TB
-    A[Data Ingestion Layer] --> B[Question Selection Engine]
-    B --> C[Model Testing Engine]
-    C --> D[Answer Evaluation Engine]
-    D --> E[Metrics Calculation Engine]
-    E --> F[Results Storage Layer]
-    F --> G[Reporting & Analytics]
-
-    H[OpenRouter API] --> C
-    I[Kaggle Dataset] --> A
-    J[SQLite Database] --> F
+# Force re-download (bypass cache)
+bun run dev download --force
 ```
 
-### Technology Stack
+### Run Benchmark
+```bash
+# Quick test with default models
+bun run dev benchmark
 
-- **Backend**: Python 3.8+ with async/await support
-- **Database**: SQLite with SQLAlchemy ORM
-- **API Integration**: OpenRouter via aiohttp
-- **Data Processing**: Pandas, NumPy for statistical analysis
-- **Text Matching**: FuzzyWuzzy with Levenshtein distance
-- **CLI Interface**: Click with Rich for enhanced output
-- **Testing**: Pytest with async support
+# Test specific models
+bun run dev benchmark --models gpt-4o-mini claude-3-haiku
 
-## 📁 Project Structure
+# Test more questions
+bun run dev benchmark --sample 100
+
+# Filter by category
+bun run dev benchmark --category "HISTORY" --sample 25
+
+# Disable caching
+bun run dev benchmark --no-cache
+
+# Increase concurrency
+bun run dev benchmark --concurrency 10
+```
+
+### List Available Models
+```bash
+bun run dev models
+```
+
+## Architecture
+
+### Design Principles
+
+This tool combines the best of both existing implementations:
+
+**From `org` folder (Jeopardy tool):**
+- Robust question downloading and caching
+- Multiple answer matching strategies
+- Professional error handling
+
+**From `skatebench`:**
+- Clean, functional TypeScript architecture
+- Intelligent result caching
+- Real-time progress feedback
+- Simple but powerful evaluation
+
+**Simplified improvements:**
+- Reduced complexity while maintaining functionality
+- Modern TypeScript with AI SDK integration
+- Focus on usability over configurability
+- Clear separation of concerns
+
+### File Structure
 
 ```
-alex-trebench/
-├── config/                    # Configuration files (YAML)
-│   ├── default.yaml           # Main configuration
-│   └── models/                # Model-specific settings
+app/
 ├── src/
-│   ├── main.py                # CLI entry point (alex command)
-│   ├── core/                  # Foundation components
-│   ├── data/                  # Data ingestion and preprocessing
-│   ├── models/                # LLM API clients and adapters
-│   ├── evaluation/            # Answer matching and grading
-│   ├── benchmark/             # Execution engine and reporting
-│   ├── storage/               # Database models and repositories
-│   ├── cli/                   # Command-line interface
-│   ├── commands/              # Command implementations
-│   └── utils/                 # Shared utilities
-├── tests/                     # Comprehensive test suite
-│   ├── unit/                  # Unit tests
-│   ├── integration/           # Integration tests
-│   └── e2e/                   # End-to-end tests
-├── docs/                      # Documentation
-│   ├── USER_GUIDE.md          # Complete user guide
-│   └── API_REFERENCE.md       # API documentation
-├── scripts/                   # Utility scripts
-├── examples/                  # Usage examples
-└── data/                      # Local data storage and cache
+│   ├── data/
+│   │   └── downloader.ts     # Question downloading logic
+│   ├── models/
+│   │   └── config.ts         # Model configurations
+│   ├── bench/
+│   │   ├── evaluator.ts      # Answer evaluation logic
+│   │   └── runner.ts         # Main benchmarking engine
+│   └── index.ts              # CLI interface
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
-## 📖 Documentation
+## Answer Evaluation
 
-### User Documentation
+The tool uses multiple evaluation strategies in order of precision:
 
-- **[User Guide](docs/USER_GUIDE.md)**: Complete user guide with installation, configuration, and usage examples
-- **[API Reference](docs/API_REFERENCE.md)**: Comprehensive API documentation with code examples
+1. **Exact Match**: Direct string comparison after normalization
+2. **Jeopardy Format**: Handles "What is..." style responses
+3. **Substring Match**: Checks if answer appears in response
+4. **Word Match**: Matches significant words (70% threshold)
+5. **Fuzzy Match**: Character similarity (80% threshold)
 
-### Technical Documentation
+## Model Support
 
-- **[Technical Specification](TECHNICAL_SPEC.md)**: Complete system architecture, database schema, algorithms, and API integration patterns
-- **[Project Structure](PROJECT_STRUCTURE.md)**: Detailed directory organization, module responsibilities, and technology stack
-- **[Implementation Roadmap](ROADMAP.md)**: Development phases, priorities, and delivery timeline
+Currently supports models via OpenRouter including:
+- OpenAI (GPT-4, GPT-3.5, O1 series)
+- Anthropic (Claude 3.5 Sonnet, Claude 3 Haiku)
+- Google (Gemini models)
+- Meta (Llama models)
+- DeepSeek and others
 
-### Key Specifications
+## Results
 
-#### Statistical Sampling
+Results are saved to `./results/` with:
+- Individual model results as JSON files
+- Combined summary with accuracy statistics
+- Cached results to avoid duplicate API calls
 
-- **Sample Size**: 1000 questions for statistical significance (95% confidence, 5% margin of error)
-- **Stratified Sampling**: Proportional representation across categories and difficulty levels
-- **Reproducibility**: Configurable random seed for consistent benchmark runs
+## Configuration
 
-#### Answer Evaluation Methodology
+Key settings in `src/models/config.ts`:
+- `maxConcurrency`: Number of simultaneous API calls
+- `testRunsPerModel`: Repetitions per model (for consistency)
+- `timeoutSeconds`: Request timeout
+- `defaultSampleSize`: Default number of questions
 
-- **Multi-level Matching**: Exact match, normalized comparison, and semantic similarity
-- **Fuzzy Scoring**: Weighted combination of similarity metrics with confidence thresholds
-- **Format Flexibility**: Handles Jeopardy answer format variations and common response patterns
+## Cost Management
 
-#### Performance Metrics
+- **Caching**: Results are cached by model/question hash
+- **Sampling**: Test on smaller subsets first
+- **Concurrency Control**: Limit simultaneous requests
+- **Usage Tracking**: Monitor costs per model
 
-```python
-# Core metrics calculated
-accuracy_rate = correct_answers / total_questions
-avg_response_time = mean(response_times_ms)
-tokens_per_second = mean(tokens_generated / response_time_seconds)
-cost_per_correct = total_cost / correct_answers
-consistency_score = 1 - std_deviation(response_times) / mean(response_times)
+## Example Output
+
+```
+🧠 Jeopardy AI Benchmark
+
+Testing 25 questions
+Models: gpt-4o-mini, claude-3-haiku, gemini-2.0-flash
+
+✓ gpt-4o-mini: 84.0% accuracy (1250ms avg)
+✓ claude-3-haiku: 76.0% accuracy (980ms avg)  
+✓ gemini-2.0-flash: 80.0% accuracy (1100ms avg)
+
+📊 Final Results
+==================================================
+🥇 gpt-4o-mini        84.0% accuracy  21/25 correct
+    Cost: $0.0023  Tokens: 450  Time: 1250ms avg
+
+🥈 gemini-2.0-flash   80.0% accuracy  20/25 correct
+    Cost: $0.0019  Tokens: 380  Time: 1100ms avg
+
+🥉 claude-3-haiku     76.0% accuracy  19/25 correct
+    Cost: $0.0015  Tokens: 420  Time: 980ms avg
 ```
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.8 or higher
-- uv (recommended) or pip for package management
-- OpenRouter API key (get one at [openrouter.ai](https://openrouter.ai))
-- Internet connection for API access
-
-### Installation
+## Development
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd alex-trebench
+# Install dependencies
+bun install
 
-# Install using uv (recommended)
-uv pip install -e .
+# Run in development mode
+bun run dev
 
-# Or using pip
-pip install -e .
+# Build for production  
+bun run build
+
+# Run built version
+bun start
+
+# Run tests
+bun test
 ```
 
-### Configuration
-
-```bash
-# Set up environment variables
-export OPENROUTER_API_KEY="your_api_key_here"
-
-# Or create .env file
-echo "OPENROUTER_API_KEY=your_api_key_here" > .env
-
-# Initialize the database
-alex init
-```
-
-### Basic Usage
-
-```bash
-# Run a quick benchmark (50 questions)
-alex benchmark run --model openai/gpt-3.5-turbo --size quick
-
-# Run a standard benchmark (200 questions)
-alex benchmark run --model openai/gpt-4 --size standard
-
-# Compare multiple models
-alex benchmark compare --models "openai/gpt-3.5-turbo,openai/gpt-4" --size quick
-
-# View benchmark history
-alex benchmark history --model openai/gpt-4
-
-# Generate a report
-alex benchmark report --run-id 1 --format markdown
-```
-
-## 📊 Sample Output
-
-### Benchmark Results Summary
-
-```
-┌─────────────────┬──────────┬─────────────┬──────────────┬─────────────┐
-│ Model           │ Accuracy │ Avg Time    │ Cost/Query   │ Consistency │
-├─────────────────┼──────────┼─────────────┼──────────────┼─────────────┤
-│ gpt-4-turbo     │ 73.2%    │ 1,240ms     │ $0.003       │ 0.89        │
-│ claude-3-sonnet │ 71.8%    │ 980ms       │ $0.002       │ 0.92        │
-│ gpt-3.5-turbo   │ 64.5%    │ 650ms       │ $0.001       │ 0.85        │
-└─────────────────┴──────────┴─────────────┴──────────────┴─────────────┘
-
-Category Performance:
-• Science & Technology: GPT-4 (78%) > Claude-3 (75%) > GPT-3.5 (68%)
-• History: Claude-3 (74%) > GPT-4 (72%) > GPT-3.5 (63%)
-• Literature: GPT-4 (69%) > Claude-3 (67%) > GPT-3.5 (59%)
-```
-
-## 📈 Implementation Status
-
-### ✅ Completed Features
-
-- **Core Infrastructure**: Complete project setup with modular architecture
-- **Data Pipeline**: Kaggle integration, preprocessing, and statistical sampling
-- **Model Integration**: OpenRouter API client with support for 20+ models
-- **Benchmark Engine**: Complete benchmarking workflow with async processing
-- **Evaluation System**: Fuzzy answer matching, grading, and metrics calculation
-- **Database Layer**: SQLite with SQLAlchemy ORM and migration support
-- **CLI Interface**: Comprehensive command-line interface with Rich formatting
-- **Reporting System**: Multiple output formats (terminal, markdown, JSON)
-- **Testing Suite**: Unit, integration, and end-to-end tests with 80%+ coverage
-- **Documentation**: Complete user guide and API reference
-
-### 🚧 Current Development
-
-- **Performance Optimization**: Memory usage and concurrent processing improvements
-- **Web Interface**: Optional FastAPI-based REST API (future enhancement)
-- **Advanced Analytics**: Trend analysis and model comparison tools
-
-### 📋 Usage Examples
-
-#### Single Model Benchmark
-
-```bash
-# Quick test with GPT-3.5-turbo
-alex benchmark run --model openai/gpt-3.5-turbo --size quick
-
-# Comprehensive evaluation with GPT-4
-alex benchmark run \
-  --model openai/gpt-4 \
-  --size comprehensive \
-  --name "GPT-4 Comprehensive Test" \
-  --report-format markdown \
-  --output gpt4_report.md
-```
-
-#### Model Comparison
-
-```bash
-# Compare popular models
-alex benchmark compare \
-  --models "openai/gpt-3.5-turbo,openai/gpt-4,anthropic/claude-3-haiku" \
-  --size standard \
-  --concurrent-limit 3
-
-# Generate comparison report
-alex benchmark compare \
-  --models "openai/gpt-4,anthropic/claude-3-sonnet" \
-  --size quick \
-  --report-format json \
-  --output model_comparison.json
-```
-
-#### Advanced Configuration
-
-```bash
-# Custom benchmark with specific settings
-alex benchmark run \
-  --model openai/gpt-4 \
-  --size custom \
-  --sample-size 500 \
-  --timeout 120 \
-  --grading-mode lenient \
-  --name "Custom Benchmark" \
-  --description "Testing with custom parameters"
-```
-
-#### Data Management
-
-```bash
-# Initialize dataset
-alex data init
-
-# Sample questions by category
-alex data sample \
-  --category "SCIENCE" \
-  --size 100 \
-  --output science_questions.json
-
-# View dataset statistics
-alex data stats
-```
-
-#### Model Management
-
-```bash
-# List all available models
-alex models list
-
-# Test model connectivity
-alex models test --model openai/gpt-3.5-turbo
-
-# Estimate costs
-alex models costs --model openai/gpt-4 --questions 1000
-```
-
-## 🧪 Testing & Verification
-
-### Quick System Verification
-
-Verify your alex-treBENCH installation is working correctly:
-
-```bash
-# Quick verification script
-./scripts/quick_test.sh
-
-# Or run the smoke test directly
-python scripts/smoke_test.py
-
-# Using Make
-make smoke-test
-```
-
-### Smoke Test
-
-The smoke test provides complete end-to-end verification of the alex-treBENCH system:
-
-- ✅ **Database initialization** - Creates and verifies database schema
-- ✅ **Sample data loading** - Loads test questions into database
-- ✅ **API connectivity** - Tests OpenRouter integration (real or simulated)
-- ✅ **Benchmark execution** - Runs minimal benchmark with 3 questions
-- ✅ **Report generation** - Creates and validates performance reports
-- ✅ **System health** - Verifies all critical components
-
-**Cost**: ~$0.001-0.005 per run with API key, $0.00 in simulation mode
-
-### Test Categories
-
-```bash
-# Comprehensive test suite
-make test              # All tests
-make test-coverage     # With coverage report
-make test-unit         # Unit tests only
-make test-integration  # Integration tests
-make test-e2e          # End-to-end tests
-
-# Component-specific testing
-make test-agents       # Individual component tests
-python scripts/test_agents.py
-```
-
-### Expected Output (Smoke Test Success)
-
-```
-🔥 alex-treBENCH Smoke Test
-Running complete end-to-end system verification
-
-✅ Setting up test environment...
-✅ Initializing database...
-✅ Loading sample data...
-✅ Running minimal benchmark...
-✅ Generating report...
-✅ Verifying system health...
-
-🎉 Smoke Test PASSED
-alex-treBENCH system is working correctly!
-```
-
-### Continuous Integration
-
-Tests automatically run on:
-
-- Pull requests to main/develop branches
-- Pushes to main/develop branches
-- Manual workflow triggers with optional real API testing
-
-See [`.github/workflows/smoke-test.yml`](.github/workflows/smoke-test.yml) for CI configuration.
-
-### Full Testing Documentation
-
-For comprehensive testing information, troubleshooting, and advanced test scenarios:
-
-📖 **[Complete Testing Guide](docs/TESTING.md)**
-
-Covers:
-
-- Detailed test agent documentation
-- Troubleshooting common issues
-- Cost management strategies
-- Performance testing
-- Writing new tests
-- CI/CD integration
-
-## 🙏 Acknowledgments
-
-- **Kaggle**: For providing the Jeopardy dataset (aravindram11/jeopardy-dataset-updated)
-- **OpenRouter**: For unified language model API access
-- **Jeopardy!**: For creating the foundational question format that makes this benchmarking meaningful
-
-## 📞 Support
-
-For questions, issues, or contributions:
-
-- 📖 Read the [User Guide](docs/USER_GUIDE.md) for detailed usage instructions
-- 🔧 Check the [API Reference](docs/API_REFERENCE.md) for technical details
-- 🐛 Create an issue in the GitHub repository
-- 💬 Review the technical documentation in [`TECHNICAL_SPEC.md`](TECHNICAL_SPEC.md)
-
----
-
-**🎉 Implementation Complete**: This system is now fully implemented and production-ready. All core features are functional with comprehensive testing and documentation.
+## Environment Variables
+
+- `OPENROUTER_API_KEY`: Your OpenRouter API key (required)
+- `JEOPARDY_CACHE_DIR`: Custom cache directory (optional)
+
+## Comparison to Original Tools
+
+| Feature | org (Jeopardy) | skatebench | app (This Tool) |
+|---------|----------------|------------|-----------------|
+| **Complexity** | Very High (15k+ LOC) | Medium (3k LOC) | **Low-Medium (1.5k LOC)** |
+| **Setup** | Complex config | Simple | **Very Simple** |
+| **Evaluation** | 6 strategies | 1 strategy | **4 strategies** |
+| **Caching** | Database | File-based | **File-based** |
+| **UI** | CLI + Progress | Terminal UI | **CLI + Spinners** |
+| **Models** | Plugin system | Direct SDK | **Direct SDK** |
+
+This tool strikes the right balance: more capable than skatebench, simpler than org.
