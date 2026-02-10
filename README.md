@@ -1,415 +1,335 @@
-# alex-treBENCH!
+# alex-treBENCH! 🎯
 
-Jeopardy Language Model Benchmarking System.
+**Jeopardy Language Model Benchmarking System**
 
 🎮 Benchmark LLMs with Jeopardy! questions. Tournament-style testing for large language models. What is... your model's true performance?
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Bun Ready](https://img.shields.io/badge/bun-ready-orange.svg)](https://bun.sh/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-passing-green.svg)](tests/)
+[![TypeScript](https://img.shields.io/badge/typescript-powered-blue.svg)](https://www.typescriptlang.org/)
 
-A comprehensive benchmarking application that evaluates language models using Jeopardy questions from Kaggle, providing statistically significant and repeatable performance analysis through OpenRouter's API.
+A lightning-fast benchmarking system that evaluates language models using authentic Jeopardy! questions, delivering tournament-style competition results with statistical precision and entertaining flair.
 
-## 🎯 Project Overview
+> **Note**: This project now uses [Bun](https://bun.sh) as the JavaScript runtime and package manager for blazing-fast performance and an improved developer experience.
 
-This system is designed to:
+## 🏆 What is... alex-treBENCH?
 
-- ✅ Test multiple language models simultaneously using authentic Jeopardy questions
-- ✅ Provide statistically significant benchmarking with proper sampling methodologies
-- ✅ Measure key performance metrics: accuracy, response speed, cost efficiency, and consistency
-- ✅ Generate comprehensive reports with category and difficulty-level analysis
-- ✅ Support both CLI interface and future web interface expansion
+This system transforms LLM evaluation into an engaging tournament experience:
 
-## 📋 Key Features
+- ✅ **Tournament Mode**: Pit multiple language models against each other in head-to-head Jeopardy! competition
+- ✅ **Smart Evaluation**: Multiple answer-matching strategies handle the quirks of "What is..." format responses
+- ✅ **Lightning Fast**: Powered by Bun runtime with intelligent caching to minimize costs and maximize speed
+- ✅ **Real-time Drama**: Watch models compete with live progress bars and instant scoring
+- ✅ **Cost Conscious**: Smart caching and sampling keep your API budget happy
+- ✅ **Professional Results**: Generate comprehensive reports worthy of a game show finale
 
-### Core Capabilities
+## 🎯 Key Features
 
-- **Statistical Sampling**: Scientifically valid question selection ensuring 95% confidence level
-- **Fuzzy Answer Matching**: Intelligent answer evaluation handling variations and formats
-- **Multi-Model Support**: Concurrent testing of 5-10 language models via OpenRouter API
-- **Comprehensive Metrics**: Accuracy, latency, tokens/second, cost analysis, and consistency tracking
-- **Category Analysis**: Performance breakdown by Jeopardy categories and difficulty levels
-- **Reproducible Results**: Deterministic benchmarking with configurable parameters
+### Tournament Capabilities
 
-### Performance Metrics Tracked
+- **Multi-Model Showdowns**: Test 2-10 language models simultaneously via OpenRouter
+- **Smart Question Selection**: Automatic sampling from authentic Jeopardy! datasets
+- **Live Competition Feed**: Real-time terminal updates as models battle for supremacy
+- **Podium Rankings**: Clear winner determination with accuracy, speed, and cost metrics
+- **Replay System**: Intelligent result caching avoids duplicate API calls
 
-- Response accuracy (correct/incorrect with confidence scoring)
-- Response speed (latency and tokens per second)
-- Cost per query and cost-effectiveness ratios
-- Model consistency across similar question types
-- Category-specific performance analysis
-- Difficulty-level performance based on Jeopardy dollar values
+### Evaluation Excellence
 
-## 🏗️ Architecture Overview
+The system uses tournament-grade evaluation with multiple strategies:
 
-### System Components
+1. **🎯 Exact Match**: Perfect accuracy for precise responses
+2. **🎪 Jeopardy Format**: Handles "What is..." and "Who is..." responses like a pro
+3. **🔍 Substring Detection**: Finds correct answers buried in verbose responses  
+4. **📝 Word Matching**: Matches significant terms (70% threshold)
+5. **🌟 Fuzzy Logic**: Character similarity matching (80% threshold)
 
-```mermaid
-graph TB
-    A[Data Ingestion Layer] --> B[Question Selection Engine]
-    B --> C[Model Testing Engine]
-    C --> D[Answer Evaluation Engine]
-    D --> E[Metrics Calculation Engine]
-    E --> F[Results Storage Layer]
-    F --> G[Reporting & Analytics]
+### Performance Metrics
 
-    H[OpenRouter API] --> C
-    I[Kaggle Dataset] --> A
-    J[SQLite Database] --> F
-```
+Track what matters in the tournament:
+- **Accuracy Rate**: Correct responses / total questions
+- **Response Speed**: Average time per question
+- **Cost Efficiency**: API costs per correct answer
+- **Token Usage**: Input/output token consumption
+- **Consistency**: Performance variance across question types
 
-### Technology Stack
-
-- **Backend**: Python 3.8+ with async/await support
-- **Database**: SQLite with SQLAlchemy ORM
-- **API Integration**: OpenRouter via aiohttp
-- **Data Processing**: Pandas, NumPy for statistical analysis
-- **Text Matching**: FuzzyWuzzy with Levenshtein distance
-- **CLI Interface**: Click with Rich for enhanced output
-- **Testing**: Pytest with async support
-
-## 📁 Project Structure
-
-```
-alex-trebench/
-├── config/                    # Configuration files (YAML)
-│   ├── default.yaml           # Main configuration
-│   └── models/                # Model-specific settings
-├── src/
-│   ├── main.py                # CLI entry point (alex command)
-│   ├── core/                  # Foundation components
-│   ├── data/                  # Data ingestion and preprocessing
-│   ├── models/                # LLM API clients and adapters
-│   ├── evaluation/            # Answer matching and grading
-│   ├── benchmark/             # Execution engine and reporting
-│   ├── storage/               # Database models and repositories
-│   ├── cli/                   # Command-line interface
-│   ├── commands/              # Command implementations
-│   └── utils/                 # Shared utilities
-├── tests/                     # Comprehensive test suite
-│   ├── unit/                  # Unit tests
-│   ├── integration/           # Integration tests
-│   └── e2e/                   # End-to-end tests
-├── docs/                      # Documentation
-│   ├── USER_GUIDE.md          # Complete user guide
-│   └── API_REFERENCE.md       # API documentation
-├── scripts/                   # Utility scripts
-├── examples/                  # Usage examples
-└── data/                      # Local data storage and cache
-```
-
-## 📖 Documentation
-
-### User Documentation
-
-- **[User Guide](docs/USER_GUIDE.md)**: Complete user guide with installation, configuration, and usage examples
-- **[API Reference](docs/API_REFERENCE.md)**: Comprehensive API documentation with code examples
-
-### Technical Documentation
-
-- **[Technical Specification](TECHNICAL_SPEC.md)**: Complete system architecture, database schema, algorithms, and API integration patterns
-- **[Project Structure](PROJECT_STRUCTURE.md)**: Detailed directory organization, module responsibilities, and technology stack
-- **[Implementation Roadmap](ROADMAP.md)**: Development phases, priorities, and delivery timeline
-
-### Key Specifications
-
-#### Statistical Sampling
-
-- **Sample Size**: 1000 questions for statistical significance (95% confidence, 5% margin of error)
-- **Stratified Sampling**: Proportional representation across categories and difficulty levels
-- **Reproducibility**: Configurable random seed for consistent benchmark runs
-
-#### Answer Evaluation Methodology
-
-- **Multi-level Matching**: Exact match, normalized comparison, and semantic similarity
-- **Fuzzy Scoring**: Weighted combination of similarity metrics with confidence thresholds
-- **Format Flexibility**: Handles Jeopardy answer format variations and common response patterns
-
-#### Performance Metrics
-
-```python
-# Core metrics calculated
-accuracy_rate = correct_answers / total_questions
-avg_response_time = mean(response_times_ms)
-tokens_per_second = mean(tokens_generated / response_time_seconds)
-cost_per_correct = total_cost / correct_answers
-consistency_score = 1 - std_deviation(response_times) / mean(response_times)
-```
-
-## 🚀 Quick Start
+## 🚀 Quick Tournament Setup
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- uv (recommended) or pip for package management
-- OpenRouter API key (get one at [openrouter.ai](https://openrouter.ai))
-- Internet connection for API access
+- [Bun](https://bun.sh) runtime (latest version recommended)
+- OpenRouter API key ([get one here](https://openrouter.ai))
+- Internet connection for the competition
 
 ### Installation
 
 ```bash
-# Clone the repository
+# Clone the tournament system
 git clone <repository-url>
-cd alex-trebench
+cd alex-treBENCH
 
-# Install using uv (recommended)
-uv pip install -e .
-
-# Or using pip
-pip install -e .
+# Install with lightning speed
+bun install
 ```
 
-### Configuration
+### Competition Setup
 
 ```bash
-# Set up environment variables
-export OPENROUTER_API_KEY="your_api_key_here"
-
-# Or create .env file
+# Set your API key for tournament access
+export OPENROUTER_API_KEY=your_api_key_here
+# Or add to .env file for convenience
 echo "OPENROUTER_API_KEY=your_api_key_here" > .env
-
-# Initialize the database
-alex init
 ```
 
-### Basic Usage
+### Your First Tournament
 
 ```bash
-# Run a quick benchmark (50 questions)
-alex benchmark run --model openai/gpt-3.5-turbo --size quick
+# Download sample questions for a quick match
+bun run dev download --sample 50
 
-# Run a standard benchmark (200 questions)
-alex benchmark run --model openai/gpt-4 --size standard
-
-# Compare multiple models
-alex benchmark compare --models "openai/gpt-3.5-turbo,openai/gpt-4" --size quick
-
-# View benchmark history
-alex benchmark history --model openai/gpt-4
-
-# Generate a report
-alex benchmark report --run-id 1 --format markdown
+# Start your first tournament!
+bun run dev benchmark
 ```
 
-## 📊 Sample Output
+## 🎮 Tournament Commands
 
-### Benchmark Results Summary
-
-```
-┌─────────────────┬──────────┬─────────────┬──────────────┬─────────────┐
-│ Model           │ Accuracy │ Avg Time    │ Cost/Query   │ Consistency │
-├─────────────────┼──────────┼─────────────┼──────────────┼─────────────┤
-│ gpt-4-turbo     │ 73.2%    │ 1,240ms     │ $0.003       │ 0.89        │
-│ claude-3-sonnet │ 71.8%    │ 980ms       │ $0.002       │ 0.92        │
-│ gpt-3.5-turbo   │ 64.5%    │ 650ms       │ $0.001       │ 0.85        │
-└─────────────────┴──────────┴─────────────┴──────────────┴─────────────┘
-
-Category Performance:
-• Science & Technology: GPT-4 (78%) > Claude-3 (75%) > GPT-3.5 (68%)
-• History: Claude-3 (74%) > GPT-4 (72%) > GPT-3.5 (63%)
-• Literature: GPT-4 (69%) > Claude-3 (67%) > GPT-3.5 (59%)
-```
-
-## 📈 Implementation Status
-
-### ✅ Completed Features
-
-- **Core Infrastructure**: Complete project setup with modular architecture
-- **Data Pipeline**: Kaggle integration, preprocessing, and statistical sampling
-- **Model Integration**: OpenRouter API client with support for 20+ models
-- **Benchmark Engine**: Complete benchmarking workflow with async processing
-- **Evaluation System**: Fuzzy answer matching, grading, and metrics calculation
-- **Database Layer**: SQLite with SQLAlchemy ORM and migration support
-- **CLI Interface**: Comprehensive command-line interface with Rich formatting
-- **Reporting System**: Multiple output formats (terminal, markdown, JSON)
-- **Testing Suite**: Unit, integration, and end-to-end tests with 80%+ coverage
-- **Documentation**: Complete user guide and API reference
-
-### 🚧 Current Development
-
-- **Performance Optimization**: Memory usage and concurrent processing improvements
-- **Web Interface**: Optional FastAPI-based REST API (future enhancement)
-- **Advanced Analytics**: Trend analysis and model comparison tools
-
-### 📋 Usage Examples
-
-#### Single Model Benchmark
+### Question Management
 
 ```bash
-# Quick test with GPT-3.5-turbo
-alex benchmark run --model openai/gpt-3.5-turbo --size quick
+# Download sample questions (perfect for testing)
+bun run dev download --sample 50
 
-# Comprehensive evaluation with GPT-4
-alex benchmark run \
-  --model openai/gpt-4 \
-  --size comprehensive \
-  --name "GPT-4 Comprehensive Test" \
-  --report-format markdown \
-  --output gpt4_report.md
+# Focus on specific categories (like the real show!)
+bun run dev download --sample 30 --category "SCIENCE"
+
+# Force fresh download (bypass cache)
+bun run dev download --force
 ```
 
-#### Model Comparison
+### Running Tournaments
 
 ```bash
-# Compare popular models
-alex benchmark compare \
-  --models "openai/gpt-3.5-turbo,openai/gpt-4,anthropic/claude-3-haiku" \
-  --size standard \
-  --concurrent-limit 3
+# Quick championship match with default contenders
+bun run dev benchmark
 
-# Generate comparison report
-alex benchmark compare \
-  --models "openai/gpt-4,anthropic/claude-3-sonnet" \
-  --size quick \
-  --report-format json \
-  --output model_comparison.json
+# Custom tournament with your favorite models
+bun run dev benchmark --models gpt-4o-mini claude-3-haiku gemini-2.0-flash
+
+# Extended tournament with more questions
+bun run dev benchmark --sample 100
+
+# Category-specific showdown
+bun run dev benchmark --category "HISTORY" --sample 25
+
+# High-speed competition (disable caching for fresh results)
+bun run dev benchmark --no-cache
+
+# Tournament on steroids (increase concurrency)
+bun run dev benchmark --concurrency 10
 ```
 
-#### Advanced Configuration
+### Competitor Information
 
 ```bash
-# Custom benchmark with specific settings
-alex benchmark run \
-  --model openai/gpt-4 \
-  --size custom \
-  --sample-size 500 \
-  --timeout 120 \
-  --grading-mode lenient \
-  --name "Custom Benchmark" \
-  --description "Testing with custom parameters"
+# View all available tournament contenders
+bun run dev models
 ```
 
-#### Data Management
+## 🏅 Tournament Results
+
+### Sample Championship Output
+
+```
+🎯 alex-treBENCH Tournament Results
+══════════════════════════════════════════════
+
+🎮 Tournament: Quick Championship
+📊 Questions: 25 | Categories: Mixed | Duration: 2m 15s
+
+🏆 FINAL STANDINGS 🏆
+
+🥇 CHAMPION: gpt-4o-mini
+   📈 Accuracy: 84.0% (21/25 correct)
+   ⚡ Speed: 1250ms average response
+   💰 Cost: $0.0023 (most efficient!)
+   
+🥈 RUNNER-UP: gemini-2.0-flash  
+   📈 Accuracy: 80.0% (20/25 correct)
+   ⚡ Speed: 1100ms average response
+   💰 Cost: $0.0019
+   
+🥉 THIRD PLACE: claude-3-haiku
+   📈 Accuracy: 76.0% (19/25 correct)
+   ⚡ Speed: 980ms average response (fastest!)
+   💰 Cost: $0.0015 (most economical!)
+
+🎪 Tournament Highlights:
+• Most challenging category: SCIENCE (62% avg accuracy)
+• Easiest category: POTPOURRI (88% avg accuracy)
+• Closest match: Questions 12-15 (all models within 5%)
+• Speed demon: claude-3-haiku dominated response times
+
+Results saved to: ./results/tournament_2024_01_15_143022.json
+```
+
+## 🏗️ Tournament Architecture
+
+### Design Philosophy
+
+alex-treBENCH combines the best elements from multiple benchmarking approaches:
+
+**🎯 From Professional Jeopardy! Systems:**
+- Robust question downloading and intelligent caching
+- Multiple answer evaluation strategies for real-world accuracy
+- Professional error handling and recovery
+
+**⚡ From Modern Benchmarking Tools:**
+- Clean, functional TypeScript architecture with AI SDK integration
+- Real-time progress feedback and tournament atmosphere
+- Smart result caching to minimize API costs
+
+**🚀 Simplified Excellence:**
+- Reduced complexity while maintaining tournament-grade functionality
+- Focus on user experience and entertainment value
+- Clear separation of concerns with modular design
+
+### File Structure
+
+```
+alex-treBENCH/
+├── src/
+│   ├── data/
+│   │   └── downloader.ts     # Question acquisition system
+│   ├── models/
+│   │   └── config.ts         # Tournament competitor configurations
+│   ├── bench/
+│   │   ├── evaluator.ts      # Answer evaluation and scoring
+│   │   └── runner.ts         # Tournament engine and orchestration
+│   └── index.ts              # Tournament command center
+├── results/                  # Tournament archives
+├── cache/                    # Question and result cache
+├── package.json              # Tournament manifest
+└── README.md                 # This guide to glory!
+```
+
+## 🎯 Available Competitors
+
+Currently supporting tournament-ready models via OpenRouter:
+
+### 🏆 Championship Tier
+- **OpenAI**: GPT-4 Turbo, GPT-4o, O1 Preview/Mini
+- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Opus
+- **Google**: Gemini 2.0 Flash, Gemini 1.5 Pro
+
+### 🥇 Professional Tier  
+- **OpenAI**: GPT-3.5 Turbo, GPT-4o Mini
+- **Anthropic**: Claude 3 Haiku, Claude 3 Sonnet
+- **Meta**: Llama 3.1 405B, Llama 3.1 70B
+- **Google**: Gemini 1.5 Flash
+
+### 🥉 Challenger Tier
+- **DeepSeek**: DeepSeek V2.5, DeepSeek Coder
+- **Qwen**: Qwen 2.5 72B, Qwen 2.5 32B
+- **Mistral**: Mistral Large, Mistral 7B
+- **Others**: Many more available through OpenRouter
+
+## 💰 Tournament Budget Management
+
+Keep your tournament costs under control:
+
+- **🎯 Smart Caching**: Results cached by model + question hash
+- **📊 Strategic Sampling**: Start with smaller question sets
+- **⚡ Concurrency Control**: Limit simultaneous API requests
+- **📈 Usage Tracking**: Monitor costs per model in real-time
+- **🎮 Quick Matches**: Use `--sample 25` for fast, cheap tournaments
+
+### Cost Examples (Approximate)
+- **Quick Tournament** (25 questions, 3 models): ~$0.05-0.15
+- **Standard Tournament** (100 questions, 5 models): ~$0.20-0.60  
+- **Championship** (500 questions, 10 models): ~$1.00-3.00
+
+## 🛠️ Tournament Configuration
+
+Key settings in `src/models/config.ts`:
+
+```typescript
+export const CONFIG = {
+  maxConcurrency: 5,           // Simultaneous API calls
+  testRunsPerModel: 1,         // Repetitions for consistency
+  timeoutSeconds: 30,          // Request timeout
+  defaultSampleSize: 50,       // Default question count
+  cacheResults: true,          // Enable intelligent caching
+  showProgress: true           // Live tournament feed
+}
+```
+
+## 🎪 Development & Contributing
+
+### Setup Your Development Tournament
 
 ```bash
-# Initialize dataset
-alex data init
+# Install dependencies at lightning speed
+bun install
 
-# Sample questions by category
-alex data sample \
-  --category "SCIENCE" \
-  --size 100 \
-  --output science_questions.json
+# Run in development mode
+bun run dev
 
-# View dataset statistics
-alex data stats
+# Build for production tournaments
+bun run build
+
+# Run the championship build
+bun start
+
+# Test the tournament system
+bun test
 ```
 
-#### Model Management
+### Environment Variables
 
-```bash
-# List all available models
-alex models list
+- **`OPENROUTER_API_KEY`**: Your tournament access key (required)
+- **`JEOPARDY_CACHE_DIR`**: Custom cache location (optional)
+- **`TOURNAMENT_LOG_LEVEL`**: Logging verbosity (optional)
 
-# Test model connectivity
-alex models test --model openai/gpt-3.5-turbo
+## 🏆 Tournament Comparison
 
-# Estimate costs
-alex models costs --model openai/gpt-4 --questions 1000
-```
+| Feature | Original Complex | Simple Bench | **alex-treBENCH** |
+|---------|------------------|--------------|-------------------|
+| **Setup Complexity** | Very High | Simple | **Super Simple** |
+| **Tournament Feel** | Technical | Basic | **🎯 Engaging & Fun** |
+| **Evaluation Quality** | 6 strategies | 1 strategy | **🏆 4 Smart Strategies** |
+| **Performance** | Slow | Fast | **⚡ Lightning Fast** |
+| **Cost Control** | Basic | Good | **💰 Excellent** |
+| **User Experience** | CLI | Terminal | **🎮 Tournament Drama** |
+| **Result Presentation** | Text | Plain | **🏅 Championship Style** |
 
-## 🧪 Testing & Verification
+## 🎯 What is... Coming Next?
 
-### Quick System Verification
+### 🚀 Planned Tournament Features
+- **Category Championships**: Specialized tournaments by subject
+- **Speed Rounds**: Lightning-fast evaluation challenges  
+- **Historical Tracking**: Tournament season statistics
+- **Web Interface**: Browser-based tournament viewing
+- **Custom Datasets**: Import your own question sets
 
-Verify your alex-treBENCH installation is working correctly:
+## 🙏 Tournament Acknowledgments
 
-```bash
-# Quick verification script
-./scripts/quick_test.sh
+- **🏆 Jeopardy!**: For creating the ultimate question-and-answer format
+- **📊 Kaggle**: For providing authentic Jeopardy! datasets
+- **🚀 OpenRouter**: For unified access to tournament-worthy language models
+- **⚡ Bun**: For making JavaScript fast enough for real-time tournaments
 
-# Or run the smoke test directly
-python scripts/smoke_test.py
+## 📞 Tournament Support
 
-# Using Make
-make smoke-test
-```
+Need help running your tournaments?
 
-### Smoke Test
-
-The smoke test provides complete end-to-end verification of the alex-treBENCH system:
-
-- ✅ **Database initialization** - Creates and verifies database schema
-- ✅ **Sample data loading** - Loads test questions into database
-- ✅ **API connectivity** - Tests OpenRouter integration (real or simulated)
-- ✅ **Benchmark execution** - Runs minimal benchmark with 3 questions
-- ✅ **Report generation** - Creates and validates performance reports
-- ✅ **System health** - Verifies all critical components
-
-**Cost**: ~$0.001-0.005 per run with API key, $0.00 in simulation mode
-
-### Test Categories
-
-```bash
-# Comprehensive test suite
-make test              # All tests
-make test-coverage     # With coverage report
-make test-unit         # Unit tests only
-make test-integration  # Integration tests
-make test-e2e          # End-to-end tests
-
-# Component-specific testing
-make test-agents       # Individual component tests
-python scripts/test_agents.py
-```
-
-### Expected Output (Smoke Test Success)
-
-```
-🔥 alex-treBENCH Smoke Test
-Running complete end-to-end system verification
-
-✅ Setting up test environment...
-✅ Initializing database...
-✅ Loading sample data...
-✅ Running minimal benchmark...
-✅ Generating report...
-✅ Verifying system health...
-
-🎉 Smoke Test PASSED
-alex-treBENCH system is working correctly!
-```
-
-### Continuous Integration
-
-Tests automatically run on:
-
-- Pull requests to main/develop branches
-- Pushes to main/develop branches
-- Manual workflow triggers with optional real API testing
-
-See [`.github/workflows/smoke-test.yml`](.github/workflows/smoke-test.yml) for CI configuration.
-
-### Full Testing Documentation
-
-For comprehensive testing information, troubleshooting, and advanced test scenarios:
-
-📖 **[Complete Testing Guide](docs/TESTING.md)**
-
-Covers:
-
-- Detailed test agent documentation
-- Troubleshooting common issues
-- Cost management strategies
-- Performance testing
-- Writing new tests
-- CI/CD integration
-
-## 🙏 Acknowledgments
-
-- **Kaggle**: For providing the Jeopardy dataset (aravindram11/jeopardy-dataset-updated)
-- **OpenRouter**: For unified language model API access
-- **Jeopardy!**: For creating the foundational question format that makes this benchmarking meaningful
-
-## 📞 Support
-
-For questions, issues, or contributions:
-
-- 📖 Read the [User Guide](docs/USER_GUIDE.md) for detailed usage instructions
-- 🔧 Check the [API Reference](docs/API_REFERENCE.md) for technical details
-- 🐛 Create an issue in the GitHub repository
-- 💬 Review the technical documentation in [`TECHNICAL_SPEC.md`](TECHNICAL_SPEC.md)
+- 🎯 **Quick Start Issues**: Check your API key and internet connection
+- 🏆 **Tournament Questions**: Review the command examples above  
+- 🚀 **Feature Requests**: Open an issue in the GitHub repository
+- 💬 **Bug Reports**: Include your tournament logs and configuration
 
 ---
 
-**🎉 Implementation Complete**: This system is now fully implemented and production-ready. All core features are functional with comprehensive testing and documentation.
+**🎉 Ready to Tournament!** 
+
+What is... the champion in your next LLM tournament? Fire up alex-treBENCH and find out! 🏆
+
+*"Thank you for playing alex-treBENCH! We have some lovely parting gifts..."* 🎁
